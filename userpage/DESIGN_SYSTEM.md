@@ -1,162 +1,150 @@
-# SocialTwin / ㈜옴니노드 — 디자인 시스템 가이드
+# SocialTwin / ㈜옴니노드 — 프리미엄 B2B 엔터프라이즈 디자인 시스템 가이드
 
-다른 페이지·사이트에 **메인 페이지와 동일한 룩앤필**을 적용할 때 참고하는 문서입니다. 실제 구현은 `styles.css`가 단일 소스입니다. 이 파일은 **변수·패턴·HTML 골격**을 요약합니다.
+다른 서비스 페이지를 메인 페이지(`index.html`)와 동일한 쌍용건설(SSYENC) 스타일의 **웅장하고 무게감 있는 기업형 레이아웃**으로 리디자인할 때 참고하는 핵심 가이드라인 문서입니다. 
 
----
-
-## 1. 전체 인상
-
-- **테마:** 다크 네이비 베이스 + 오렌지/피치 액센트(SocialTwin 브랜드).
-- **톤:** B2B/SaaS 랜딩 — 여백 넉넉, 카드형 섹션, 그라데이션 포인트.
-- **기술 스택:** 순수 HTML/CSS/JS. 레이아웃은 Flexbox + CSS Grid.
+실제 구현은 `styles.css`에 정의된 `.ss-*` (Social Simulation / Ssangyong Style) 접두사 클래스들이 단일 소스로 작동합니다.
 
 ---
 
-## 2. 필수 연결 (새 HTML 페이지 최소 설정)
+## 1. 전체 룩앤필 (Look & Feel)
 
-`index.html`과 동일하게 `<head>`에 다음을 넣습니다.
+- **테마 컬러:** 다크 네이비 / 딥 블루(신뢰, 기업) 베이스 + 오렌지/시안(혁신, 하이테크) 포인트 컬러.
+- **레이아웃 구조:** 좌우 여백을 가득 채우는 풀 블리드(Full-bleed) 박스형 섹션, 거대한 텍스트, 화면에 꽉 차는 풀스크린 히어로.
+- **클래스 네이밍 규칙:** 새로 추가된 모든 엔터프라이즈 레이아웃과 컴포넌트는 `.ss-` 접두사로 시작됩니다 (예: `.ss-hero`, `.ss-vision`, `.ss-b-panel`).
+
+---
+
+## 2. 필수 환경 (새 HTML 페이지 기본 구조)
+
+`index.html` 및 `socialtwin-detail.html`과 동일하게 `<head>`에 다음 폰트와 스타일을 넣어야 합니다.
 
 ```html
-<link rel="stylesheet" href="styles.css?v=2" />
+<link rel="stylesheet" href="styles.css?v=s2" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Noto+Sans+KR:wght@300;400;600;700;800;900&display=swap" rel="stylesheet" />
 ```
 
-- **본문:** `body`는 별도 클래스 없이도 기본 다크 배경·본문 색이 적용됩니다.
-- **고정 네비 아래 첫 섹션:** `index`와 같이 히어로가 없다면, 첫 섹션에 상단 패딩을 충분히 주거나 `socialtwin-detail.html`처럼 `body.page-socialtwin-detail .technology { padding-top: 120px; }` 패턴을 복제합니다.
+- **상단 여백 (GNB):** 상단 고정 투명 내비게이션(`.nav`, `id="nav"`) 아래에 콘텐츠가 들어가므로 첫 섹션은 크게 설정합니다.
 
 ---
 
-## 3. CSS 변수 (`:root`) — 색·반경·타이포
+## 3. 핵심 CSS 변수 (포인트 컬러)
 
-새 프로젝트로 옮길 때 **`styles.css` 맨 위 `:root` 블록을 그대로 복사**하면 팔레트가 동일해집니다.
+`styles.css`의 `:root`에 정의된 핵심 컬러 토큰을 활용합니다.
 
-| 토큰 | 용도 |
+| 토큰 | 용도 및 설명 |
 |-----|------|
-| `--bg-dark` `#192848` | 페이지 배경 |
-| `--bg-card` `#1d3060` | 카드·폼 배경 |
-| `--bg-card-2` `#162444` | 보조 카드/딥 배경 |
-| `--border` | 오렌지 톤 테두리(강조) |
-| `--border-soft` | 은은한 구분선 |
-| `--indigo` `#e8692a` | 주 액센트(링크·아이콘·포인트) |
-| `--cyan` `#f0a060` | 보조 액센트·태그 |
-| `--text-primary` `#f1f5f9` | 본문 밝은 글자 |
-| `--text-secondary` `#94a3b8` | 부연 설명 |
-| `--text-muted` `#475569` | 덜 강조 |
-| `--gradient-main` | 버튼·그라데이션 텍스트 |
-| `--gradient-glow` | 카드 호버 글로우 |
-| `--radius-sm` ~ `--radius-xl` | 8 ~ 32px |
-| `--font-body` | `'Noto Sans KR', 'Inter', sans-serif` |
-| `--transition` | `0.3s cubic-bezier(0.4, 0, 0.2, 1)` |
-
-**그라데이션 텍스트 클래스:** `.gradient-text` — 제목 강조에 사용.
+| `--indigo` (`#e8692a`) | 주 액센트 포인트 컬러 (강렬한 오렌지 톤). 버튼 배경, 태그, 강조 텍스트에 사용. |
+| `--cyan` (`#f0a060`) | 보조 액센트 컬러 (피치/시안 톤). `--indigo`와 혼합해 그라데이션으로 사용. |
+| `--gradient-main` | 좌측 상단에서 우측 하단으로 이어지는 메인 투톤 그라데이션. |
+| `--text-primary` (`#f1f5f9`) | 기본 화이트 텍스트. 다크 모드 특성상 대부분의 폰트는 흰색을 유지합니다. |
 
 ---
 
-## 4. 레이아웃
+## 4. 메인 레이아웃 및 섹션 패턴 (Layout Patterns)
 
-| 클래스 | 설명 |
-|--------|------|
-| `.container` | `max-width: 1200px`, 좌우 `24px` 패딩. 섹션 내 콘텐츠는 이 안에 둡니다. |
+다른 서비스 페이지를 구성할 때는 아래의 4가지 주요 섹션 클래스 패턴을 조합하여 페이지를 만듭니다.
 
-섹션별로 `padding: 100px 0` 전후 여백이 많습니다. 새 섹션을 추가할 때 기존 `.services`, `.market` 등과 동일한 리듬을 맞추려면 **세로 80~100px 대**를 참고합니다.
-
----
-
-## 5. 타이포그래피
-
-- **본문:** `line-height: 1.7`, 색 `var(--text-primary)` 또는 설명은 `var(--text-secondary)`.
-- **섹션 머리말 패턴 (가운데 정렬 블록):**
-  - `.section-eyebrow` — 소제목, 대문자 느낌, 자간 넓음, 그라데이션 텍스트.
-  - `.section-title` — `clamp(2rem, 4vw, 3rem)`, 굵기 800.
-  - `.section-desc` — 한 단락 설명, `var(--text-secondary)`.
-
+### A. 히어로 섹션 (`.ss-hero`)
+페이지 첫 진입 시 브라우저 높이(100vh 또는 50vh)를 가득 채우는 서론 영역입니다.
 ```html
-<div class="section-header">
-  <p class="section-eyebrow">LABEL</p>
-  <h2 class="section-title">큰 제목</h2>
-  <p class="section-desc">설명 문단…</p>
-</div>
+<section class="ss-hero" style="min-height: 50vh;"> <!-- 서브페이지는 50vh 권장 -->
+  <div class="ss-hero-bg">
+    <!-- 비디오나 배경 이미지 오버레이 적용 -->
+    <div class="ss-hero-overlay" style="background: rgba(8, 12, 20, 0.8);"></div>
+  </div>
+  <div class="ss-hero-content container" style="text-align:center;">
+    <p class="ss-hero-subtitle">SUB TITLE</p>
+    <h1 class="ss-hero-title">거대한 메인 타이틀</h1>
+  </div>
+</section>
+```
+
+### B. 비전 / 특징 3열 그리드 (`.ss-vision`)
+상세 정보나 특징을 설명할 때 사용하는 3분할 텍스트 기반 카드 영역입니다.
+```html
+<section class="ss-vision">
+  <div class="container container-full"> <!-- 와이드하게 쓸 경우 container-full 사용 -->
+    <div class="ss-vision-title">
+      <h2>SECTION TITLE</h2>
+      <p>설명 문구 작성...</p>
+    </div>
+    <div class="ss-vision-grid">
+      <!-- 카드 1 -->
+      <div class="ss-vision-card">
+        <div class="ss-vision-text">
+          <h3>특징 1 타이틀</h3>
+          <p>특징 1 설명</p>
+        </div>
+        <div class="ss-vision-stat">
+          <span class="ss-stat-num">01</span>
+        </div>
+      </div>
+      <!-- 카드 2, 3 추가 (마지막 카드는 style="border-bottom:none;") -->
+    </div>
+  </div>
+</section>
+```
+
+### C. 수직 블록 비즈니스 패널 (`.ss-business`)
+화면 너비를 n등분하여 꽉 찬 배경 이미지 위에 글씨를 띄우는 강렬한 갤러리/서비스 소개형 섹션입니다.
+```html
+<section class="ss-business">
+  <div class="ss-business-panels">
+    <!-- 개별 패널 -->
+    <div class="ss-b-panel">
+      <!-- 센터/커버 배경 이미지 + 어두운 그라데이션 오버레이 필수 적용 -->
+      <div class="ss-b-bg" style="background: linear-gradient(to top, rgba(8,12,20,1) 0%, rgba(8,12,20,0.55) 100%), url('이미지/bg.png') center/cover no-repeat;"></div>
+      <div class="ss-b-content">
+        <h3>서비스명</h3>
+        <p>서비스 설명 작성...</p>
+      </div>
+    </div>
+    <!-- 필요한 만큼 추가 (flex: 1로 동일 비율로 늘어남) -->
+  </div>
+</section>
+```
+
+### D. 끈적이는 스크롤 (Sticky) 스펙트럼 (`.ss-masterpiece`)
+좌측에 제목을 고정시키고 우측에 리스트가 흘러가는 고급 인터랙션 레이아웃입니다. 프로세스 설명이나 기술 안내 등에 적합합니다.
+```html
+<section class="ss-masterpiece">
+  <div class="container ss-masterpiece-container">
+    <div class="ss-mp-left">
+      <h2>좌측 고정<br/>타이틀</h2>
+    </div>
+    <div class="ss-mp-right">
+      <!-- 우측 개별 스크롤 아이템 -->
+      <div class="ss-mp-item">
+        <div class="ss-mp-info">
+          <h4>아이템 타이틀</h4>
+          <p>내용...</p>
+        </div>
+        <!-- 우측 이미지 영역이 없을 경우 제거 가능 -->
+      </div>
+    </div>
+  </div>
+</section>
 ```
 
 ---
 
-## 6. 버튼
+## 5. 유틸리티 및 특수 요소 (UI Components)
 
-| 클래스 | 용도 |
-|--------|------|
-| `.btn` | 기본 (필수 조합) |
-| `.btn--primary` | 주요 CTA — 오렌지 그라데이션, 알약형 (`border-radius: 50px`) |
-| `.btn--ghost` | 보조 — 테두리만, 호버 시 은은한 오렌지 배경 |
-| `.btn--white` | 어두운 배경 위 히어로/배너용 흰 버튼 |
-| `.btn--full` | 폼 제출 등 전폭 |
-
-애니메이션: 호버 시 `translateY(-2px)` + 그림자 강화.
+- **출시예정(뱃지):** `.ss-business` 내부나 제목 옆에 붙이는 직사각형 뱃지.
+  `style="background:var(--indigo); color:#fff; padding:2px 6px; font-size:0.65rem; border-radius:4px; white-space:nowrap;"` 등 Inline 적용 가능.
+- **강렬한 CTA 버튼 배너:** `socialtwin-detail.html` 하단에 존재하는 `var(--indigo)` 배경의 꽉 찬 블록.
+  `class="cta-banner"`에 배경색(`background: var(--indigo)`)을 주고 흰색 폰트를 적용하면 깔끔한 행동 유도 섹션 완성.
+- **버튼 (`.ss-nav-btn` / `.ss-submit`):**
+  주로 사각형(border-radius: 4px)의 각진 투명/솔리드 컬러 버튼 라인을 사용해 기업적인 느낌을 강화했습니다. 가벼운 `.btn--ghost` 둥근 알약형 버튼보다 각진 배치를 권장합니다.
 
 ---
 
-## 7. 네비게이션 패턴
+## 6. 기타 서비스 페이지 적용 튜토리얼 
 
-클래스 접두사 `.nav`, `.nav__inner`, `.nav__logo`, `.nav__links`, `.nav__cta`, `.nav__hamburger`, `.nav__mobile`.
-
-- **스크롤 시:** JS가 `#nav`에 `.scrolled`를 붙이면 반투명 배경 + blur.
-- **로고:** `.logo-product` / `.logo-company` 이중 텍스트 + `.logo-img` 아이콘.
-- 다른 페이지에서도 동일 마크업을 쓰면 스타일이 일치합니다. `main.js`의 스크롤·햄버거는 선택 사항(캔버스 없는 페이지도 동작하도록 방어 코드 있음).
-
----
-
-## 8. 카드·그리드 (대표 패턴)
-
-- **서비스 카드:** `.service-card`, 호버 시 살짝 떠오름 + 테두리 밝아짐. 오버레이 `::before`는 `pointer-events: none` 처리됨.
-- **2열 그리드:** `.services__grid` — `grid-template-columns: repeat(2, 1fr)`, `gap: 20px`.
-- **컴팩트 카드:** `.service-card--compact` — 패딩·타이틀 크기 살짝 축소.
-- **강조 카드:** `.service-card--featured` — 그라데이션 배경만 (레이아웃 2×2용으로 행 스팬은 제거된 상태).
-
-다른 페이지에 “같은 느낌의 카드”를 만들 때는 위 클래스를 재사용하거나, 배경 `var(--bg-card)` + `border-radius: var(--radius-lg)` + `border: 1px solid var(--border-soft)` 조합을 맞추면 됩니다.
-
----
-
-## 9. 폼 (문의 블록)
-
-- `.contact__form` — 카드형 배경, `border-radius: var(--radius-xl)`.
-- `.form__group`, `.form__row` — 라벨 + 입력. 입력 필드는 다크톤 배경에 얇은 테두리.
-- 스팸 허니팟: `.form__hp` (시각적으로 숨김).
-
----
-
-## 10. 스크롤 리빌 (선택)
-
-`main.js`가 `.pain-card`, `.service-card`, `.tech-card` 등에 `.reveal`을 붙이고, 교차 시 `.visible`을 추가합니다. 새 페이지에서 같은 애니메이션을 쓰려면:
-
-1. `main.js`의 `addReveal('셀렉터')`에 새 섹션 선택자를 추가하거나,
-2. 직접 요소에 `.reveal` 클래스를 주고 스크롤 옵저버를 연결합니다.
-
----
-
-## 11. 체크리스트 — 다른 사이트에 이 디자인만 가져갈 때
-
-1. [ ] `styles.css` 복사(또는 공통 CDN/빌드에 포함).
-2. [ ] Google Fonts 링크 동일하게 로드.
-3. [ ] `:root` 변수 수정 없이 쓰면 색이 100% 일치.
-4. [ ] `.container` + `.section-header` 패턴으로 섹션 제목 통일.
-5. [ ] CTA는 `.btn.btn--primary` 또는 맥락에 맞게 `.btn--ghost` / `.btn--white`.
-6. [ ] 고정 네비 사용 시 첫 콘텐츠에 상단 여백 확보.
-7. [ ] `main.js` 필요 여부: 네비 스크롤·모바일 메뉴·폼 AJAX·캔버스 히어로는 각각 독립 — 없는 기능은 해당 블록만 제외해도 됨.
-
----
-
-## 12. 파일 참조
-
-| 파일 | 역할 |
-|------|------|
-| `styles.css` | 전역 스타일 단일 소스 |
-| `index.html` | 메인 랜딩 구조·섹션 순서 참고 |
-| `socialtwin-detail.html` | 서브 페이지·네비 링크 패턴 참고 |
-| `main.js` | 네비, 스무스 스크롤(`a[href^="#"]`), 폼, 히어로 캔버스, 리빌 |
-
----
-
-## 13. 버전
-
-- 문서 기준: `styles.css`에 `?v=2` 쿼리로 캐시 무효화 중. 큰 디자인 변경 시 이 MD의 “섹션 번호”와 변수 표를 함께 갱신하는 것을 권장합니다.
+새로운 "공공기관 리포팅 서비스" 페이지(`example.html`)를 만든다면:
+1. `index.html` 파일을 복제(Copy)하여 기본 골격(Nav, Footer)을 그대로 가져옵니다.
+2. 중간의 `ss-vision`, `ss-business-panels`, `ss-masterpiece` 콘텐츠 영역들의 태그 내부 내용만 페이지 성격에 맞게 바꿉니다.
+3. 배경 사진(`url('이미지/...png')`)을 해당 서비스의 성격과 맞는 이미지로 교체합니다.
+4. 모든 영역은 검정색(다크 네이비)에 오렌지(`--indigo`) 포인트라는 테마를 일관되게 유지해야 합니다. 텍스트는 주로 흰색입니다.
