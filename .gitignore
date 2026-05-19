@@ -1,0 +1,55 @@
+# ────────────────── OS / Editor ──────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ────────────────── Secrets / Env ──────────────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ────────────────── Node / Next.js ──────────────────
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+.npm/
+.yarn/
+.pnpm-store/
+yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+
+# ────────────────── Python ──────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg
+*.egg-info/
+.Python
+venv/
+.venv/
+env/
+ENV/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ────────────────── 프로젝트 임시/캐시 ──────────────────
+tmp/
+*.log
+
+# ────────────────── 빌드 / 산출물 ──────────────────
+coverage/
+.coverage
+htmlcov/
