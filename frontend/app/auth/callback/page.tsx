@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Sparkles } from "lucide-react";
 import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
@@ -16,7 +16,27 @@ import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
  *  3) 사용자 대시보드로 이동
  *  4) `?error=...` 가 있으면 로그인 페이지로 되돌림
  */
+function CallbackLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center px-4">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-black/30 px-10 py-12 flex flex-col items-center gap-4 max-w-md w-full">
+        <Sparkles className="text-indigo-500 animate-pulse" size={28} />
+        <p className="text-sm text-slate-700">로그인 처리 중…</p>
+        <span className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+}
+
 export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<CallbackLoading />}>
+      <AuthCallbackInner />
+    </Suspense>
+  );
+}
+
+function AuthCallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
