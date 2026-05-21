@@ -82,42 +82,46 @@ function HeroMockup() {
 function StepMockup1() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-      <div className="text-xs text-slate-400 font-medium mb-2">조사 주제를 입력하세요</div>
-      <div className="flex gap-2 items-start bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-3">
-        <MessageSquare size={12} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-        <span className="text-xs text-indigo-700 leading-relaxed">20대 여성이 좋아할 카페 메뉴를 알고 싶어</span>
+      <div className="mb-2.5">
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">제품/서비스 정의</div>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+          <span className="text-[11px] text-slate-600 leading-tight">20대 여성을 위한 비건 카페</span>
+        </div>
       </div>
-      <div className="flex gap-1.5">
-        {["서울 직장인 점심", "MZ세대 패션 소비", "30대 헬스케어"].map((t) => (
-          <span key={t} className="px-2 py-1 bg-slate-100 rounded-full text-[9px] text-slate-500">{t}</span>
-        ))}
+      <div>
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">조사 니즈</div>
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5">
+          <span className="text-[11px] text-indigo-700 leading-tight">메뉴 선호도와 가격 민감도를 알고 싶어요</span>
+        </div>
       </div>
     </div>
   );
 }
 
 function StepMockup2() {
-  const steps = ["질문 의도 분석", "설문 문항 생성", "타겟 인구 설정"];
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-2.5">
         <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center">
           <Sparkles size={12} className="text-violet-600" />
         </div>
-        <span className="text-xs font-semibold text-slate-700">AI 설계 중...</span>
+        <span className="text-xs font-semibold text-slate-700">AI 설계 중</span>
+        <span className="ml-auto text-[10px] text-emerald-600 font-semibold">2/2</span>
       </div>
-      <div className="space-y-2">
-        {steps.map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${i < 2 ? "bg-indigo-500" : "bg-slate-200"}`}>
-              {i < 2 ? <Check size={9} className="text-white" /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />}
+      <div className="mb-2">
+        <div className="text-[10px] text-slate-400 font-semibold mb-1">📌 가설</div>
+        <div className="space-y-1">
+          {["가격보다 비건 인증을 더 중시한다", "SNS 후기가 방문 결정에 영향"].map((h) => (
+            <div key={h} className="flex items-start gap-1.5 bg-slate-50 rounded px-1.5 py-1">
+              <Check size={8} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span className="text-[10px] text-slate-700 leading-tight">{h}</span>
             </div>
-            <span className={`text-[11px] ${i < 2 ? "text-slate-700 font-medium" : "text-slate-400"}`}>{s}</span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className="mt-3 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-1.5 rounded-full w-[65%]" />
+      <div>
+        <div className="text-[10px] text-slate-400 font-semibold mb-1">📋 문항</div>
+        <div className="text-[10px] text-slate-500 leading-tight">총 12문항 자동 생성</div>
       </div>
     </div>
   );
@@ -126,22 +130,25 @@ function StepMockup2() {
 function StepMockup3() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-slate-700">응답 진행 중</span>
-        <span className="text-xs font-bold text-indigo-600">72%</span>
+      <div className="flex items-center gap-2 mb-2.5">
+        <Users size={13} className="text-sky-500" />
+        <span className="text-xs font-semibold text-slate-700">가상인구 매칭</span>
       </div>
-      <div className="bg-slate-100 rounded-full h-2 mb-3 overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full w-[72%]" />
+      <div className="space-y-1 mb-2.5">
+        {[
+          { label: "지역", val: "서울·경기" },
+          { label: "연령", val: "20-29" },
+          { label: "성별", val: "여성" },
+        ].map((r) => (
+          <div key={r.label} className="flex items-center justify-between text-[10px] bg-slate-50 rounded px-2 py-1">
+            <span className="text-slate-400">{r.label}</span>
+            <span className="text-slate-700 font-medium">{r.val}</span>
+          </div>
+        ))}
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-emerald-50 rounded-lg p-2.5 text-center">
-          <div className="text-sm font-bold text-emerald-700">358명</div>
-          <div className="text-[10px] text-emerald-500">응답 완료</div>
-        </div>
-        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
-          <div className="text-sm font-bold text-slate-600">142명</div>
-          <div className="text-[10px] text-slate-400">진행 중</div>
-        </div>
+      <div className="bg-emerald-50 rounded-lg p-2 flex items-center justify-between">
+        <span className="text-[10px] text-emerald-600 font-medium">응답 시뮬레이션</span>
+        <span className="text-xs font-bold text-emerald-700">500명</span>
       </div>
     </div>
   );
@@ -286,22 +293,40 @@ function FeatureVisual5() {
 }
 
 function FeatureVisual6() {
+  // 17개 시도 — 한반도 형태에 가깝게 배치 (정렬된 grid로 약식 표현)
+  const rows = [
+    ["서울", "인천", "경기", "강원"],
+    ["대전", "세종", "충북", "충남"],
+    ["광주", "전북", "전남"],
+    ["대구", "경북", "부산", "울산", "경남"],
+    ["제주"],
+  ];
   return (
-    <div className="relative h-48 bg-gradient-to-br from-rose-800 to-slate-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5ce?w=600&q=80&fit=crop"
-        alt="한국 지도"
-        fill
-        className="object-cover opacity-40"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-      <div className="absolute bottom-3 left-3 right-3">
-        <div className="grid grid-cols-3 gap-1.5">
-          {["서울", "경기", "부산", "대구", "인천", "제주"].map((r) => (
-            <div key={r} className="text-center py-1 bg-white/10 backdrop-blur-sm rounded-lg border border-white/15">
-              <span className="text-[10px] text-white font-medium">{r}</span>
+    <div className="relative h-48 bg-gradient-to-br from-indigo-600 via-violet-700 to-slate-900 rounded-xl overflow-hidden">
+      {/* 장식 — 부드러운 원형 글로우 */}
+      <div className="absolute top-0 left-1/4 w-32 h-32 bg-rose-400/20 rounded-full blur-2xl" />
+      <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl" />
+      {/* 그리드 점 — 지도 같은 배경 */}
+      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
+
+      <div className="relative h-full flex flex-col items-center justify-center px-4 py-3">
+        {/* 17개 시도 뱃지 — 행마다 가운데 정렬해 반도형 분포 느낌 */}
+        <div className="flex flex-col items-center gap-1 mb-2">
+          {rows.map((row, ri) => (
+            <div key={ri} className="flex gap-1 justify-center">
+              {row.map((r) => (
+                <span
+                  key={r}
+                  className="px-1.5 py-0.5 text-[9px] font-medium text-white bg-white/15 backdrop-blur-sm rounded border border-white/20"
+                >
+                  {r}
+                </span>
+              ))}
             </div>
           ))}
+        </div>
+        <div className="mt-1 text-center">
+          <div className="text-[10px] text-white/60 font-semibold tracking-widest">17 SIDO · KOSIS</div>
         </div>
       </div>
     </div>
@@ -404,32 +429,32 @@ const steps = [
     icon: <MessageSquare size={20} className="text-indigo-500" />,
     bg: "bg-indigo-50",
     num: "01",
-    title: "질문 한 문장 입력",
-    desc: "\"20대 여성이 좋아할 카페 메뉴를 알고 싶어\"처럼 자연어로 입력하면 됩니다.",
+    title: "제품 정의 + 조사 니즈 입력",
+    desc: "제품·서비스 정보와 알고 싶은 인사이트를 한 줄로 입력합니다.",
     mockup: <StepMockup1 />,
   },
   {
     icon: <Sparkles size={20} className="text-violet-500" />,
     bg: "bg-violet-50",
     num: "02",
-    title: "AI가 조사를 설계",
-    desc: "AI가 설문 방식, 문항 구성, 타겟 인구 조건을 자동으로 설계합니다.",
+    title: "AI가 가설·문항 자동 설계",
+    desc: "조사 가설을 도출하고, 검증을 위한 객관식 문항을 자동으로 생성합니다.",
     mockup: <StepMockup2 />,
   },
   {
     icon: <Users size={20} className="text-sky-500" />,
     bg: "bg-sky-50",
     num: "03",
-    title: "가상인구 분석 실행",
-    desc: "KOSIS 통계 기반 가상인구 500명+이 실시간으로 응답합니다.",
+    title: "가상인구 타겟 매칭 + 실행",
+    desc: "KOSIS 통계 기반 가상인구 중 타겟을 매칭해 즉시 응답 시뮬레이션을 돌립니다.",
     mockup: <StepMockup3 />,
   },
   {
     icon: <BarChart2 size={20} className="text-emerald-500" />,
     bg: "bg-emerald-50",
     num: "04",
-    title: "결과 및 보고서 확인",
-    desc: "차트 대시보드와 PDF 보고서를 5분 안에 받아보세요.",
+    title: "인사이트 대시보드·보고서",
+    desc: "교차분석 차트와 PDF 보고서로 결과를 5분 안에 확인합니다.",
     mockup: <StepMockup4 />,
   },
 ];
@@ -750,26 +775,91 @@ export default function LandingPage() {
       </section>
       )}
 
-      {/* ── CTA ── */}
+      {/* ── CTA ── 좌(비주얼) / 우(텍스트·버튼) 2분할 */}
       <section className="py-28 bg-white">
-        <div className="max-w-2xl mx-auto px-6 text-center">
-          <Reveal>
-            <div className="relative inline-block mb-8">
-              <Image
-                src="https://images.unsplash.com/photo-1553028826-f4804a6dba3b?w=400&q=80&fit=crop"
-                alt="시장조사"
-                width={400}
-                height={200}
-                className="rounded-2xl object-cover w-full max-w-md mx-auto opacity-90"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-white/60 to-transparent rounded-2xl" />
-            </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight mb-4">오늘 바로 시작해보세요</h2>
-            <p className="text-lg text-slate-500 mb-10">지금 바로 가입하고 AI 시장조사를 경험해보세요.</p>
-            <CtaLink className="btn-primary text-base px-8 py-4">
-              무료 체험 시작 <ArrowRight size={18} />
-            </CtaLink>
-          </Reveal>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* 왼쪽 — CSS 대시보드 미리보기 */}
+            <Reveal>
+              <div className="relative aspect-[4/3] rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-700 to-slate-900 overflow-hidden shadow-2xl shadow-indigo-200">
+                {/* 글로우 장식 */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-rose-400/20 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl" />
+                {/* 격자 점 배경 */}
+                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+
+                {/* 내부 카드 — 가상 대시보드 미리보기 */}
+                <div className="absolute inset-6 md:inset-8 flex flex-col gap-3">
+                  {/* 상단 헤더 */}
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/15">
+                    <BarChart2 size={14} className="text-white" />
+                    <span className="text-[11px] text-white font-semibold">분석 대시보드</span>
+                    <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-400/30 text-emerald-100 text-[9px] font-bold">완료</span>
+                  </div>
+                  {/* 차트 카드 */}
+                  <div className="flex-1 bg-white rounded-2xl p-4 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold text-slate-700">선호 메뉴 분포</span>
+                      <span className="text-[10px] text-slate-400">N=500</span>
+                    </div>
+                    <div className="flex-1 space-y-2.5">
+                      {[
+                        { label: "비건 라떼", pct: 82, color: "from-indigo-500 to-violet-500" },
+                        { label: "곡물 스무디", pct: 64, color: "from-violet-500 to-rose-500" },
+                        { label: "콜드브루", pct: 47, color: "from-rose-500 to-amber-500" },
+                        { label: "허브티", pct: 28, color: "from-emerald-500 to-sky-500" },
+                      ].map((b) => (
+                        <div key={b.label} className="flex items-center gap-2">
+                          <div className="w-20 text-[10px] text-slate-600 truncate">{b.label}</div>
+                          <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div className={`bg-gradient-to-r ${b.color} h-2 rounded-full`} style={{ width: `${b.pct}%` }} />
+                          </div>
+                          <div className="w-7 text-[10px] text-slate-500 text-right tabular-nums">{b.pct}%</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* 하단 칩 */}
+                  <div className="flex gap-2">
+                    {["KOSIS", "AI 가설", "PDF"].map((t) => (
+                      <span key={t} className="flex-1 text-center px-2 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg border border-white/20 text-white text-[10px] font-medium">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* 오른쪽 — 텍스트 + CTA */}
+            <Reveal delay={120}>
+              <div className="lg:pl-4">
+                <div className="inline-block text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-5">
+                  Get started
+                </div>
+                <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
+                  오늘 바로<br />
+                  시작해보세요
+                </h2>
+                <p className="text-lg text-slate-500 mb-8 leading-relaxed">
+                  가입 즉시 무료로 시장조사를 설계하고, AI가 만든 가상인구 응답을 확인할 수 있습니다.
+                </p>
+                <ul className="space-y-2 mb-9">
+                  {[
+                    "신용카드 등록 없이 시작",
+                    "5분 안에 첫 조사 결과",
+                    "PDF 보고서 자동 생성",
+                  ].map((t) => (
+                    <li key={t} className="flex items-center gap-2 text-sm text-slate-600">
+                      <Check size={14} className="text-emerald-500 flex-shrink-0" />
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <CtaLink className="btn-primary text-base px-8 py-4">
+                  무료 체험 시작 <ArrowRight size={18} />
+                </CtaLink>
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 
