@@ -64,17 +64,30 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-7">
           {[
-            { label: "작동 방식", href: "#how" },
-            { label: "기능", href: "#features" },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`text-sm font-medium transition-colors ${linkCls}`}
-            >
-              {item.label}
-            </Link>
-          ))}
+            { label: "작동 방식", href: "#how", external: false },
+            { label: "기능", href: "#features", external: false },
+            { label: "Omninode", href: "https://www.omninode.kr", external: true },
+          ].map((item) =>
+            item.external ? (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                className={`text-sm font-medium transition-colors ${linkCls}`}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`text-sm font-medium transition-colors ${linkCls}`}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         {/* Desktop CTA */}
@@ -144,6 +157,15 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
               {l}
             </button>
           ))}
+          <a
+            href="https://www.omninode.kr"
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setOpen(false)}
+            className={`text-sm font-medium text-left ${linkCls}`}
+          >
+            Omninode
+          </a>
           {isUser ? (
             <>
               <Link
