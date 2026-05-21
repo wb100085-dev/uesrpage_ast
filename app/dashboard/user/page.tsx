@@ -147,7 +147,15 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState<AuthUser | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", gender: "" });
+  const [profileForm, setProfileForm] = useState({
+    first_name: "",
+    last_name: "",
+    gender: "",
+    age: "", // 입력 컨트롤용 문자열, 저장 시 정수 변환
+    organization: "",
+    position: "",
+    phone: "",
+  });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -162,6 +170,10 @@ export default function UserDashboard() {
           first_name: p.first_name ?? "",
           last_name: p.last_name ?? "",
           gender: p.gender ?? "",
+          age: p.age != null ? String(p.age) : "",
+          organization: p.organization ?? "",
+          position: p.position ?? "",
+          phone: p.phone ?? "",
         });
       } catch (err) {
         if (!cancelled) setProfileError(err instanceof Error ? err.message : String(err));
@@ -176,7 +188,22 @@ export default function UserDashboard() {
     setProfileSaving(true);
     setProfileError(null);
     try {
-      const updated = await authUpdateProfile(profileForm);
+      // age는 비어있으면 null, 아니면 정수 변환 (백엔드가 0~120 검증)
+      let ageVal: number | null = null;
+      if (profileForm.age.trim() !== "") {
+        const n = parseInt(profileForm.age, 10);
+        if (Number.isNaN(n)) throw new Error("연령은 숫자여야 합니다.");
+        ageVal = n;
+      }
+      const updated = await authUpdateProfile({
+        first_name: profileForm.first_name,
+        last_name: profileForm.last_name,
+        gender: profileForm.gender,
+        age: ageVal,
+        organization: profileForm.organization,
+        position: profileForm.position,
+        phone: profileForm.phone,
+      });
       setProfile(updated);
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2500);
@@ -620,30 +647,84 @@ export default function UserDashboard() {
                       </div>
                     </div>
 
-                    {/* 성별 */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">성별</label>
-                      <div className="flex gap-2">
-                        {[
-                          { value: "M", label: "남성" },
-                          { value: "F", label: "여성" },
-                          { value: "O", label: "기타" },
-                          { value: "", label: "선택 안 함" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.value || "none"}
-                            type="button"
-                            onClick={() => setProfileForm((p) => ({ ...p, gender: opt.value }))}
-                            className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${
-                              profileForm.gender === opt.value
-                                ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
+                    {/* 성별 + 연령 (한 줄) */}
+                    <div className="grid grid-cols-[1fr_120px] gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">성별</label>
+                        <div className="flex gap-1.5">
+                          {[
+                            { value: "M", label: "남" },
+                            { value: "F", label: "여" },
+                            { value: "O", label: "기타" },
+                            { value: "", label: "미선택" },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value || "none"}
+                              type="button"
+                              onClick={() => setProfileForm((p) => ({ ...p, gender: opt.value }))}
+                              className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${
+                                profileForm.gender === opt.value
+                                  ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">연령</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={120}
+                          value={profileForm.age}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, age: e.target.value }))}
+                          placeholder="예: 35"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 소속 + 직급 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">소속</label>
+                        <input
+                          type="text"
+                          value={profileForm.organization}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, organization: e.target.value }))}
+                          placeholder="회사·기관·학교"
+                          maxLength={120}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">직급</label>
+                        <input
+                          type="text"
+                          value={profileForm.position}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, position: e.target.value }))}
+                          placeholder="예: 매니저"
+                          maxLength={80}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 연락처 */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">연락처</label>
+                      <input
+                        type="tel"
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                        placeholder="010-1234-5678"
+                        maxLength={32}
+                        autoComplete="tel"
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                      />
                     </div>
 
                     {profileError && (

@@ -61,6 +61,14 @@ export interface AuthUser {
   last_name?: string;
   /** 성별: "M" | "F" | "O" | "" (미설정) */
   gender?: string;
+  /** 연령 — 정수 0~120 또는 null */
+  age?: number | null;
+  /** 소속 (회사·기관·학교) */
+  organization?: string;
+  /** 직급/직책 */
+  position?: string;
+  /** 연락처 */
+  phone?: string;
   is_active?: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
@@ -291,11 +299,15 @@ export async function authGetProfile(): Promise<AuthUser> {
   }
 }
 
-/** 프로필 수정 — first_name, last_name, gender 중 일부 또는 전체. */
+/** 프로필 수정 — 지정한 필드만 PATCH. */
 export async function authUpdateProfile(input: {
   first_name?: string;
   last_name?: string;
   gender?: string;
+  age?: number | null;
+  organization?: string;
+  position?: string;
+  phone?: string;
 }): Promise<AuthUser> {
   try {
     const res = await request<{ user: AuthUser }>(
