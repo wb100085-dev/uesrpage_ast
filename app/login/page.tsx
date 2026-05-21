@@ -255,35 +255,33 @@ function LoginInner() {
             ))}
           </div>
 
-          {/* 소셜 로그인 */}
-          <div className="flex flex-col gap-3 mb-6">
+          {/* 소셜 로그인 — 통일 디자인 (흰 카드 + 회색 테두리 + 브랜드 컬러 아이콘) */}
+          <div className="flex flex-col gap-2.5 mb-6">
             <button
               onClick={() => startSocialLogin("google")}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-all hover:shadow-md disabled:opacity-60"
+              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
             >
               <GoogleIcon />
-              Google로 {mode === "signin" ? "로그인" : "가입"}
-            </button>
-
-            <button
-              onClick={() => startSocialLogin("kakao")}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-medium transition-all hover:shadow-md disabled:opacity-60"
-              style={{ backgroundColor: "#FEE500", color: "#3C1E1E" }}
-            >
-              <KakaoIcon />
-              카카오 {mode === "signin" ? "로그인" : "가입"}
+              <span>Google로 {mode === "signin" ? "로그인" : "가입"}</span>
             </button>
 
             <button
               onClick={() => startSocialLogin("naver")}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3 rounded-xl text-sm font-medium transition-all hover:shadow-md disabled:opacity-60"
-              style={{ backgroundColor: "#03C75A", color: "white" }}
+              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
             >
               <NaverIcon />
-              네이버 {mode === "signin" ? "로그인" : "가입"}
+              <span>네이버로 {mode === "signin" ? "로그인" : "가입"}</span>
+            </button>
+
+            <button
+              onClick={() => startSocialLogin("kakao")}
+              disabled={loading}
+              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
+            >
+              <KakaoIcon />
+              <span>카카오로 {mode === "signin" ? "로그인" : "가입"}</span>
             </button>
           </div>
 
