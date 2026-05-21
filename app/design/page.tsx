@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
+import { getAccessToken } from "@/lib/auth-api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -345,9 +346,12 @@ export default function DesignPage() {
     const definitionPayload = [tradeLine, industryLine, productDef].filter(Boolean).join("\n\n");
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const tok = getAccessToken();
+      if (tok) headers.Authorization = `Bearer ${tok}`;
       const res = await fetch(`${API_URL}/api/survey/design`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           definition: definitionPayload,
           needs: researchPurpose,
