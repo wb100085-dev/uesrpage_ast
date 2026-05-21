@@ -83,15 +83,15 @@ function StepMockup1() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
       <div className="mb-2.5">
-        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">제품/서비스 정의</div>
-        <div className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-          <span className="text-[11px] text-slate-600 leading-tight">20대 여성을 위한 비건 카페</span>
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">정의</div>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
+          <span className="text-[11px] text-slate-700 leading-snug break-keep">비건 카페</span>
         </div>
       </div>
       <div>
-        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">조사 니즈</div>
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5">
-          <span className="text-[11px] text-indigo-700 leading-tight">메뉴 선호도와 가격 민감도를 알고 싶어요</span>
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">니즈</div>
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5">
+          <span className="text-[11px] text-indigo-700 leading-snug break-keep">메뉴 선호·가격 민감도</span>
         </div>
       </div>
     </div>
@@ -101,8 +101,8 @@ function StepMockup1() {
 function StepMockup2() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
-      <div className="flex items-center gap-2 mb-2.5">
-        <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <div className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
           <Sparkles size={12} className="text-violet-600" />
         </div>
         <span className="text-xs font-semibold text-slate-700">AI 설계 중</span>
@@ -111,17 +111,17 @@ function StepMockup2() {
       <div className="mb-2">
         <div className="text-[10px] text-slate-400 font-semibold mb-1">📌 가설</div>
         <div className="space-y-1">
-          {["가격보다 비건 인증을 더 중시한다", "SNS 후기가 방문 결정에 영향"].map((h) => (
-            <div key={h} className="flex items-start gap-1.5 bg-slate-50 rounded px-1.5 py-1">
+          {["비건 인증이 중요", "SNS 후기 영향"].map((h) => (
+            <div key={h} className="flex items-start gap-1 bg-slate-50 rounded px-1.5 py-1">
               <Check size={8} className="text-emerald-500 flex-shrink-0 mt-0.5" />
-              <span className="text-[10px] text-slate-700 leading-tight">{h}</span>
+              <span className="text-[10px] text-slate-700 leading-snug break-keep">{h}</span>
             </div>
           ))}
         </div>
       </div>
       <div>
         <div className="text-[10px] text-slate-400 font-semibold mb-1">📋 문항</div>
-        <div className="text-[10px] text-slate-500 leading-tight">총 12문항 자동 생성</div>
+        <div className="text-[10px] text-slate-500 leading-snug break-keep">12문항 자동 생성</div>
       </div>
     </div>
   );
@@ -429,31 +429,31 @@ const steps = [
     icon: <MessageSquare size={20} className="text-indigo-500" />,
     bg: "bg-indigo-50",
     num: "01",
-    title: "제품 정의 + 조사 니즈 입력",
-    desc: "제품·서비스 정보와 알고 싶은 인사이트를 한 줄로 입력합니다.",
+    title: "정의 · 니즈 입력",
+    desc: "제품·서비스와 알고 싶은 인사이트를 한 문장으로 입력합니다.",
     mockup: <StepMockup1 />,
   },
   {
     icon: <Sparkles size={20} className="text-violet-500" />,
     bg: "bg-violet-50",
     num: "02",
-    title: "AI가 가설·문항 자동 설계",
-    desc: "조사 가설을 도출하고, 검증을 위한 객관식 문항을 자동으로 생성합니다.",
+    title: "AI 가설·문항 설계",
+    desc: "조사 가설을 도출하고 객관식 문항을 자동 생성합니다.",
     mockup: <StepMockup2 />,
   },
   {
     icon: <Users size={20} className="text-sky-500" />,
     bg: "bg-sky-50",
     num: "03",
-    title: "가상인구 타겟 매칭 + 실행",
-    desc: "KOSIS 통계 기반 가상인구 중 타겟을 매칭해 즉시 응답 시뮬레이션을 돌립니다.",
+    title: "가상인구 매칭 · 실행",
+    desc: "KOSIS 가상인구 중 타겟을 매칭해 응답 시뮬레이션을 실행합니다.",
     mockup: <StepMockup3 />,
   },
   {
     icon: <BarChart2 size={20} className="text-emerald-500" />,
     bg: "bg-emerald-50",
     num: "04",
-    title: "인사이트 대시보드·보고서",
+    title: "대시보드 · 보고서",
     desc: "교차분석 차트와 PDF 보고서로 결과를 5분 안에 확인합니다.",
     mockup: <StepMockup4 />,
   },
@@ -541,7 +541,7 @@ export default function LandingPage() {
             </h2>
           </Reveal>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
             {steps.map((step, i) => (
               <Reveal key={step.num} delay={i * 80}>
                 <div className="group bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
@@ -557,14 +557,10 @@ export default function LandingPage() {
                       </div>
                       <span className="text-xs font-bold text-slate-200 tabular-nums">{step.num}</span>
                     </div>
-                    <h3 className="text-[15px] font-semibold text-slate-900 mb-2">{step.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+                    <h3 className="text-[15px] font-semibold text-slate-900 mb-2 break-keep">{step.title}</h3>
+                    <p className="text-sm text-slate-500 leading-relaxed break-keep">{step.desc}</p>
                   </div>
                 </div>
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:flex justify-center mt-[-52px] relative z-10 pointer-events-none">
-                  </div>
-                )}
               </Reveal>
             ))}
           </div>
