@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { authLogout } from "@/lib/auth-api";
+import {
+  authLogout,
+  authGetProfile,
+  authUpdateProfile,
+  authChangePassword,
+  type AuthUser,
+} from "@/lib/auth-api";
 import { getMyDesigns } from "@/lib/survey-api";
 import {
   BarChart2, Plane, Settings, History, ChevronRight,
@@ -12,6 +18,7 @@ import {
   CheckCircle2, AlertCircle, RefreshCw, Construction,
   User, Users, ArrowRight, Zap, X,
   FileText, Target, Globe, ChevronDown, Save,
+  Lock, Mail, UserCog,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
@@ -44,7 +51,7 @@ const SIDO_LIST = [
 ];
 
 /* ─── 타입 ─────────────────────────────────── */
-type SideMenu = "entrant" | "analysis";
+type SideMenu = "entrant" | "analysis" | "account";
 type AnalysisTab = "home" | "history" | "settings";
 
 type HistoryItem = {
@@ -136,6 +143,75 @@ export default function UserDashboard() {
     };
   }, []);
 
+  /* ─── 계정 관리 ───────────────────────────── */
+  const [profile, setProfile] = useState<AuthUser | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", gender: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const p = await authGetProfile();
+        if (cancelled) return;
+        setProfile(p);
+        setProfileForm({
+          first_name: p.first_name ?? "",
+          last_name: p.last_name ?? "",
+          gender: p.gender ?? "",
+        });
+      } catch (err) {
+        if (!cancelled) setProfileError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleProfileSave() {
+    setProfileSaving(true);
+    setProfileError(null);
+    try {
+      const updated = await authUpdateProfile(profileForm);
+      setProfile(updated);
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 2500);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  const [pwForm, setPwForm] = useState({ old_password: "", new_password1: "", new_password2: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMessage, setPwMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPwSaving(true);
+    setPwMessage(null);
+    try {
+      if (pwForm.new_password1 !== pwForm.new_password2) {
+        throw new Error("새 비밀번호가 일치하지 않습니다.");
+      }
+      if (pwForm.new_password1.length < 8) {
+        throw new Error("새 비밀번호는 8자 이상이어야 합니다.");
+      }
+      await authChangePassword(pwForm);
+      setPwMessage({ ok: true, text: "비밀번호가 변경되었습니다." });
+      setPwForm({ old_password: "", new_password1: "", new_password2: "" });
+    } catch (err) {
+      setPwMessage({ ok: false, text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
   /* 설정 (잠금 탭 — 미리보기용 state) */
   const [settings, setSettings] = useState<AnalysisSettings>({
     industry: INDUSTRIES[0], definition: "", needs: "", target: "",
@@ -185,6 +261,12 @@ export default function UserDashboard() {
               <BarChart2 size={15} className={sideMenu === "analysis" ? "text-indigo-600" : "text-slate-400"} />
               <span>분석 대시보드</span>
               {sideMenu !== "analysis" && <ChevronRight size={12} className="ml-auto text-slate-300" />}
+            </button>
+            <button onClick={() => setSideMenu("account")}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sideMenu === "account" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+              <UserCog size={15} className={sideMenu === "account" ? "text-indigo-600" : "text-slate-400"} />
+              <span>계정 관리</span>
+              {sideMenu !== "account" && <ChevronRight size={12} className="ml-auto text-slate-300" />}
             </button>
           </nav>
           <div className="mt-auto px-3">
@@ -467,6 +549,211 @@ export default function UserDashboard() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ══ 계정 관리 ══ */}
+          {sideMenu === "account" && (
+            <div className="max-w-2xl mx-auto space-y-6">
+              <div className="mb-2">
+                <h1 className="text-xl font-bold text-slate-900">계정 관리</h1>
+                <p className="text-xs text-slate-500 mt-1">프로필 정보와 비밀번호를 관리합니다.</p>
+              </div>
+
+              {/* ── 프로필 카드 ── */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                  <User size={16} className="text-indigo-500" />
+                  <h2 className="text-sm font-bold text-slate-800">프로필 정보</h2>
+                </div>
+
+                {profileLoading ? (
+                  <div className="px-6 py-12 flex items-center justify-center text-sm text-slate-400 gap-2">
+                    <RefreshCw size={14} className="animate-spin" />
+                    불러오는 중…
+                  </div>
+                ) : !profile ? (
+                  <div className="px-6 py-10 text-center text-sm text-rose-600 flex items-center justify-center gap-2">
+                    <AlertCircle size={14} />
+                    {profileError ?? "프로필을 불러오지 못했습니다."}
+                  </div>
+                ) : (
+                  <div className="px-6 py-5 space-y-4">
+                    {/* 이메일 (읽기 전용) */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">이메일</label>
+                      <div className="relative">
+                        <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="email"
+                          value={profile.email}
+                          readOnly
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-500 cursor-not-allowed"
+                        />
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400">이메일은 변경할 수 없습니다.</p>
+                    </div>
+
+                    {/* 이름 */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">성</label>
+                        <input
+                          type="text"
+                          value={profileForm.last_name}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, last_name: e.target.value }))}
+                          placeholder="홍"
+                          maxLength={150}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1.5">이름</label>
+                        <input
+                          type="text"
+                          value={profileForm.first_name}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, first_name: e.target.value }))}
+                          placeholder="길동"
+                          maxLength={150}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 성별 */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">성별</label>
+                      <div className="flex gap-2">
+                        {[
+                          { value: "M", label: "남성" },
+                          { value: "F", label: "여성" },
+                          { value: "O", label: "기타" },
+                          { value: "", label: "선택 안 함" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value || "none"}
+                            type="button"
+                            onClick={() => setProfileForm((p) => ({ ...p, gender: opt.value }))}
+                            className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${
+                              profileForm.gender === opt.value
+                                ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {profileError && (
+                      <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                        <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-700">{profileError}</p>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleProfileSave}
+                      disabled={profileSaving}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all disabled:opacity-60"
+                    >
+                      {profileSaving ? (
+                        <RefreshCw size={14} className="animate-spin" />
+                      ) : profileSaved ? (
+                        <>
+                          <CheckCircle2 size={14} /> 저장됨
+                        </>
+                      ) : (
+                        <>
+                          <Save size={14} /> 프로필 저장
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* ── 비밀번호 변경 카드 ── */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+                  <Lock size={16} className="text-indigo-500" />
+                  <h2 className="text-sm font-bold text-slate-800">비밀번호 변경</h2>
+                </div>
+                <form onSubmit={handlePasswordChange} className="px-6 py-5 space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">현재 비밀번호</label>
+                    <input
+                      type="password"
+                      required
+                      value={pwForm.old_password}
+                      onChange={(e) => setPwForm((p) => ({ ...p, old_password: e.target.value }))}
+                      autoComplete="current-password"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">새 비밀번호</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={pwForm.new_password1}
+                      onChange={(e) => setPwForm((p) => ({ ...p, new_password1: e.target.value }))}
+                      autoComplete="new-password"
+                      placeholder="8자 이상"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">새 비밀번호 확인</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={8}
+                      value={pwForm.new_password2}
+                      onChange={(e) => setPwForm((p) => ({ ...p, new_password2: e.target.value }))}
+                      autoComplete="new-password"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
+                    />
+                  </div>
+
+                  {pwMessage && (
+                    <div
+                      className={`flex items-start gap-2 rounded-xl px-4 py-3 border ${
+                        pwMessage.ok
+                          ? "bg-emerald-50 border-emerald-200"
+                          : "bg-red-50 border-red-200"
+                      }`}
+                    >
+                      {pwMessage.ok ? (
+                        <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      <p
+                        className={`text-xs ${pwMessage.ok ? "text-emerald-700" : "text-red-700"} whitespace-pre-line`}
+                      >
+                        {pwMessage.text}
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={pwSaving}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 transition-all disabled:opacity-60"
+                  >
+                    {pwSaving ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Lock size={14} /> 비밀번호 변경
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
             </div>
           )}
         </main>

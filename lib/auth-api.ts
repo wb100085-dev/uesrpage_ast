@@ -59,6 +59,8 @@ export interface AuthUser {
   email: string;
   first_name?: string;
   last_name?: string;
+  /** 성별: "M" | "F" | "O" | "" (미설정) */
+  gender?: string;
   is_active?: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
@@ -263,6 +265,63 @@ export async function authPasswordResetRequest(email: string): Promise<{ detail:
       "/api/auth/password/reset/",
       { method: "POST", body: JSON.stringify({ email }) },
       { auth: false },
+    );
+  } catch (e) {
+    if (e instanceof ApiError) {
+      throw new Error(translateAuthError(extractKoreanMessage(e.detail)));
+    }
+    throw e;
+  }
+}
+
+/** 현재 사용자 프로필 조회 (이름·성별 포함). 인증 필수. */
+export async function authGetProfile(): Promise<AuthUser> {
+  try {
+    const res = await request<{ user: AuthUser }>(
+      "/api/auth/profile",
+      { method: "GET" },
+    );
+    if (res.user) setCachedUser(res.user);
+    return res.user;
+  } catch (e) {
+    if (e instanceof ApiError) {
+      throw new Error(translateAuthError(extractKoreanMessage(e.detail)));
+    }
+    throw e;
+  }
+}
+
+/** 프로필 수정 — first_name, last_name, gender 중 일부 또는 전체. */
+export async function authUpdateProfile(input: {
+  first_name?: string;
+  last_name?: string;
+  gender?: string;
+}): Promise<AuthUser> {
+  try {
+    const res = await request<{ user: AuthUser }>(
+      "/api/auth/profile",
+      { method: "PATCH", body: JSON.stringify(input) },
+    );
+    if (res.user) setCachedUser(res.user);
+    return res.user;
+  } catch (e) {
+    if (e instanceof ApiError) {
+      throw new Error(translateAuthError(extractKoreanMessage(e.detail)));
+    }
+    throw e;
+  }
+}
+
+/** 로그인 상태에서 비밀번호 변경. dj-rest-auth 표준 endpoint 사용. */
+export async function authChangePassword(input: {
+  old_password: string;
+  new_password1: string;
+  new_password2: string;
+}): Promise<{ detail: string }> {
+  try {
+    return await request<{ detail: string }>(
+      "/api/auth/password/change/",
+      { method: "POST", body: JSON.stringify(input) },
     );
   } catch (e) {
     if (e instanceof ApiError) {
