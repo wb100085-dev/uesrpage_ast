@@ -255,42 +255,6 @@ function LoginInner() {
             ))}
           </div>
 
-          {/* 소셜 로그인 — 통일 디자인 (흰 카드 + 회색 테두리 + 브랜드 컬러 아이콘) */}
-          <div className="flex flex-col gap-2.5 mb-6">
-            <button
-              onClick={() => startSocialLogin("google")}
-              disabled={loading}
-              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
-            >
-              <GoogleIcon />
-              <span>Google로 {mode === "signin" ? "로그인" : "가입"}</span>
-            </button>
-
-            <button
-              onClick={() => startSocialLogin("naver")}
-              disabled={loading}
-              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
-            >
-              <NaverIcon />
-              <span>네이버로 {mode === "signin" ? "로그인" : "가입"}</span>
-            </button>
-
-            <button
-              onClick={() => startSocialLogin("kakao")}
-              disabled={loading}
-              className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 text-sm font-medium transition-all hover:border-slate-300 hover:shadow-sm disabled:opacity-60"
-            >
-              <KakaoIcon />
-              <span>카카오로 {mode === "signin" ? "로그인" : "가입"}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-slate-200" />
-            <span className="text-xs text-slate-400 font-medium">또는 이메일로</span>
-            <div className="flex-1 h-px bg-slate-200" />
-          </div>
-
           {error && (
             <div className="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
               <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -376,6 +340,46 @@ function LoginInner() {
               }
             </button>
           </form>
+
+          {/* 소셜 로그인 — 원형 버튼 단일 행 */}
+          <div className="mt-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-xs text-slate-400 font-medium">또는 소셜 계정으로</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={() => startSocialLogin("google")}
+                disabled={loading}
+                aria-label={`Google로 ${mode === "signin" ? "로그인" : "가입"}`}
+                title={`Google로 ${mode === "signin" ? "로그인" : "가입"}`}
+                className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all hover:border-slate-300 hover:shadow-md disabled:opacity-60"
+              >
+                <GoogleIcon />
+              </button>
+              <button
+                onClick={() => startSocialLogin("naver")}
+                disabled={loading}
+                aria-label={`네이버로 ${mode === "signin" ? "로그인" : "가입"}`}
+                title={`네이버로 ${mode === "signin" ? "로그인" : "가입"}`}
+                style={{ backgroundColor: "#03C75A" }}
+                className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
+              >
+                <NaverIcon />
+              </button>
+              <button
+                onClick={() => startSocialLogin("kakao")}
+                disabled={loading}
+                aria-label={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
+                title={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
+                style={{ backgroundColor: "#FEE500" }}
+                className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
+              >
+                <KakaoIcon />
+              </button>
+            </div>
+          </div>
 
           {/* 하단 모드 전환 + 비밀번호 찾기 */}
           <div className="mt-6 flex items-center justify-between text-xs">
