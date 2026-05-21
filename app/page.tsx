@@ -198,12 +198,6 @@ function FeatureVisual1() {
 function FeatureVisual2() {
   return (
     <div className="relative h-48 bg-gradient-to-br from-violet-800 to-indigo-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1677442135703-1787eaaa9607?w=600&q=80&fit=crop"
-        alt="AI 기술"
-        fill
-        className="object-cover opacity-40"
-      />
       <div className="absolute inset-0 flex flex-col justify-end p-4">
         <div className="glass rounded-xl p-3">
           <div className="text-[10px] text-slate-300 mb-1.5 font-medium">AI 설계 중 — 설문 3/5 생성</div>
@@ -323,7 +317,7 @@ const TESTIMONIALS = [
     bg: "bg-indigo-50",
     name: "김지은",
     role: "스타트업 대표",
-    text: "기존에 리서치 회사에 의뢰하면 2주, 500만원이 들었어요. Social Twin로 같은 수준의 인사이트를 30분 만에 얻었습니다.",
+    text: "기존에 리서치 회사에 의뢰하면 2주, 500만원이 들었어요. Socialtwin으로 같은 수준의 인사이트를 30분 만에 얻었습니다.",
   },
   {
     emoji: "🧑‍💻",
@@ -597,7 +591,7 @@ export default function LandingPage() {
                     <th className="text-left p-4 text-slate-400 font-medium text-xs w-1/3" />
                     <th className="text-center p-4 font-semibold text-slate-500 text-xs w-1/3">기존 온라인 설문</th>
                     <th className="text-center p-4 w-1/3 bg-indigo-50">
-                      <span className="font-bold text-indigo-600 text-xs">Social Twin</span>
+                      <span className="font-bold text-indigo-600 text-xs">Socialtwin</span>
                     </th>
                   </tr>
                 </thead>
@@ -636,7 +630,7 @@ export default function LandingPage() {
               이런 분야에서 사용하고 있어요
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              스타트업부터 공공기관까지,<br></br> 의사결정이 필요한 모든 자리에 Social Twin이 함께합니다.
+              스타트업부터 공공기관까지,<br></br> 의사결정이 필요한 모든 자리에 Socialtwin이 함께합니다.
             </p>
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
