@@ -15,7 +15,18 @@ import {
   CheckCircle2,
   MailCheck,
 } from "lucide-react";
-import { authLogin, authRegister, authSocialLoginUrl } from "@/lib/auth-api";
+import {
+  authLogin,
+  authRegister,
+  authSocialLoginUrl,
+  authGetMe,
+  getAccessToken,
+  getRefreshToken,
+} from "@/lib/auth-api";
+
+// 슈퍼유저/스태프가 사용자 프론트에서 로그인하면 관리자 콘솔로 자동 핸드오프.
+// URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
+const ADMIN_HANDOFF_URL = "https://admin-frontend-chi-two.vercel.app/admin-handoff";
 
 type Mode = "signin" | "signup";
 
@@ -88,7 +99,20 @@ function LoginInner() {
   // 가입 완료 후 "메일 인증을 확인하세요" 화면
   const [signupSentTo, setSignupSentTo] = useState<string | null>(null);
 
-  function gotoDashboard() {
+  async function gotoDashboard() {
+    // 슈퍼유저/스태프면 관리자 콘솔로 핸드오프, 아니면 본인 대시보드.
+    try {
+      const me = await authGetMe();
+      if (me?.is_superuser || me?.is_staff) {
+        const access = getAccessToken() ?? "";
+        const refresh = getRefreshToken() ?? "";
+        const frag = new URLSearchParams({ access, refresh }).toString();
+        window.location.href = `${ADMIN_HANDOFF_URL}#${frag}`;
+        return;
+      }
+    } catch {
+      // 사용자 정보 조회 실패 시 일반 사용자 흐름으로 폴백
+    }
     router.push("/dashboard/user");
   }
 
