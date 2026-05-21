@@ -252,51 +252,57 @@ export default function UserDashboard() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* 상단 바 */}
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
-        <div className="px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/"><Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-8 w-auto object-contain" /></Link>
-            <div className="h-5 w-px bg-slate-200" />
-            <div className="flex items-center gap-1.5">
+        <div className="px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
+            <Link href="/" className="flex-shrink-0"><Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-7 md:h-8 w-auto object-contain" /></Link>
+            <div className="hidden md:block h-5 w-px bg-slate-200" />
+            <div className="hidden md:flex items-center gap-1.5">
               <User size={14} className="text-slate-500" />
               <span className="text-sm font-semibold text-slate-800">내 대시보드</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/design" className="flex items-center gap-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded-lg transition-all">
-              <Sparkles size={12} /> 새 분석 시작
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+            <Link href="/design" className="flex items-center gap-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-2.5 md:px-3 py-1.5 rounded-lg transition-all">
+              <Sparkles size={12} />
+              <span className="hidden sm:inline">새 분석 시작</span>
+              <span className="sm:hidden">새 분석</span>
             </Link>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all">
-              <LogOut size={12} /> 로그아웃
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-600 px-2.5 md:px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all" aria-label="로그아웃">
+              <LogOut size={12} />
+              <span className="hidden sm:inline">로그아웃</span>
             </button>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* ─── 사이드바 ── */}
-        <aside className="w-56 bg-white border-r border-slate-100 flex flex-col py-4 px-3 flex-shrink-0">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">메뉴</p>
-          <nav className="flex flex-col gap-1">
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
+        {/* ─── 사이드바 (모바일에서는 상단 가로 네비) ── */}
+        <aside className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col py-2 md:py-4 px-2 md:px-3 flex-shrink-0">
+          <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">메뉴</p>
+          <nav className="flex md:flex-col gap-1">
             <button onClick={() => setSideMenu("entrant")}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sideMenu === "entrant" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+              className={`flex-1 md:flex-initial flex items-center justify-center md:justify-start gap-1.5 md:gap-2.5 px-2 md:px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${sideMenu === "entrant" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
               <Plane size={15} className={sideMenu === "entrant" ? "text-indigo-600" : "text-slate-400"} />
-              <span>입국자 대시보드</span>
-              {sideMenu !== "entrant" && <ChevronRight size={12} className="ml-auto text-slate-300" />}
+              <span className="md:hidden">입국자</span>
+              <span className="hidden md:inline">입국자 대시보드</span>
+              {sideMenu !== "entrant" && <ChevronRight size={12} className="hidden md:block ml-auto text-slate-300" />}
             </button>
             <button onClick={() => setSideMenu("analysis")}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sideMenu === "analysis" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+              className={`flex-1 md:flex-initial flex items-center justify-center md:justify-start gap-1.5 md:gap-2.5 px-2 md:px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${sideMenu === "analysis" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
               <BarChart2 size={15} className={sideMenu === "analysis" ? "text-indigo-600" : "text-slate-400"} />
-              <span>분석 대시보드</span>
-              {sideMenu !== "analysis" && <ChevronRight size={12} className="ml-auto text-slate-300" />}
+              <span className="md:hidden">분석</span>
+              <span className="hidden md:inline">분석 대시보드</span>
+              {sideMenu !== "analysis" && <ChevronRight size={12} className="hidden md:block ml-auto text-slate-300" />}
             </button>
             <button onClick={() => setSideMenu("account")}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${sideMenu === "account" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+              className={`flex-1 md:flex-initial flex items-center justify-center md:justify-start gap-1.5 md:gap-2.5 px-2 md:px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${sideMenu === "account" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
               <UserCog size={15} className={sideMenu === "account" ? "text-indigo-600" : "text-slate-400"} />
-              <span>계정 관리</span>
-              {sideMenu !== "account" && <ChevronRight size={12} className="ml-auto text-slate-300" />}
+              <span className="md:hidden">계정</span>
+              <span className="hidden md:inline">계정 관리</span>
+              {sideMenu !== "account" && <ChevronRight size={12} className="hidden md:block ml-auto text-slate-300" />}
             </button>
           </nav>
-          <div className="mt-auto px-3">
+          <div className="hidden md:block mt-auto px-3">
             <div className="bg-indigo-50 rounded-xl p-3">
               <p className="text-xs font-semibold text-indigo-800 mb-1">빠른 이동</p>
               <Link href="/design" className="flex items-center gap-1.5 text-xs text-indigo-600 hover:underline">
@@ -307,7 +313,7 @@ export default function UserDashboard() {
         </aside>
 
         {/* ─── 메인 콘텐츠 ── */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
 
           {/* ══ 입국자 대시보드 ══ */}
           {sideMenu === "entrant" && (
