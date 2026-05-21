@@ -100,3 +100,27 @@ export function getSurveyStatus(jobId: string): Promise<StatusResponse> {
 export function getSurveyResults(jobId: string): Promise<ResultsResponse> {
   return apiFetch(`/api/survey/${jobId}/results`);
 }
+
+export interface DesignHistoryItem {
+  id: number;
+  created_at: string;
+  updated_at?: string;
+  user_id?: string | null;
+  user_email?: string | null;
+  job_id?: string | null;
+  model?: string | null;
+  sido?: string | null;
+  sample_size?: number | null;
+  n_respondents?: number | null;
+  // 백엔드 status: "hypotheses" | "questions" | "running" | "completed" | "error"
+  status: string;
+  trade_type?: string | null;
+  industry?: string | null;
+  definition?: string | null;
+  needs?: string | null;
+  hypotheses?: string[] | null;
+}
+
+export function getMyDesigns(): Promise<{ designs: DesignHistoryItem[] }> {
+  return apiFetch("/api/survey/my-designs");
+}

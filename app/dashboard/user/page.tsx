@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authLogout } from "@/lib/auth-api";
+import { getMyDesigns } from "@/lib/survey-api";
 import {
   BarChart2, Plane, Settings, History, ChevronRight,
   LogOut, MapPin, Layers, Sparkles, Clock,
@@ -64,7 +65,13 @@ type AnalysisSettings = {
   sampleSize: number;
 };
 
-const DUMMY_HISTORY: HistoryItem[] = [];
+/** 백엔드 status → UI status 매핑 */
+function mapStatus(s: string): HistoryItem["status"] {
+  if (s === "completed") return "done";
+  if (s === "error") return "error";
+  // "hypotheses" | "questions" | "running" → 진행 중으로 표시
+  return "running";
+}
 
 /* ─── 유틸 ──────────────────────────────────── */
 function fmtDate(iso: string) {
@@ -99,7 +106,35 @@ export default function UserDashboard() {
   }
   const [sideMenu, setSideMenu] = useState<SideMenu>("analysis");
   const [analysisTab, setAnalysisTab] = useState<AnalysisTab>("home");
-  const [history] = useState<HistoryItem[]>(DUMMY_HISTORY);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getMyDesigns();
+        if (cancelled) return;
+        const mapped: HistoryItem[] = (res.designs ?? []).map((d) => ({
+          id: String(d.id),
+          industry: d.industry ?? "-",
+          sido: d.sido ?? "-",
+          sample_size: d.sample_size ?? 0,
+          status: mapStatus(d.status),
+          created_at: d.created_at,
+        }));
+        setHistory(mapped);
+      } catch (err) {
+        if (!cancelled) setHistoryError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /* 설정 (잠금 탭 — 미리보기용 state) */
   const [settings, setSettings] = useState<AnalysisSettings>({
