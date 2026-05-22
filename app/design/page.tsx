@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Sparkles, ArrowRight, ArrowLeft, MessageSquare,
   Clock, Check, Pencil, Upload, FileText,
   X, ChevronDown, BarChart2, Target, Lightbulb,
-  AlertCircle, Wand2, ListChecks, Users,
+  AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import { getAccessToken } from "@/lib/auth-api";
+import {
+  createDraft as apiCreateDraft,
+  updateDraft as apiUpdateDraft,
+  getDraft as apiGetDraft,
+  type SurveyDraftPatch,
+} from "@/lib/survey-api";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -251,6 +258,17 @@ function ProgressCard({
    메인 페이지
 ───────────────────────────────────────── */
 export default function DesignPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <DesignPageInner />
+    </Suspense>
+  );
+}
+
+function DesignPageInner() {
+  const searchParams = useSearchParams();
+  const draftIdFromUrl = searchParams.get("draft");
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
@@ -265,6 +283,13 @@ export default function DesignPage() {
   const [purposeFree, setPurposeFree] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [apiError, setApiError] = useState("");
+
+  // ── 임시저장 상태 ──
+  const [draftId, setDraftId] = useState<number | null>(null);
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // 활성 모드에서 결합 텍스트 도출
   const productDef = productMode === "structured"
@@ -295,6 +320,91 @@ export default function DesignPage() {
 
   // 문의 다이얼로그
   const [contactOpen, setContactOpen] = useState(false);
+
+  /* ── 임시저장: URL ?draft= 로 들어오면 마운트 시 자동 로드 ── */
+  useEffect(() => {
+    if (!draftIdFromUrl) return;
+    const id = parseInt(draftIdFromUrl, 10);
+    if (Number.isNaN(id)) return;
+    let cancelled = false;
+    setDraftLoading(true);
+    (async () => {
+      try {
+        const { draft } = await apiGetDraft(id);
+        if (cancelled || !draft) return;
+        setDraftId(draft.id);
+        // input_data 복원
+        const d = (draft.input_data || {}) as Record<string, unknown>;
+        if (typeof d.tradeType === "string") setTradeType(d.tradeType);
+        if (typeof d.industry === "string") setIndustry(d.industry);
+        if (d.productMode === "structured" || d.productMode === "free") setProductMode(d.productMode);
+        if (Array.isArray(d.productAnswers)) setProductAnswers((d.productAnswers as string[]).slice(0, 5).concat(["", "", "", "", ""]).slice(0, 5));
+        if (typeof d.productFree === "string") setProductFree(d.productFree);
+        if (d.purposeMode === "structured" || d.purposeMode === "free") setPurposeMode(d.purposeMode);
+        if (Array.isArray(d.purposeAnswers)) setPurposeAnswers((d.purposeAnswers as string[]).slice(0, 5).concat(["", "", "", "", ""]).slice(0, 5));
+        if (typeof d.purposeFree === "string") setPurposeFree(d.purposeFree);
+        // AI 결과 복원
+        if (Array.isArray(draft.hypotheses)) setHypothesisTexts(draft.hypotheses);
+        if (Array.isArray(draft.selected_hypotheses)) setSelectedHypotheses(new Set(draft.selected_hypotheses as number[]));
+        if (Array.isArray(draft.questions)) setSurveyQuestions(draft.questions as ApiQuestion[]);
+        // step 복원 (running 류는 건너뛰고 검토 단계로)
+        const stepMap: Record<string, Step> = {
+          input: "input",
+          hyp_review: "hyp_review",
+          survey_review: "survey_review",
+          result: "result",
+        };
+        const restored = stepMap[draft.step] ?? "input";
+        setStep(restored);
+        setSubmitted(true);
+        setSavedAt(new Date(draft.updated_at).getTime());
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setDraftLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftIdFromUrl]);
+
+  /* ── 임시저장 ── */
+  async function handleSaveDraft() {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    // 제목: 첫 30자 (productFree 또는 첫 productAnswer)
+    const titleSrc = (productFree.trim()
+      || productAnswers.find((a) => a.trim())
+      || tradeType
+      || industry
+      || "(제목 없음)").trim();
+    const title = titleSrc.slice(0, 30);
+    const payload: SurveyDraftPatch = {
+      title,
+      step,
+      input_data: {
+        tradeType, industry, productMode, productAnswers, productFree,
+        purposeMode, purposeAnswers, purposeFree,
+      },
+      hypotheses: hypothesisTexts,
+      selected_hypotheses: Array.from(selectedHypotheses),
+      questions: surveyQuestions,
+    };
+    try {
+      if (draftId == null) {
+        const { draft } = await apiCreateDraft(payload);
+        setDraftId(draft.id);
+      } else {
+        await apiUpdateDraft(draftId, payload);
+      }
+      setSavedAt(Date.now());
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   /* ── 헬퍼 ── */
   function stopTimer() {
@@ -404,7 +514,34 @@ export default function DesignPage() {
     <div className="min-h-screen bg-slate-50">
       <Navbar />
       <div className="max-w-5xl mx-auto px-8 py-10">
-        <StepBar step={step} />
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div className="flex-1"><StepBar step={step} /></div>
+          {/* 임시저장 버튼 — 로그인 사용자만 노출 + 결과 단계는 숨김 */}
+          {typeof window !== "undefined" && getAccessToken() && step !== "result" && (
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <button
+                onClick={handleSaveDraft}
+                disabled={saving || draftLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 transition-all"
+                title={draftId ? "임시저장한 작업에 덮어쓰기" : "임시저장"}
+              >
+                {saving
+                  ? <><RefreshCw size={12} className="animate-spin" /> 저장 중…</>
+                  : draftLoading
+                    ? <><RefreshCw size={12} className="animate-spin" /> 불러오는 중…</>
+                    : <><Save size={12} /> 임시저장</>}
+              </button>
+              {savedAt && !saving && (
+                <span className="text-[10px] text-slate-400">
+                  마지막 저장 {new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+              {saveError && (
+                <span className="text-[10px] text-rose-600 max-w-[200px] truncate" title={saveError}>{saveError}</span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ══════════════════════════════════════════
             1. 질문 입력

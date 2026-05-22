@@ -124,3 +124,47 @@ export interface DesignHistoryItem {
 export function getMyDesigns(): Promise<{ designs: DesignHistoryItem[] }> {
   return apiFetch("/api/survey/my-designs");
 }
+
+// ─── 설문 설계 임시저장 (drafts) ─────────────────────────────
+
+export interface SurveyDraft {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  user_id?: string | null;
+  user_email: string;
+  title?: string | null;
+  step: string; // "input" | "hyp_review" | "survey_review" | "result" ...
+  input_data: Record<string, unknown>;
+  hypotheses: string[];
+  selected_hypotheses: number[];
+  questions: SurveyQuestion[];
+}
+
+export type SurveyDraftPatch = Partial<Omit<SurveyDraft, "id" | "created_at" | "updated_at" | "user_id" | "user_email">>;
+
+export function listDrafts(): Promise<{ drafts: SurveyDraft[]; count: number }> {
+  return apiFetch("/api/survey/drafts");
+}
+
+export function createDraft(data: SurveyDraftPatch): Promise<{ draft: SurveyDraft }> {
+  return apiFetch("/api/survey/drafts", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function getDraft(id: number): Promise<{ draft: SurveyDraft }> {
+  return apiFetch(`/api/survey/drafts/${id}`);
+}
+
+export function updateDraft(id: number, patch: SurveyDraftPatch): Promise<{ draft: SurveyDraft }> {
+  return apiFetch(`/api/survey/drafts/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function deleteDraft(id: number): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/survey/drafts/${id}`, { method: "DELETE" });
+}

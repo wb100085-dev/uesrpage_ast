@@ -11,14 +11,14 @@ import {
   authChangePassword,
   type AuthUser,
 } from "@/lib/auth-api";
-import { getMyDesigns } from "@/lib/survey-api";
+import { getMyDesigns, listDrafts, deleteDraft, type SurveyDraft } from "@/lib/survey-api";
 import {
   BarChart2, Plane, Settings, History, ChevronRight,
   LogOut, MapPin, Layers, Sparkles, Clock,
   CheckCircle2, AlertCircle, RefreshCw, Construction,
   User, Users, ArrowRight, Zap, X,
   FileText, Target, Globe, ChevronDown, Save,
-  Lock, Mail, UserCog,
+  Lock, Mail, UserCog, FileEdit, Trash2,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
@@ -52,7 +52,7 @@ const SIDO_LIST = [
 
 /* ─── 타입 ─────────────────────────────────── */
 type SideMenu = "entrant" | "analysis" | "account";
-type AnalysisTab = "home" | "history" | "settings";
+type AnalysisTab = "home" | "history" | "drafts" | "settings";
 
 type HistoryItem = {
   id: string;
@@ -142,6 +142,38 @@ export default function UserDashboard() {
       cancelled = true;
     };
   }, []);
+
+  /* ─── 임시저장 ───────────────────────────── */
+  const [drafts, setDrafts] = useState<SurveyDraft[]>([]);
+  const [draftsLoading, setDraftsLoading] = useState(true);
+  const [draftsError, setDraftsError] = useState<string | null>(null);
+
+  async function refreshDrafts() {
+    setDraftsLoading(true);
+    setDraftsError(null);
+    try {
+      const res = await listDrafts();
+      setDrafts(res.drafts ?? []);
+    } catch (err) {
+      setDraftsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDraftsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshDrafts();
+  }, []);
+
+  async function handleDeleteDraft(id: number) {
+    if (!confirm("이 임시저장을 삭제할까요?")) return;
+    try {
+      await deleteDraft(id);
+      setDrafts((d) => d.filter((x) => x.id !== id));
+    } catch (err) {
+      alert("삭제 실패: " + (err instanceof Error ? err.message : String(err)));
+    }
+  }
 
   /* ─── 계정 관리 ───────────────────────────── */
   const [profile, setProfile] = useState<AuthUser | null>(null);
@@ -353,6 +385,14 @@ export default function UserDashboard() {
                     <span className="ml-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{history.length}</span>
                   )}
                 </button>
+                {/* 임시저장 */}
+                <button onClick={() => setAnalysisTab("drafts")}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "drafts" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                  <FileEdit size={14} /> 임시저장
+                  {drafts.length > 0 && (
+                    <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "drafts" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>{drafts.length}</span>
+                  )}
+                </button>
                 {/* 설정 — 구현중 */}
                 <button onClick={() => setAnalysisTab("settings")}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "settings" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
@@ -495,6 +535,75 @@ export default function UserDashboard() {
                           <p className="text-[10px] text-slate-400 mt-2">{fmtDate(item.created_at)}</p>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── 임시저장 탭 ── */}
+              {analysisTab === "drafts" && (
+                <div>
+                  {draftsLoading ? (
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm py-16 flex items-center justify-center gap-2 text-sm text-slate-400">
+                      <RefreshCw size={14} className="animate-spin" /> 불러오는 중…
+                    </div>
+                  ) : draftsError ? (
+                    <div className="bg-white rounded-2xl border border-rose-100 shadow-sm py-12 flex flex-col items-center justify-center gap-2 text-sm text-rose-600">
+                      <AlertCircle size={20} />
+                      <p>{draftsError}</p>
+                      <button onClick={refreshDrafts} className="mt-2 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-xs font-semibold hover:bg-rose-100">다시 시도</button>
+                    </div>
+                  ) : drafts.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm py-16 flex flex-col items-center justify-center gap-3">
+                      <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                        <FileEdit size={22} className="text-slate-300" />
+                      </div>
+                      <p className="text-sm text-slate-500">임시저장한 분석이 없습니다.</p>
+                      <Link href="/design" className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors">
+                        <Sparkles size={14} /> 새 분석 시작
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {drafts.map((d) => {
+                        const stepLabel: Record<string, string> = {
+                          input: "정의·니즈 입력",
+                          hyp_review: "가설 검토",
+                          survey_review: "문항 검토",
+                          result: "결과",
+                        };
+                        return (
+                          <div key={d.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:border-slate-200 transition-colors flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                              <FileEdit size={16} className="text-amber-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{stepLabel[d.step] ?? d.step}</span>
+                                <span className="text-[10px] text-slate-400">{fmtAgo(d.updated_at)}</span>
+                              </div>
+                              <h4 className="text-sm font-semibold text-slate-900 truncate">{d.title || "(제목 없음)"}</h4>
+                              <p className="text-[11px] text-slate-500 mt-0.5">{fmtDate(d.updated_at)}</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <Link
+                                href={`/design?draft=${d.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors"
+                              >
+                                이어쓰기 <ArrowRight size={12} />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteDraft(d.id)}
+                                className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                title="삭제"
+                                aria-label="삭제"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
