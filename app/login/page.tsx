@@ -368,16 +368,19 @@ function LoginInner() {
               >
                 <NaverIcon />
               </button>
-              <button
-                onClick={() => startSocialLogin("kakao")}
-                disabled={loading}
-                aria-label={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
-                title={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
-                style={{ backgroundColor: "#FEE500" }}
-                className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
-              >
-                <KakaoIcon />
-              </button>
+              {/* 카카오 — 카카오 비즈니스 채널 인증 전까지 임시 숨김. 인증 후 이 블록만 노출하면 됨. */}
+              {false && (
+                <button
+                  onClick={() => startSocialLogin("kakao")}
+                  disabled={loading}
+                  aria-label={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
+                  title={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
+                  style={{ backgroundColor: "#FEE500" }}
+                  className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
+                >
+                  <KakaoIcon />
+                </button>
+              )}
             </div>
           </div>
 
