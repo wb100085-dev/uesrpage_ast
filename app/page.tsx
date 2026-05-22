@@ -8,6 +8,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Reveal from "@/components/Reveal";
 import CtaLink from "@/components/CtaLink";
+import SiteFooter from "@/components/SiteFooter";
 
 /* ─────────────────────────────────────────
    Hero — floating app mockup
@@ -860,25 +861,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-slate-100 py-10">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center">
-            <Image
-              src="/omninode.png"
-              alt="Omninode"
-              width={120}
-              height={36}
-              className="h-9 w-auto object-contain"
-            />
-          </div>
-          <div className="flex gap-6 text-sm text-slate-400">
-            {["이용약관", "개인정보처리방침", "문의하기"].map((l) => (
-              <Link key={l} href="#" className="hover:text-slate-700 transition-colors">{l}</Link>
-            ))}
-          </div>
-          <div className="text-sm text-slate-400">© 2026 Omninode</div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -162,3 +162,64 @@ body {
   background: rgba(255,255,255,.08);
   border-color: rgba(255,255,255,.3);
 }
+
+/* ── Legal pages (이용약관 · 개인정보처리방침 · 환불 규정) ── */
+.legal-content {
+  color: #475569; /* slate-600 */
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+.legal-content h2 {
+  color: #0f172a; /* slate-900 */
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+.legal-content h2:first-child { margin-top: 0; }
+.legal-content h3 {
+  color: #1e293b; /* slate-800 */
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.legal-content p { margin: 0.75rem 0; }
+.legal-content ul,
+.legal-content ol {
+  margin: 0.75rem 0 0.75rem 1.25rem;
+  list-style: disc;
+}
+.legal-content ol { list-style: decimal; }
+.legal-content li { margin: 0.25rem 0; }
+.legal-content strong { color: #0f172a; font-weight: 600; }
+.legal-content a {
+  color: #4f46e5;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal-content a:hover { color: #4338ca; }
+.legal-content hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 2rem 0;
+}
+.legal-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.legal-content th,
+.legal-content td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+.legal-content th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #0f172a;
+}
