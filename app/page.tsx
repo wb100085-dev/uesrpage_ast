@@ -3,7 +3,7 @@ import Image from "next/image";
 import {
   ArrowRight, Sparkles, BarChart2, Users, FileText,
   Zap, Globe, Brain, Check, TrendingUp, Clock,
-  ChevronRight, Shield, MessageSquare, Play,
+  ChevronRight, Shield, MessageSquare,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Reveal from "@/components/Reveal";
@@ -84,13 +84,13 @@ function StepMockup1() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
       <div className="mb-2.5">
-        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">정의</div>
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">제품(서비스)</div>
         <div className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5">
           <span className="text-[11px] text-slate-700 leading-snug break-keep">비건 카페</span>
         </div>
       </div>
       <div>
-        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">니즈</div>
+        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">알고 싶은 내용</div>
         <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5">
           <span className="text-[11px] text-indigo-700 leading-snug break-keep">메뉴 선호·가격 민감도</span>
         </div>
@@ -112,7 +112,7 @@ function StepMockup2() {
       <div className="mb-2">
         <div className="text-[10px] text-slate-400 font-semibold mb-1">📌 가설</div>
         <div className="space-y-1">
-          {["비건 인증이 중요", "SNS 후기 영향"].map((h) => (
+          {["20대 여성고객이 더 선호 할 것이다.", "10대 남성고객이 덜 선호 할 것이다."].map((h) => (
             <div key={h} className="flex items-start gap-1 bg-slate-50 rounded px-1.5 py-1">
               <Check size={8} className="text-emerald-500 flex-shrink-0 mt-0.5" />
               <span className="text-[10px] text-slate-700 leading-snug break-keep">{h}</span>
@@ -121,8 +121,8 @@ function StepMockup2() {
         </div>
       </div>
       <div>
-        <div className="text-[10px] text-slate-400 font-semibold mb-1">📋 문항</div>
-        <div className="text-[10px] text-slate-500 leading-snug break-keep">12문항 자동 생성</div>
+        <div className="text-[10px] text-slate-400 font-semibold mb-1">📋 설문 문항</div>
+        <div className="text-[10px] text-slate-500 leading-snug break-keep">20문항 자동 생성</div>
       </div>
     </div>
   );
@@ -183,19 +183,76 @@ function StepMockup4() {
    Feature showcase — large visual cards
 ───────────────────────────────────────── */
 function FeatureVisual1() {
+  // 연령대별 남녀 인구 피라미드 — KOSIS 분포 시각화
+  const ageGroups = [
+    { label: "60+", m: 12, f: 14 },
+    { label: "50대", m: 19, f: 19 },
+    { label: "40대", m: 23, f: 22 },
+    { label: "30대", m: 25, f: 24 },
+    { label: "20대", m: 21, f: 20 },
+    { label: "10대", m: 14, f: 13 },
+  ];
+  const max = 28;
   return (
-    <div className="relative h-48 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80&fit=crop"
-        alt="데이터 분석 대시보드"
-        fill
-        className="object-cover opacity-60"
+    <div className="relative h-48 bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
+      <div
+        className="absolute inset-0 opacity-15"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "14px 14px",
+        }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-      <div className="absolute bottom-3 left-3 right-3">
-        <div className="flex gap-2">
-          {["KOSIS", "행정안전부", "통계청"].map((t) => (
-            <span key={t} className="px-2 py-1 bg-white/15 backdrop-blur-sm rounded-full text-white text-[10px] font-medium border border-white/20">{t}</span>
+      {/* 상단 — 카운터 */}
+      <div className="relative flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <Users size={11} className="text-white/80" />
+          <span className="text-[9px] text-white/80 font-semibold uppercase tracking-wider">인구 피라미드</span>
+        </div>
+        <span className="text-[10px] text-white font-bold bg-white/15 backdrop-blur-sm rounded-full px-2 py-0.5 border border-white/20">
+          20만여개 통계 활용
+        </span>
+      </div>
+      {/* 인구 피라미드 */}
+      <div className="relative space-y-1">
+        {ageGroups.map((g) => (
+          <div key={g.label} className="flex items-center gap-1.5">
+            <div className="flex-1 flex justify-end">
+              <div
+                className="h-2 bg-gradient-to-l from-sky-300 to-sky-500 rounded-l-sm"
+                style={{ width: `${(g.m / max) * 100}%` }}
+              />
+            </div>
+            <div className="w-8 text-center text-[8px] text-white/75 font-medium tabular-nums">
+              {g.label}
+            </div>
+            <div className="flex-1 flex justify-start">
+              <div
+                className="h-2 bg-gradient-to-r from-rose-300 to-rose-500 rounded-r-sm"
+                style={{ width: `${(g.f / max) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* 하단 — 범례 + 데이터 출처 */}
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[8px]">
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1 text-sky-200">
+            <span className="w-1.5 h-1.5 bg-sky-400 rounded-sm" /> 남성
+          </span>
+          <span className="flex items-center gap-1 text-rose-200">
+            <span className="w-1.5 h-1.5 bg-rose-400 rounded-sm" /> 여성
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {["KOSIS", "행안부"].map((t) => (
+            <span
+              key={t}
+              className="px-1.5 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-white/90 font-semibold border border-white/20"
+            >
+              {t}
+            </span>
           ))}
         </div>
       </div>
@@ -205,44 +262,37 @@ function FeatureVisual1() {
 
 function FeatureVisual2() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-violet-800 to-indigo-900 rounded-xl overflow-hidden">
-      <div className="absolute inset-0 flex flex-col justify-end p-4">
-        <div className="glass rounded-xl p-3">
-          <div className="text-[10px] text-slate-300 mb-1.5 font-medium">AI 설계 중 — 설문 3/5 생성</div>
-          <div className="space-y-1.5">
-            {["카페 방문 빈도를 선택해주세요", "선호하는 음료 종류는?"].map((q) => (
-              <div key={q} className="flex items-center gap-2 bg-white/10 rounded-lg px-2.5 py-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
-                <span className="text-[10px] text-white">{q}</span>
-              </div>
-            ))}
+    <div className="relative h-48 bg-gradient-to-br from-violet-700 via-purple-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
+      <div className="h-full flex flex-col gap-1.5">
+        {/* 입력 프롬프트 */}
+        <div className="bg-white/12 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/20 flex items-center gap-1.5">
+          <MessageSquare size={11} className="text-violet-200 flex-shrink-0" />
+          <span className="text-[10px] text-white truncate">&ldquo;비건 카페 메뉴 선호도&rdquo;</span>
+        </div>
+        {/* AI 처리 상태 */}
+        <div className="flex items-center gap-1.5 px-1">
+          <Sparkles size={10} className="text-violet-200" />
+          <span className="text-[9px] text-violet-100 font-medium">AI 자동 설계 중</span>
+          <div className="ml-auto flex gap-0.5">
+            <span className="w-1 h-1 rounded-full bg-violet-200" />
+            <span className="w-1 h-1 rounded-full bg-violet-200/60" />
+            <span className="w-1 h-1 rounded-full bg-violet-200/30" />
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function FeatureVisual3() {
-  return (
-    <div className="relative h-48 bg-gradient-to-br from-sky-800 to-slate-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80&fit=crop"
-        alt="데이터 시각화"
-        fill
-        className="object-cover opacity-50"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
-      <div className="absolute bottom-3 left-3 right-3">
-        <div className="flex gap-2">
+        {/* 자동 생성된 문항 */}
+        <div className="flex-1 space-y-1 mt-0.5">
           {[
-            { label: "교차분석", color: "bg-sky-500" },
-            { label: "세그먼트", color: "bg-violet-500" },
-            { label: "트렌드", color: "bg-emerald-500" },
-          ].map((t) => (
-            <div key={t.label} className="flex items-center gap-1 px-2 py-1 bg-white/15 backdrop-blur-sm rounded-full border border-white/20">
-              <div className={`w-1.5 h-1.5 rounded-full ${t.color}`} />
-              <span className="text-white text-[10px] font-medium">{t.label}</span>
+            "Q1. 카페 방문 빈도는?",
+            "Q2. 선호 음료 종류는?",
+            "Q3. 가격 민감도는?",
+            "Q4. 비건 인증 영향은?",
+          ].map((q) => (
+            <div
+              key={q}
+              className="bg-white/8 backdrop-blur-sm rounded-md px-2 py-1 border border-white/10 flex items-center gap-1.5"
+            >
+              <Check size={9} className="text-emerald-300 flex-shrink-0" />
+              <span className="text-[10px] text-white/90 truncate">{q}</span>
             </div>
           ))}
         </div>
@@ -252,22 +302,52 @@ function FeatureVisual3() {
 }
 
 function FeatureVisual4() {
+  const bars = [
+    { w: 82, c: "from-sky-400 to-indigo-400" },
+    { w: 64, c: "from-indigo-400 to-violet-400" },
+    { w: 47, c: "from-violet-400 to-rose-400" },
+    { w: 32, c: "from-rose-400 to-amber-400" },
+  ];
   return (
-    <div className="relative h-48 bg-gradient-to-br from-emerald-800 to-slate-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&q=80&fit=crop"
-        alt="보고서"
-        fill
-        className="object-cover opacity-50"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent" />
-      <div className="absolute bottom-3 left-3">
-        <div className="flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/20">
-          <FileText size={14} className="text-emerald-300" />
-          <div>
-            <div className="text-white text-xs font-semibold">보고서 준비됨</div>
-            <div className="text-slate-300 text-[10px]">PDF 12페이지</div>
+    <div className="relative h-48 bg-gradient-to-br from-sky-700 via-indigo-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
+      <div className="flex gap-2.5 h-full">
+        {/* 좌측 — 분석 대시보드 */}
+        <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-white/15 flex flex-col">
+          <div className="flex items-center gap-1 mb-2">
+            <BarChart2 size={10} className="text-sky-300" />
+            <span className="text-[9px] text-white font-semibold">분석 대시보드</span>
+            <span className="ml-auto text-[8px] text-white/50">N=500</span>
           </div>
+          <div className="space-y-1.5 flex-1 flex flex-col justify-center">
+            {bars.map((b, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="flex-1 bg-white/10 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`bg-gradient-to-r ${b.c} h-1.5 rounded-full`}
+                    style={{ width: `${b.w}%` }}
+                  />
+                </div>
+                <span className="text-[8px] text-white/70 w-6 text-right tabular-nums">{b.w}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* 우측 — PDF 보고서 시트 */}
+        <div className="w-20 bg-white rounded-lg p-2 shadow-xl flex flex-col">
+          <div className="flex items-center gap-1 mb-1.5 pb-1 border-b border-slate-100">
+            <FileText size={9} className="text-rose-500" />
+            <span className="text-[8px] text-slate-700 font-bold">PDF 12p</span>
+          </div>
+          <div className="space-y-1 flex-1">
+            {[60, 80, 50, 70, 65, 45, 75, 55].map((w, i) => (
+              <div
+                key={i}
+                className="h-1 bg-slate-200 rounded"
+                style={{ width: `${w}%` }}
+              />
+            ))}
+          </div>
+          <div className="mt-1.5 h-3 rounded bg-gradient-to-r from-indigo-500 to-violet-500" />
         </div>
       </div>
     </div>
@@ -276,58 +356,113 @@ function FeatureVisual4() {
 
 function FeatureVisual5() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-amber-700 to-slate-900 rounded-xl overflow-hidden">
-      <Image
-        src="https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&q=80&fit=crop"
-        alt="결제"
-        fill
-        className="object-cover opacity-40"
+    <div className="relative h-48 bg-gradient-to-br from-amber-600 via-orange-700 to-slate-900 rounded-xl overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-15"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "16px 16px",
+        }}
       />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl font-extrabold text-white">₩9,900</div>
-          <div className="text-slate-300 text-sm mt-1">건당 · 구독 없음</div>
+      <div className="absolute inset-0 p-4 flex flex-col items-center justify-center gap-3">
+        {/* 좌(기존) → 우(Socialtwin) 비교 카드 */}
+        <div className="flex items-stretch gap-2 w-full max-w-[300px]">
+          <div className="flex-1 bg-white/8 backdrop-blur-sm rounded-lg px-2 py-2 border border-white/10 text-center flex flex-col justify-center">
+            <div className="text-[8px] text-slate-300 mb-0.5 uppercase tracking-wider">기존 리서치</div>
+            <div className="text-base font-bold text-slate-300/70 line-through tabular-nums">₩100만+</div>
+          </div>
+          <div className="flex items-center">
+            <ArrowRight size={14} className="text-amber-300" />
+          </div>
+          <div className="relative flex-1 bg-white/18 backdrop-blur-sm rounded-lg px-2 py-2 border border-white/30 text-center shadow-lg shadow-amber-900/30">
+            <span className="absolute -top-2 right-1 inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md">
+              50% OFF
+            </span>
+            <div className="text-[8px] text-amber-200 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
+            <div className="text-[10px] text-slate-300/70 line-through tabular-nums leading-none">₩99,000</div>
+            <div className="text-base font-extrabold text-white tabular-nums leading-tight mt-0.5">₩49,500</div>
+          </div>
+        </div>
+        {/* 절감 배지 */}
+        <div className="inline-flex items-center gap-1.5 bg-emerald-500/25 backdrop-blur-sm rounded-full px-3 py-1 border border-emerald-300/40">
+          <TrendingUp size={11} className="text-emerald-200" style={{ transform: "rotate(180deg)" }} />
+          <span className="text-emerald-100 text-[10px] font-bold">기존 대비 95% 절감 · 구독 없음</span>
         </div>
       </div>
     </div>
   );
 }
 
-function FeatureVisual6() {
-  // 17개 시도 — 한반도 형태에 가깝게 배치 (정렬된 grid로 약식 표현)
-  const rows = [
-    ["서울", "인천", "경기", "강원"],
-    ["대전", "세종", "충북", "충남"],
-    ["광주", "전북", "전남"],
-    ["대구", "경북", "부산", "울산", "경남"],
-    ["제주"],
-  ];
+function FeatureVisualTime() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-indigo-600 via-violet-700 to-slate-900 rounded-xl overflow-hidden">
-      {/* 장식 — 부드러운 원형 글로우 */}
-      <div className="absolute top-0 left-1/4 w-32 h-32 bg-rose-400/20 rounded-full blur-2xl" />
-      <div className="absolute bottom-0 right-0 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl" />
-      {/* 그리드 점 — 지도 같은 배경 */}
-      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
-
-      <div className="relative h-full flex flex-col items-center justify-center px-4 py-3">
-        {/* 17개 시도 뱃지 — 행마다 가운데 정렬해 반도형 분포 느낌 */}
-        <div className="flex flex-col items-center gap-1 mb-2">
-          {rows.map((row, ri) => (
-            <div key={ri} className="flex gap-1 justify-center">
-              {row.map((r) => (
-                <span
-                  key={r}
-                  className="px-1.5 py-0.5 text-[9px] font-medium text-white bg-white/15 backdrop-blur-sm rounded border border-white/20"
-                >
-                  {r}
-                </span>
-              ))}
-            </div>
-          ))}
+    <div className="relative h-48 bg-gradient-to-br from-orange-600 via-rose-700 to-slate-900 rounded-xl overflow-hidden">
+      <div
+        className="absolute inset-0 opacity-15"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
+          backgroundSize: "16px 16px",
+        }}
+      />
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/20">
+        <Clock size={11} className="text-white" />
+        <span className="text-white text-[10px] font-medium">실시간</span>
+      </div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl font-extrabold text-white tracking-tight">
+            ~1<span className="text-2xl font-bold ml-0.5">시간</span>
+          </div>
+          <div className="text-slate-200 text-sm mt-1">결제 후 결과 확인까지</div>
         </div>
-        <div className="mt-1 text-center">
-          <div className="text-[10px] text-white/60 font-semibold tracking-widest">17 SIDO · KOSIS</div>
+      </div>
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2 text-[10px]">
+        <span className="text-slate-300/80 line-through">기존 2주 이상</span>
+        <ArrowRight size={10} className="text-emerald-300" />
+        <span className="text-emerald-300 font-semibold">Socialtwin 1시간</span>
+      </div>
+    </div>
+  );
+}
+
+function FeatureVisualTrust() {
+  return (
+    <div className="relative h-48 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900 rounded-xl overflow-hidden">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-400/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-sky-400/15 rounded-full blur-3xl" />
+      <div className="absolute inset-0 p-4 flex flex-col justify-center gap-3">
+        {/* 검증 라벨 */}
+        <div className="flex justify-center">
+          <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
+            <Shield size={11} className="text-emerald-300" />
+            <span className="text-white text-[10px] font-semibold">검증된 정합성</span>
+          </div>
+        </div>
+        {/* 실 패널 vs Socialtwin 비교 막대 */}
+        <div className="space-y-1.5 max-w-[280px] mx-auto w-full">
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-[9px] text-slate-300 text-right">실 패널 조사</span>
+            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+              <div className="bg-white/70 h-2 rounded-full" style={{ width: "100%" }} />
+            </div>
+            <span className="w-9 text-[9px] text-white/80 text-right tabular-nums">100%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-[9px] text-emerald-200 text-right font-semibold">Socialtwin</span>
+            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-emerald-400 to-teal-300 h-2 rounded-full"
+                style={{ width: "95%" }}
+              />
+            </div>
+            <span className="w-9 text-[9px] text-emerald-200 text-right font-bold tabular-nums">95%</span>
+          </div>
+        </div>
+        {/* 캡션 */}
+        <div className="text-center flex items-center justify-center gap-1.5">
+          <Check size={10} className="text-emerald-300" />
+          <span className="text-emerald-200 text-[10px] font-medium">KOSIS 인구통계 분포 반영</span>
         </div>
       </div>
     </div>
@@ -414,7 +549,7 @@ const USE_CASES = [
     desc: "논문·과제용 1차 데이터 수집과 사회 트렌드 파일럿 조사에 활용.",
   },
   {
-    image: "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=600&q=80&fit=crop",
+    image: "https://images.unsplash.com/photo-1488229297570-58520851e868?w=600&q=80&fit=crop",
     field: "공공 · 정책",
     desc: "지역 주민 의견 수렴과 정책 수용도 사전 진단을 빠르게.",
   },
@@ -439,7 +574,7 @@ const steps = [
     bg: "bg-violet-50",
     num: "02",
     title: "AI 가설·문항 설계",
-    desc: "조사 가설을 도출하고 객관식 문항을 자동 생성합니다.",
+    desc: "조사 가설을 도출하고 설문 문항을 자동 생성합니다.",
     mockup: <StepMockup2 />,
   },
   {
@@ -455,18 +590,42 @@ const steps = [
     bg: "bg-emerald-50",
     num: "04",
     title: "대시보드 · 보고서",
-    desc: "교차분석 차트와 PDF 보고서로 결과를 5분 안에 확인합니다.",
+    desc: "교차분석 차트와 PDF 보고서로 결과를 30분 안에 확인합니다.",
     mockup: <StepMockup4 />,
   },
 ];
 
 const features = [
-  { title: "실제 통계 기반 가상인구", desc: "KOSIS·행정안전부 데이터로 지역·연령·소득이 반영된 가상인구를 제공합니다.", visual: <FeatureVisual1 /> },
-  { title: "AI 자동 설계", desc: "조사 목적을 이해하고 최적의 설문 구조와 문항을 자동으로 생성합니다.", visual: <FeatureVisual2 /> },
-  { title: "인사이트 대시보드", desc: "교차분석, 소득·연령대별 세그먼트 비교를 한눈에 시각화합니다.", visual: <FeatureVisual3 /> },
-  { title: "PDF 보고서 자동 생성", desc: "클라이언트에게 바로 전달 가능한 깔끔한 보고서를 원클릭으로 다운로드합니다.", visual: <FeatureVisual4 /> },
-  { title: "건당 결제, 구독 없음", desc: "필요할 때만 사용하세요. 월정액 없이 조사 한 건당 결제합니다.", visual: <FeatureVisual5 /> },
-  { title: "전국 17개 시도 지원", desc: "서울·경기부터 제주까지 지역별 특성이 반영된 가상인구 풀을 제공합니다.", visual: <FeatureVisual6 /> },
+  {
+    title: "1. AI 가상인구",
+    desc: "국가 통계 데이터로 지역, 성별, 연령, 소득 등 20만여개의 통계를 활용하여 가상인구를 생성합니다.",
+    visual: <FeatureVisual1 />,
+  },
+  {
+    title: "2. AI 자동 설계",
+    desc: "조사 목적을 한 문장만 입력하면 AI가 가설·문항·선택지를 자동 생성합니다. 설문 설계 전문 지식이 필요 없습니다.",
+    visual: <FeatureVisual2 />,
+  },
+  {
+    title: "3. 인사이트 · 보고서",
+    desc: "성별, 소득, 연령대 등 세그먼크별 비교를 통해 한눈에 시각화 합니다.",
+    visual: <FeatureVisual4 />,
+  },
+  {
+    title: "4. 압도적 속도",
+    desc: "기존 리서치가 한 달 걸리던 일을 약 1시간 만에 결과 대시보드로 확인합니다.",
+    visual: <FeatureVisualTime />,
+  },
+  {
+    title: "5. 10분의 1 비용",
+    desc: "리서치 회사 의뢰 대비 90% 이상 저렴한 가격. 월 구독 없이 조사 한 건당 결제합니다.",
+    visual: <FeatureVisual5 />,
+  },
+  {
+    title: "6. 검증된 신뢰도",
+    desc: "실제 인구통계 분포에 맞춰 시뮬레이션하므로 실 패널 조사 결과와 95% 이상의 정합성을 보입니다.",
+    visual: <FeatureVisualTrust />,
+  },
 ];
 
 /* ─────────────────────────────────────────
@@ -495,27 +654,24 @@ export default function LandingPage() {
                   <span className="animate-pulse-ring absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-400" />
                 </span>
-                Beta · 가상인구 100만명+ 데이터 기반
+                국가통계 데이터 기반 AI가상인구
               </div>
               <h1 className="animate-fade-up-2 text-5xl lg:text-[64px] font-extrabold leading-[1.1] tracking-tight text-white mb-6">
-                한 문장으로<br />
-                <span className="text-shimmer">AI 시장조사</span>
+                빠르고 쉬운<br />
+                <span className="text-shimmer">AI 고객조사</span>
               </h1>
               <p className="animate-fade-up-3 text-lg text-slate-400 leading-relaxed mb-10 max-w-md">
                 AI가 설문을 설계하고, 가상인구가 응답합니다.{" "}<br />
-                <span className="text-slate-200 font-medium">기존 리서치 대비 10분의 1 비용</span>으로{" "}<br />
-                <span className="text-slate-200 font-medium">5분 안에</span> 인사이트를 얻으세요.
+                <span className="text-slate-200 font-medium">기존 고객조사 대비 90%이상 저렴한 비용</span>으로{" "}<br />
+                <span className="text-slate-200 font-medium">1시간안에 안에</span> 인사이트를 얻으세요.
               </p>
               <div className="animate-fade-up-4 flex flex-wrap gap-3 mb-12">
                 <CtaLink className="btn-primary">
-                  무료로 체험하기 <ArrowRight size={16} />
+                  무료 체험하기 <ArrowRight size={16} />
                 </CtaLink>
-                <Link href="#how" className="btn-ghost">
-                  <Play size={14} className="fill-white/80" /> 작동 방식 보기
-                </Link>
               </div>
               <div className="animate-fade-up-4 flex flex-wrap items-center gap-5 text-sm text-slate-500">
-                {["국가 통계 연동", "AI 설계", "결제 후 30분 내 결과"].map((t) => (
+                {["국가 통계 기반", "AI가상인구", "1시간이내 결과 확인"].map((t) => (
                   <div key={t} className="flex items-center gap-1.5">
                     <Check size={14} className="text-emerald-400" /> {t}
                   </div>
@@ -538,28 +694,39 @@ export default function LandingPage() {
               How it works
             </div>
             <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
-              4단계로 완성되는 시장조사
+              4단계로 완성되는 AI 고객조사
+              <span className="block mt-2 text-2xl font-medium text-slate-500">
+                (여러분은 단 두 문장만 입력하세요)
+              </span>
             </h2>
           </Reveal>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
             {steps.map((step, i) => (
               <Reveal key={step.num} delay={i * 80}>
-                <div className="group bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full flex flex-col">
-                  {/* Mini mockup screenshot */}
-                  <div className="bg-slate-50 border-b border-slate-100 p-4">
-                    {step.mockup}
+                <div className="flex flex-col h-full">
+                  {/* 단계 라벨 */}
+                  <div className="text-left mb-3">
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${step.bg} text-slate-700`}>
+                      {i + 1}단계
+                    </span>
                   </div>
-                  {/* Text */}
-                  <div className="p-5 flex-1">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={`w-9 h-9 rounded-xl ${step.bg} flex items-center justify-center`}>
-                        {step.icon}
-                      </div>
-                      <span className="text-xs font-bold text-slate-200 tabular-nums">{step.num}</span>
+                  <div className="group bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex-1 flex flex-col">
+                    {/* Mini mockup screenshot — 고정 높이로 4개 박스를 시각적으로 동일하게 */}
+                    <div className="bg-slate-50 border-b border-slate-100 p-4 h-52 flex items-center justify-center">
+                      <div className="w-full">{step.mockup}</div>
                     </div>
-                    <h3 className="text-[15px] font-semibold text-slate-900 mb-2 break-keep">{step.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed break-keep">{step.desc}</p>
+                    {/* Text — flex-1 로 텍스트 영역 높이 균일화 */}
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-9 h-9 rounded-xl ${step.bg} flex items-center justify-center`}>
+                          {step.icon}
+                        </div>
+                        <span className="text-xs font-bold text-slate-200 tabular-nums">{step.num}</span>
+                      </div>
+                      <h3 className="text-[15px] font-semibold text-slate-900 mb-2 break-keep">{step.title}</h3>
+                      <p className="text-sm text-slate-500 leading-relaxed break-keep">{step.desc}</p>
+                    </div>
                   </div>
                 </div>
               </Reveal>
@@ -601,39 +768,82 @@ export default function LandingPage() {
 
       {/* ── Comparison ── */}
       <section className="py-28 bg-white">
-        <div className="max-w-3xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-6">
           <Reveal className="text-center mb-12">
             <h2 className="text-4xl font-bold text-slate-900 tracking-tight">기존 방식과 비교</h2>
           </Reveal>
           <Reveal delay={100}>
             <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-              <table className="w-full text-sm bg-white">
+              <table className="w-full text-sm bg-white table-fixed">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    <th className="text-left p-4 text-slate-400 font-medium text-xs w-1/3" />
-                    <th className="text-center p-4 font-semibold text-slate-500 text-xs w-1/3">기존 온라인 설문</th>
-                    <th className="text-center p-4 w-1/3 bg-indigo-50">
+                    <th className="text-left p-4 text-slate-400 font-medium text-xs w-[18%]" />
+                    <th className="text-center p-4 font-semibold text-slate-500 text-xs w-[41%]">기존방식의 고객조사</th>
+                    <th className="text-center p-4 w-[41%] bg-indigo-50">
                       <span className="font-bold text-indigo-600 text-xs">Socialtwin</span>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    ["비용", "100만원+", "건당 ₩9,900~"],
-                    ["소요 시간", "수 일 ~ 수 주", "약 30분"],
-                    ["설문 설계", "전문가 필요", "AI 자동 설계"],
-                    ["응답자 모집", "패널 직접 모집", "가상인구 즉시"],
-                    ["지역 세분화", "추가 비용 발생", "17개 시도 기본"],
-                    ["보고서", "별도 제작 필요", "PDF 자동 생성"],
-                  ].map(([item, old, neu]) => (
-                    <tr key={item} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
-                      <td className="p-4 text-slate-600 font-medium text-sm">{item}</td>
-                      <td className="p-4 text-center text-slate-400 text-sm">{old}</td>
-                      <td className="p-4 text-center bg-indigo-50/50">
-                        <span className="font-semibold text-indigo-600 text-sm">{neu}</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {(() => {
+                    const HLOld = ({ children }: { children: React.ReactNode }) => (
+                      <span className="inline-block bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold">
+                        {children}
+                      </span>
+                    );
+                    const HLNew = ({ children }: { children: React.ReactNode }) => (
+                      <span className="inline-block bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold">
+                        {children}
+                      </span>
+                    );
+                    const rows: Array<{
+                      label: string;
+                      old: React.ReactNode;
+                      neu: React.ReactNode;
+                    }> = [
+                      { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 수천, 수만명 설문조사 결과 보고서" },
+                      { label: "비용", old: "건당 100만원 이상", neu: "90% 이상 절감" },
+                      { label: "시간", old: "2주 이상", neu: "1시간 이내" },
+                      { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
+                      { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
+                      {
+                        label: "편향",
+                        old: (
+                          <ul className="space-y-2 text-left list-disc pl-4 marker:text-slate-300">
+                            <li>사회적 시선을 의식한 의식적 거짓 답변</li>
+                            <li>질문자 의도에 맞추는 <HLOld>맹목적 순응/동조</HLOld></li>
+                            <li>주관적 기준에 따른 <HLOld>척도 점수 왜곡</HLOld></li>
+                          </ul>
+                        ),
+                        neu: (
+                          <ul className="space-y-2 text-left list-disc pl-4 marker:text-indigo-300">
+                            <li>자아 방어 기제가 없는 <HLNew>객관적 통계 확률 추론</HLNew></li>
+                            <li>프로필 규칙 기반의 <HLNew>감정적 독립성 유지</HLNew></li>
+                            <li>특허 알고리즘(CA-IPF) 기반의 <HLNew>데이터 표준화</HLNew></li>
+                          </ul>
+                        ),
+                      },
+                    ];
+                    return rows.map(({ label, old, neu }) => {
+                      const oldIsText = typeof old === "string";
+                      const neuIsText = typeof neu === "string";
+                      return (
+                        <tr key={label} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
+                          <td className="p-4 text-slate-700 font-semibold text-sm align-top">{label}</td>
+                          <td className={`p-4 text-sm align-top ${oldIsText ? "text-center text-slate-400" : "text-slate-600 leading-relaxed break-keep"}`}>
+                            {old}
+                          </td>
+                          <td className="p-4 align-top bg-indigo-50/50">
+                            {neuIsText ? (
+                              <div className="text-center font-semibold text-indigo-600 text-sm">{neu}</div>
+                            ) : (
+                              <div className="text-indigo-700 text-sm leading-relaxed break-keep">{neu}</div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -692,7 +902,7 @@ export default function LandingPage() {
               Testimonials
             </div>
             <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
-              이미 쓰고 있는 분들의 이야기
+              활용 사례
             </h2>
           </Reveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -833,24 +1043,12 @@ export default function LandingPage() {
                   Get started
                 </div>
                 <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
-                  오늘 바로<br />
+                  지금 바로<br />
                   시작해보세요
                 </h2>
-                <p className="text-lg text-slate-500 mb-8 leading-relaxed">
+                <p className="text-lg text-slate-500 mb-9 leading-relaxed">
                   가입 즉시 무료로 시장조사를 설계하고, AI가 만든 가상인구 응답을 확인할 수 있습니다.
                 </p>
-                <ul className="space-y-2 mb-9">
-                  {[
-                    "신용카드 등록 없이 시작",
-                    "5분 안에 첫 조사 결과",
-                    "PDF 보고서 자동 생성",
-                  ].map((t) => (
-                    <li key={t} className="flex items-center gap-2 text-sm text-slate-600">
-                      <Check size={14} className="text-emerald-500 flex-shrink-0" />
-                      {t}
-                    </li>
-                  ))}
-                </ul>
                 <CtaLink className="btn-primary text-base px-8 py-4">
                   무료 체험 시작 <ArrowRight size={18} />
                 </CtaLink>

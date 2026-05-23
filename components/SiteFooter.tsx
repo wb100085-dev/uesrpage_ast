@@ -53,21 +53,7 @@ export default function SiteFooter() {
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-28">사업자등록번호</dt>
-                  <dd>
-                    366-86-04216{" "}
-                    <a
-                      href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=3668604216"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-indigo-500 hover:text-indigo-700 underline underline-offset-2"
-                    >
-                      사업자정보 확인
-                    </a>
-                  </dd>
-                </div>
-                <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">통신판매업 신고</dt>
-                  <dd className="text-slate-400">신고 예정</dd>
+                  <dd>366-86-04216</dd>
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-28">사업장 소재지</dt>

@@ -64,9 +64,10 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-7">
           {[
-            { label: "작동 방식", href: "#how", external: false },
-            { label: "기능", href: "#features", external: false },
-            { label: "Omninode", href: "https://www.omninode.kr", external: true },
+            { label: "진행 순서", href: "/#how", external: false },
+            { label: "차별성", href: "/#features", external: false },
+            { label: "활용", href: "/#use-cases", external: false },
+            { label: "(주)옴니노드", href: "https://www.omninode.kr", external: true },
           ].map((item) =>
             item.external ? (
               <a
@@ -127,7 +128,7 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
                 href="/login"
                 className="text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
-                무료로 시작하기
+                무료 체험하기
               </Link>
             </>
           )}
@@ -148,14 +149,19 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
             dark ? "bg-slate-950" : "bg-white"
           } px-6 py-5 flex flex-col gap-4`}
         >
-          {["작동 방식", "기능"].map((l) => (
-            <button
-              key={l}
+          {[
+            { label: "진행 순서", href: "/#how" },
+            { label: "차별성", href: "/#features" },
+            { label: "활용", href: "/#use-cases" },
+          ].map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
               onClick={() => setOpen(false)}
               className={`text-sm font-medium text-left ${linkCls}`}
             >
-              {l}
-            </button>
+              {l.label}
+            </a>
           ))}
           <a
             href="https://www.omninode.kr"
@@ -164,7 +170,7 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
             onClick={() => setOpen(false)}
             className={`text-sm font-medium text-left ${linkCls}`}
           >
-            Omninode
+            (주)옴니노드
           </a>
           {isUser ? (
             <>
@@ -191,7 +197,7 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
               onClick={() => setOpen(false)}
               className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
             >
-              무료로 시작하기
+              무료 체험하기
             </Link>
           )}
         </div>
