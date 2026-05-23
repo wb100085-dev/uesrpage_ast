@@ -99,8 +99,18 @@ function LoginInner() {
   // 가입 완료 후 "메일 인증을 확인하세요" 화면
   const [signupSentTo, setSignupSentTo] = useState<string | null>(null);
 
+  // ?next= 안전 추출 — open redirect 방지를 위해 상대 경로(/...)만 허용,
+  // 프로토콜 상대(`//...`)와 /login 자기 자신은 제외.
+  function getSafeNext(): string | null {
+    const raw = searchParams.get("next");
+    if (!raw) return null;
+    if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+    if (raw.startsWith("/login")) return null;
+    return raw;
+  }
+
   async function gotoDashboard() {
-    // 슈퍼유저/스태프면 관리자 콘솔로 핸드오프, 아니면 본인 대시보드.
+    // 슈퍼유저/스태프면 관리자 콘솔로 핸드오프, 아니면 본인 대시보드(혹은 next).
     try {
       const me = await authGetMe();
       if (me?.is_superuser || me?.is_staff) {
@@ -113,7 +123,8 @@ function LoginInner() {
     } catch {
       // 사용자 정보 조회 실패 시 일반 사용자 흐름으로 폴백
     }
-    router.push("/dashboard/user");
+    const next = getSafeNext();
+    router.push(next ?? "/dashboard/user");
   }
 
   function startSocialLogin(provider: "google" | "kakao" | "naver") {

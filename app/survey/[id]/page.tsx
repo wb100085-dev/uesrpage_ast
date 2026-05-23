@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Zap, Users, CheckCircle, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import RequireAuth from "@/components/RequireAuth";
 import { getSurveyStatus } from "@/lib/survey-api";
 
 const STAGES = [
@@ -15,6 +16,14 @@ const STAGES = [
 ];
 
 export default function SurveyPage() {
+  return (
+    <RequireAuth>
+      <SurveyPageInner />
+    </RequireAuth>
+  );
+}
+
+function SurveyPageInner() {
   const router = useRouter();
   const params = useParams();
   const jobId = params.id as string;

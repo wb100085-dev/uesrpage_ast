@@ -7,6 +7,7 @@ import {
   Download, Users, Target, Sparkles, ChevronRight, TrendingUp, BarChart2, FileText,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import RequireAuth from "@/components/RequireAuth";
 import { getSurveyResults, type SurveyResult, type SurveyReport } from "@/lib/survey-api";
 
 const COLORS = [
@@ -59,6 +60,14 @@ function QuestionCard({ result }: { result: SurveyResult }) {
 }
 
 export default function ResultsPage() {
+  return (
+    <RequireAuth>
+      <ResultsPageInner />
+    </RequireAuth>
+  );
+}
+
+function ResultsPageInner() {
   const params = useParams();
   const jobId = params.id as string;
 

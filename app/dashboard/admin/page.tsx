@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authLogout } from "@/lib/auth-api";
+import RequireAuth from "@/components/RequireAuth";
 import {
   Users, Activity, BarChart2, RefreshCw, Clock, Search,
   TrendingUp, Database, ChevronRight, LogOut, Shield,
@@ -129,6 +130,14 @@ function downloadCSV(logs: AnalysisLog[]) {
 /*  메인                                        */
 /* ═══════════════════════════════════════════ */
 export default function AdminDashboard() {
+  return (
+    <RequireAuth>
+      <AdminDashboardInner />
+    </RequireAuth>
+  );
+}
+
+function AdminDashboardInner() {
   const router = useRouter();
   async function handleLogout() {
     await authLogout();

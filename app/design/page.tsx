@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
+import RequireAuth from "@/components/RequireAuth";
 import { getAccessToken } from "@/lib/auth-api";
 import {
   createDraft as apiCreateDraft,
@@ -259,9 +260,11 @@ function ProgressCard({
 ───────────────────────────────────────── */
 export default function DesignPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-      <DesignPageInner />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+        <DesignPageInner />
+      </Suspense>
+    </RequireAuth>
   );
 }
 

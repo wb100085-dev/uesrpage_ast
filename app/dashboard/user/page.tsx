@@ -12,13 +12,14 @@ import {
   type AuthUser,
 } from "@/lib/auth-api";
 import { getMyDesigns, listDrafts, deleteDraft, type SurveyDraft } from "@/lib/survey-api";
+import RequireAuth from "@/components/RequireAuth";
 import {
-  BarChart2, Plane, Settings, History, ChevronRight,
+  BarChart2, Settings, History, ChevronRight,
   LogOut, MapPin, Layers, Sparkles, Clock,
   CheckCircle2, AlertCircle, RefreshCw, Construction,
   User, Users, ArrowRight, Zap, X,
   FileText, Target, Globe, ChevronDown, Save,
-  Lock, Mail, UserCog, FileEdit, Trash2,
+  Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
@@ -106,6 +107,14 @@ function StatusBadge({ status }: { status: HistoryItem["status"] }) {
 /*  메인                                        */
 /* ═══════════════════════════════════════════ */
 export default function UserDashboard() {
+  return (
+    <RequireAuth>
+      <UserDashboardInner />
+    </RequireAuth>
+  );
+}
+
+function UserDashboardInner() {
   const router = useRouter();
   async function handleLogout() {
     await authLogout();
@@ -312,13 +321,7 @@ export default function UserDashboard() {
         <aside className="w-full md:w-56 bg-white border-b md:border-b-0 md:border-r border-slate-100 flex flex-col py-2 md:py-4 px-2 md:px-3 flex-shrink-0">
           <p className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2">메뉴</p>
           <nav className="flex md:flex-col gap-1">
-            <button onClick={() => setSideMenu("entrant")}
-              className={`flex-1 md:flex-initial flex items-center justify-center md:justify-start gap-1.5 md:gap-2.5 px-2 md:px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${sideMenu === "entrant" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
-              <Plane size={15} className={sideMenu === "entrant" ? "text-indigo-600" : "text-slate-400"} />
-              <span className="md:hidden">입국자</span>
-              <span className="hidden md:inline">입국자 대시보드</span>
-              {sideMenu !== "entrant" && <ChevronRight size={12} className="hidden md:block ml-auto text-slate-300" />}
-            </button>
+            {/* 입국자 대시보드 — 임시 숨김 */}
             <button onClick={() => setSideMenu("analysis")}
               className={`flex-1 md:flex-initial flex items-center justify-center md:justify-start gap-1.5 md:gap-2.5 px-2 md:px-3 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${sideMenu === "analysis" ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
               <BarChart2 size={15} className={sideMenu === "analysis" ? "text-indigo-600" : "text-slate-400"} />
@@ -433,25 +436,58 @@ export default function UserDashboard() {
                     </div>
                   </div>
 
-                  {/* 분석 절차 안내 */}
+                  {/* 분석 절차 안내 — 랜딩페이지와 동일한 4단계 */}
                   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                     <h3 className="text-sm font-semibold text-slate-800 mb-5">분석 진행 순서</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       {[
-                        { step: "01", icon: FileText, title: "정보 입력", desc: "산업 분류, 제품 정의,\n조사 니즈를 입력합니다." },
-                        { step: "02", icon: Sparkles, title: "AI 설계", desc: "AI가 가설 3개와\n설문 문항을 자동 생성합니다." },
-                        { step: "03", icon: BarChart2, title: "결과 확인", desc: "가상 패널 응답 결과와\n분석 리포트를 확인합니다." },
-                      ].map(({ step, icon: Icon, title, desc }) => (
+                        {
+                          step: "01",
+                          icon: MessageSquare,
+                          title: "정의 · 니즈 입력",
+                          desc: "제품·서비스와 알고 싶은 인사이트를 한 문장으로 입력합니다.",
+                          iconColor: "text-indigo-500",
+                          bg: "bg-indigo-50",
+                          numColor: "text-indigo-400",
+                        },
+                        {
+                          step: "02",
+                          icon: Sparkles,
+                          title: "AI 가설·문항 설계",
+                          desc: "조사 가설을 도출하고 설문 문항을 자동 생성합니다.",
+                          iconColor: "text-violet-500",
+                          bg: "bg-violet-50",
+                          numColor: "text-violet-400",
+                        },
+                        {
+                          step: "03",
+                          icon: Users,
+                          title: "가상인구 매칭 · 실행",
+                          desc: "KOSIS 가상인구 중 타겟을 매칭해 응답 시뮬레이션을 실행합니다.",
+                          iconColor: "text-sky-500",
+                          bg: "bg-sky-50",
+                          numColor: "text-sky-400",
+                        },
+                        {
+                          step: "04",
+                          icon: BarChart2,
+                          title: "대시보드 · 보고서",
+                          desc: "교차분석 차트와 PDF 보고서로 결과를 30분 안에 확인합니다.",
+                          iconColor: "text-emerald-500",
+                          bg: "bg-emerald-50",
+                          numColor: "text-emerald-400",
+                        },
+                      ].map(({ step, icon: Icon, title, desc, iconColor, bg, numColor }) => (
                         <div key={step} className="flex flex-col items-start gap-3 p-4 rounded-xl bg-slate-50">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-indigo-400 tracking-widest">{step}</span>
-                            <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
-                              <Icon size={13} className="text-indigo-600" />
+                            <span className={`text-[10px] font-black tracking-widest ${numColor}`}>{step}</span>
+                            <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center`}>
+                              <Icon size={13} className={iconColor} />
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs font-semibold text-slate-800 mb-1">{title}</p>
-                            <p className="text-[11px] text-slate-500 leading-relaxed whitespace-pre-line">{desc}</p>
+                            <p className="text-xs font-semibold text-slate-800 mb-1 break-keep">{title}</p>
+                            <p className="text-[11px] text-slate-500 leading-relaxed break-keep">{desc}</p>
                           </div>
                         </div>
                       ))}
