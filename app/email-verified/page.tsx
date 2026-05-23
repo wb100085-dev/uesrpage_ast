@@ -23,7 +23,7 @@ export default function EmailVerifiedPage() {
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
 
-        <div className="px-8 pt-10 pb-8 flex flex-col items-center text-center gap-4">
+        <div className="px-6 sm:px-8 pt-8 sm:pt-10 pb-7 sm:pb-8 flex flex-col items-center text-center gap-4">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200">
             <Check className="text-emerald-600" size={32} strokeWidth={2.5} />
           </div>

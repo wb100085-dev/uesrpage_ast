@@ -78,7 +78,7 @@ function SurveyPageInner() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
-      <div className="flex-1 max-w-lg mx-auto w-full px-6 py-16">
+      <div className="flex-1 max-w-lg mx-auto w-full px-5 sm:px-6 py-10 sm:py-16">
         {/* Header */}
         <div className="text-center mb-10 animate-fade-up">
           <div className="relative inline-block mb-5">

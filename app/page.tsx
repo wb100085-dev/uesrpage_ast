@@ -637,7 +637,7 @@ export default function LandingPage() {
       <Navbar dark />
 
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden mesh-bg noise min-h-[92vh] flex items-center">
+      <section className="relative overflow-hidden mesh-bg noise min-h-[88vh] sm:min-h-[92vh] flex items-center">
         <div
           className="absolute inset-0 opacity-[.04]"
           style={{
@@ -646,8 +646,8 @@ export default function LandingPage() {
             backgroundSize: "40px 40px",
           }}
         />
-        <div className="relative max-w-6xl mx-auto px-6 py-24 w-full">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-24 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
               <div className="animate-fade-up inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-indigo-300 text-xs font-semibold mb-7 border border-indigo-500/30">
                 <span className="relative flex h-2 w-2">
@@ -656,13 +656,13 @@ export default function LandingPage() {
                 </span>
                 국가통계 데이터 기반 AI가상인구
               </div>
-              <h1 className="animate-fade-up-2 text-5xl lg:text-[64px] font-extrabold leading-[1.1] tracking-tight text-white mb-6">
+              <h1 className="animate-fade-up-2 text-4xl sm:text-5xl lg:text-[64px] font-extrabold leading-[1.1] tracking-tight text-white mb-6">
                 빠르고 쉬운<br />
                 <span className="text-shimmer">AI 고객조사</span>
               </h1>
-              <p className="animate-fade-up-3 text-lg text-slate-400 leading-relaxed mb-10 max-w-md">
-                AI가 설문을 설계하고, 가상인구가 응답합니다.{" "}<br />
-                <span className="text-slate-200 font-medium">기존 고객조사 대비 90%이상 저렴한 비용</span>으로{" "}<br />
+              <p className="animate-fade-up-3 text-base sm:text-lg text-slate-400 leading-relaxed mb-10 max-w-md">
+                AI가 설문을 설계하고, 가상인구가 응답합니다.{" "}<br className="hidden sm:inline" />
+                <span className="text-slate-200 font-medium">기존 고객조사 대비 90%이상 저렴한 비용</span>으로{" "}<br className="hidden sm:inline" />
                 <span className="text-slate-200 font-medium">1시간안에 안에</span> 인사이트를 얻으세요.
               </p>
               <div className="animate-fade-up-4 flex flex-wrap gap-3 mb-12">
@@ -687,15 +687,15 @@ export default function LandingPage() {
       </section>
 
       {/* ── How it works ── */}
-      <section id="how" className="py-28 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal className="text-center mb-16">
+      <section id="how" className="py-20 md:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <Reveal className="text-center mb-12 sm:mb-16">
             <div className="inline-block text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-4">
               How it works
             </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               4단계로 완성되는 AI 고객조사
-              <span className="block mt-2 text-2xl font-medium text-slate-500">
+              <span className="block mt-2 text-lg sm:text-2xl font-medium text-slate-500">
                 (여러분은 단 두 문장만 입력하세요)
               </span>
             </h2>
@@ -736,16 +736,16 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features with images ── */}
-      <section id="features" className="py-28 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal className="text-center mb-16">
+      <section id="features" className="py-20 md:py-28 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <Reveal className="text-center mb-12 sm:mb-16">
             <div className="inline-block text-violet-600 text-xs font-bold uppercase tracking-[.15em] bg-violet-50 px-3 py-1.5 rounded-full mb-4">
               Features
             </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight mb-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-4">
               기존 리서치와 무엇이 다를까요?
             </h2>
-            <p className="text-lg text-slate-500 max-w-xl mx-auto">
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">
               AI와 가상인구 기술이 결합된 완전히 새로운 시장조사 방식입니다.
             </p>
           </Reveal>
@@ -767,102 +767,138 @@ export default function LandingPage() {
       </section>
 
       {/* ── Comparison ── */}
-      <section className="py-28 bg-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <Reveal className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight">기존 방식과 비교</h2>
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-4xl mx-auto px-5 sm:px-6">
+          <Reveal className="text-center mb-10 sm:mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">기존 방식과 비교</h2>
           </Reveal>
           <Reveal delay={100}>
-            <div className="overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
-              <table className="w-full text-sm bg-white table-fixed">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="text-left p-4 text-slate-400 font-medium text-xs w-[18%]" />
-                    <th className="text-center p-4 font-semibold text-slate-500 text-xs w-[41%]">기존방식의 고객조사</th>
-                    <th className="text-center p-4 w-[41%] bg-indigo-50">
-                      <span className="font-bold text-indigo-600 text-xs">Socialtwin</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const HLOld = ({ children }: { children: React.ReactNode }) => (
-                      <span className="inline-block bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold">
-                        {children}
-                      </span>
-                    );
-                    const HLNew = ({ children }: { children: React.ReactNode }) => (
-                      <span className="inline-block bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold">
-                        {children}
-                      </span>
-                    );
-                    const rows: Array<{
-                      label: string;
-                      old: React.ReactNode;
-                      neu: React.ReactNode;
-                    }> = [
-                      { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 수천, 수만명 설문조사 결과 보고서" },
-                      { label: "비용", old: "건당 100만원 이상", neu: "90% 이상 절감" },
-                      { label: "시간", old: "2주 이상", neu: "1시간 이내" },
-                      { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
-                      { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
-                      {
-                        label: "편향",
-                        old: (
-                          <ul className="space-y-2 text-left list-disc pl-4 marker:text-slate-300">
-                            <li>사회적 시선을 의식한 의식적 거짓 답변</li>
-                            <li>질문자 의도에 맞추는 <HLOld>맹목적 순응/동조</HLOld></li>
-                            <li>주관적 기준에 따른 <HLOld>척도 점수 왜곡</HLOld></li>
-                          </ul>
-                        ),
-                        neu: (
-                          <ul className="space-y-2 text-left list-disc pl-4 marker:text-indigo-300">
-                            <li>자아 방어 기제가 없는 <HLNew>객관적 통계 확률 추론</HLNew></li>
-                            <li>프로필 규칙 기반의 <HLNew>감정적 독립성 유지</HLNew></li>
-                            <li>특허 알고리즘(CA-IPF) 기반의 <HLNew>데이터 표준화</HLNew></li>
-                          </ul>
-                        ),
-                      },
-                    ];
-                    return rows.map(({ label, old, neu }) => {
+            {(() => {
+              const HLOld = ({ children }: { children: React.ReactNode }) => (
+                <span className="inline-block bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-semibold">
+                  {children}
+                </span>
+              );
+              const HLNew = ({ children }: { children: React.ReactNode }) => (
+                <span className="inline-block bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-semibold">
+                  {children}
+                </span>
+              );
+              const rows: Array<{
+                label: string;
+                old: React.ReactNode;
+                neu: React.ReactNode;
+              }> = [
+                { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 수천, 수만명 설문조사 결과 보고서" },
+                { label: "비용", old: "건당 100만원 이상", neu: "90% 이상 절감" },
+                { label: "시간", old: "2주 이상", neu: "1시간 이내" },
+                { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
+                { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
+                {
+                  label: "편향",
+                  old: (
+                    <ul className="space-y-2 text-left list-disc pl-4 marker:text-slate-300">
+                      <li>사회적 시선을 의식한 의식적 거짓 답변</li>
+                      <li>질문자 의도에 맞추는 <HLOld>맹목적 순응/동조</HLOld></li>
+                      <li>주관적 기준에 따른 <HLOld>척도 점수 왜곡</HLOld></li>
+                    </ul>
+                  ),
+                  neu: (
+                    <ul className="space-y-2 text-left list-disc pl-4 marker:text-indigo-300">
+                      <li>자아 방어 기제가 없는 <HLNew>객관적 통계 확률 추론</HLNew></li>
+                      <li>프로필 규칙 기반의 <HLNew>감정적 독립성 유지</HLNew></li>
+                      <li>특허 알고리즘(CA-IPF) 기반의 <HLNew>데이터 표준화</HLNew></li>
+                    </ul>
+                  ),
+                },
+              ];
+              return (
+                <>
+                  {/* 모바일 — 카드 스택 (라벨 / 기존 / Socialtwin 세로 배치) */}
+                  <div className="md:hidden flex flex-col gap-3">
+                    {rows.map(({ label, old, neu }) => {
                       const oldIsText = typeof old === "string";
                       const neuIsText = typeof neu === "string";
                       return (
-                        <tr key={label} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
-                          <td className="p-4 text-slate-700 font-semibold text-sm align-top">{label}</td>
-                          <td className={`p-4 text-sm align-top ${oldIsText ? "text-center text-slate-400" : "text-slate-600 leading-relaxed break-keep"}`}>
-                            {old}
-                          </td>
-                          <td className="p-4 align-top bg-indigo-50/50">
-                            {neuIsText ? (
-                              <div className="text-center font-semibold text-indigo-600 text-sm">{neu}</div>
+                        <div key={label} className="rounded-2xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+                          <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                            <span className="text-sm font-bold text-slate-800">{label}</span>
+                          </div>
+                          <div className="px-4 py-3 border-b border-slate-100">
+                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">기존방식의 고객조사</div>
+                            {oldIsText ? (
+                              <p className="text-sm text-slate-600 leading-relaxed">{old}</p>
                             ) : (
-                              <div className="text-indigo-700 text-sm leading-relaxed break-keep">{neu}</div>
+                              <div className="text-sm text-slate-600 leading-relaxed break-keep">{old}</div>
                             )}
-                          </td>
-                        </tr>
+                          </div>
+                          <div className="px-4 py-3 bg-indigo-50/60">
+                            <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Socialtwin</div>
+                            {neuIsText ? (
+                              <p className="text-sm font-semibold text-indigo-700 leading-relaxed">{neu}</p>
+                            ) : (
+                              <div className="text-sm text-indigo-700 leading-relaxed break-keep">{neu}</div>
+                            )}
+                          </div>
+                        </div>
                       );
-                    });
-                  })()}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </div>
+
+                  {/* 데스크톱 — 기존 테이블 */}
+                  <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 shadow-sm">
+                    <table className="w-full text-sm bg-white table-fixed">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="text-left p-4 text-slate-400 font-medium text-xs w-[18%]" />
+                          <th className="text-center p-4 font-semibold text-slate-500 text-xs w-[41%]">기존방식의 고객조사</th>
+                          <th className="text-center p-4 w-[41%] bg-indigo-50">
+                            <span className="font-bold text-indigo-600 text-xs">Socialtwin</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map(({ label, old, neu }) => {
+                          const oldIsText = typeof old === "string";
+                          const neuIsText = typeof neu === "string";
+                          return (
+                            <tr key={label} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors">
+                              <td className="p-4 text-slate-700 font-semibold text-sm align-top">{label}</td>
+                              <td className={`p-4 text-sm align-top ${oldIsText ? "text-center text-slate-400" : "text-slate-600 leading-relaxed break-keep"}`}>
+                                {old}
+                              </td>
+                              <td className="p-4 align-top bg-indigo-50/50">
+                                {neuIsText ? (
+                                  <div className="text-center font-semibold text-indigo-600 text-sm">{neu}</div>
+                                ) : (
+                                  <div className="text-indigo-700 text-sm leading-relaxed break-keep">{neu}</div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </Reveal>
         </div>
       </section>
 
       {/* ── Use Cases ── */}
-      <section id="use-cases" className="py-28 bg-white scroll-mt-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal className="text-center mb-14">
+      <section id="use-cases" className="py-20 md:py-28 bg-white scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <Reveal className="text-center mb-12 sm:mb-14">
             <div className="inline-block text-sky-600 text-xs font-bold uppercase tracking-[.15em] bg-sky-50 px-3 py-1.5 rounded-full mb-4">
               Use cases
             </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight mb-3">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-3">
               이런 분야에서 사용하고 있어요
             </h2>
-            <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              스타트업부터 공공기관까지,<br></br> 의사결정이 필요한 모든 자리에 Socialtwin이 함께합니다.
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">
+              스타트업부터 공공기관까지,<br className="hidden sm:block" /> 의사결정이 필요한 모든 자리에 Socialtwin이 함께합니다.
             </p>
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -895,13 +931,13 @@ export default function LandingPage() {
       </section>
 
       {/* ── Testimonials ── */}
-      <section className="py-28 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal className="text-center mb-14">
+      <section className="py-20 md:py-28 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+          <Reveal className="text-center mb-12 sm:mb-14">
             <div className="inline-block text-emerald-600 text-xs font-bold uppercase tracking-[.15em] bg-emerald-50 px-3 py-1.5 rounded-full mb-4">
               Testimonials
             </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               활용 사례
             </h2>
           </Reveal>
@@ -983,8 +1019,8 @@ export default function LandingPage() {
       )}
 
       {/* ── CTA ── 좌(비주얼) / 우(텍스트·버튼) 2분할 */}
-      <section className="py-28 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="py-20 md:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* 왼쪽 — CSS 대시보드 미리보기 */}
             <Reveal>
@@ -1042,15 +1078,15 @@ export default function LandingPage() {
                 <div className="inline-block text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-5">
                   Get started
                 </div>
-                <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
                   지금 바로<br />
                   시작해보세요
                 </h2>
-                <p className="text-lg text-slate-500 mb-9 leading-relaxed">
+                <p className="text-base sm:text-lg text-slate-500 mb-9 leading-relaxed">
                   가입 즉시 무료로 시장조사를 설계하고, AI가 만든 가상인구 응답을 확인할 수 있습니다.
                 </p>
                 <CtaLink className="btn-primary text-base px-8 py-4">
-                  무료 체험 시작 <ArrowRight size={18} />
+                  무료 체험하기 <ArrowRight size={18} />
                 </CtaLink>
               </div>
             </Reveal>

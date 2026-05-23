@@ -153,94 +153,106 @@ function StepBar({
   isStepAvailable: (s: Step) => boolean;
 }) {
   const idx = STEPS.indexOf(step);
+  const activeLabel = STEP_LABELS[idx];
   return (
-    <div className="flex items-center justify-center mb-10">
-      {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
-      <div className="flex items-center">
-        <Link
-          href="/dashboard/user"
-          className="flex flex-col items-center gap-1.5 group cursor-pointer"
-          title="내 대시보드로 이동"
-        >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
-            <LayoutDashboard size={14} className="text-indigo-500" />
-          </div>
-          <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
-        </Link>
-        <div className="w-12 h-0.5 mb-5 mx-1.5 rounded-full bg-slate-200" />
+    <div className="mb-6 sm:mb-10">
+      {/* 모바일 전용 — 현재 단계 배지 (라벨 숨김 대신 정보 제공) */}
+      <div className="sm:hidden flex justify-center mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100">
+          <span className="text-[11px] font-bold text-indigo-600">{activeLabel}</span>
+          <span className="text-[10px] text-indigo-400 tabular-nums">{idx + 1}/{STEP_LABELS.length}</span>
+        </div>
       </div>
 
-      {STEP_LABELS.map((label, i) => {
-        const Icon = STEP_ICONS[i];
-        const done = i < idx;
-        const active = i === idx;
-        const targetStep = STEPS[i];
-        const canJump = !active && isStepAvailable(targetStep);
+      <div className="flex items-center justify-center">
+        {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
+        <div className="flex items-center">
+          <Link
+            href="/dashboard/user"
+            className="flex flex-col items-center gap-1.5 group cursor-pointer"
+            title="내 대시보드로 이동"
+          >
+            <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
+              <LayoutDashboard className="text-indigo-500 w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </div>
+            <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
+          </Link>
+          <div className="w-2.5 sm:w-12 h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full bg-slate-200" />
+        </div>
 
-        // 색/링 결정
-        let circleCls = "";
-        if (active) {
-          circleCls = "bg-indigo-600 shadow-lg shadow-indigo-300 ring-4 ring-indigo-100";
-        } else if (canJump) {
-          // 클릭 가능: 인디고 + 항상 보이는 외곽 ring
-          circleCls = done
-            ? "bg-indigo-600 shadow-md shadow-indigo-200 ring-2 ring-indigo-200 ring-offset-2 ring-offset-slate-50"
-            : "bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50";
-        } else if (done) {
-          // 클릭 불가 + 이미 지나간 단계(가설설계·설문생성 등 로딩 전환): 슬레이트 톤 + 흐림
-          circleCls = "bg-slate-300 opacity-60";
-        } else {
-          circleCls = "bg-white border-2 border-slate-200";
-        }
+        {STEP_LABELS.map((label, i) => {
+          const Icon = STEP_ICONS[i];
+          const done = i < idx;
+          const active = i === idx;
+          const targetStep = STEPS[i];
+          const canJump = !active && isStepAvailable(targetStep);
 
-        const circle = (
-          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${circleCls} ${canJump ? "group-hover:scale-110 group-hover:ring-indigo-400 group-hover:shadow-lg" : ""}`}>
-            {done
-              ? <Check size={14} className={`text-white ${!canJump ? "opacity-80" : ""}`} strokeWidth={2.5} />
-              : <Icon size={14} className={active ? "text-white" : canJump ? "text-indigo-500" : "text-slate-400"} />
-            }
-          </div>
-        );
+          // 색/링 결정
+          let circleCls = "";
+          if (active) {
+            circleCls = "bg-indigo-600 shadow-lg shadow-indigo-300 ring-4 ring-indigo-100";
+          } else if (canJump) {
+            // 클릭 가능: 인디고 + 항상 보이는 외곽 ring
+            circleCls = done
+              ? "bg-indigo-600 shadow-md shadow-indigo-200 ring-2 ring-indigo-200 ring-offset-2 ring-offset-slate-50"
+              : "bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50";
+          } else if (done) {
+            // 클릭 불가 + 이미 지나간 단계(가설설계·설문생성 등 로딩 전환): 슬레이트 톤 + 흐림
+            circleCls = "bg-slate-300 opacity-60";
+          } else {
+            circleCls = "bg-white border-2 border-slate-200";
+          }
 
-        // 라벨 색상
-        let labelCls = "text-slate-400";
-        if (active) labelCls = "text-indigo-600";
-        else if (canJump) labelCls = "text-indigo-500";
-        else if (done) labelCls = "text-slate-400 opacity-70";
+          const circle = (
+            <div className={`w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center transition-all duration-300 ${circleCls} ${canJump ? "group-hover:scale-110 group-hover:ring-indigo-400 group-hover:shadow-lg" : ""}`}>
+              {done
+                ? <Check className={`text-white w-3 h-3 sm:w-3.5 sm:h-3.5 ${!canJump ? "opacity-80" : ""}`} strokeWidth={2.5} />
+                : <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${active ? "text-white" : canJump ? "text-indigo-500" : "text-slate-400"}`} />
+              }
+            </div>
+          );
 
-        const labelEl = (
-          <span className={`text-[10px] font-semibold tracking-wide whitespace-nowrap ${labelCls} ${canJump ? "group-hover:underline underline-offset-4 group-hover:text-indigo-700" : ""}`}>{label}</span>
-        );
+          // 라벨 색상
+          let labelCls = "text-slate-400";
+          if (active) labelCls = "text-indigo-600";
+          else if (canJump) labelCls = "text-indigo-500";
+          else if (done) labelCls = "text-slate-400 opacity-70";
 
-        return (
-          <div key={label} className="flex items-center">
-            {canJump ? (
-              <button
-                type="button"
-                onClick={() => onJump(targetStep)}
-                className="flex flex-col items-center gap-1.5 group focus:outline-none cursor-pointer"
-                title={`${label}(으)로 이동`}
-              >
-                {circle}
-                {labelEl}
-              </button>
-            ) : (
-              <div
-                className="flex flex-col items-center gap-1.5"
-                title={active ? "현재 단계" : done ? "이동할 수 없는 단계" : "아직 도달하지 않은 단계"}
-              >
-                {circle}
-                {labelEl}
-              </div>
-            )}
-            {i < STEP_LABELS.length - 1 && (
-              <div className={`w-12 h-0.5 mb-5 mx-1.5 rounded-full transition-all duration-300 ${
-                i < idx ? "bg-indigo-400" : "bg-slate-200"
-              }`} />
-            )}
-          </div>
-        );
-      })}
+          // 라벨은 모바일에서 숨김 — 위쪽 배지가 활성 단계를 안내함
+          const labelEl = (
+            <span className={`hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap ${labelCls} ${canJump ? "group-hover:underline underline-offset-4 group-hover:text-indigo-700" : ""}`}>{label}</span>
+          );
+
+          return (
+            <div key={label} className="flex items-center">
+              {canJump ? (
+                <button
+                  type="button"
+                  onClick={() => onJump(targetStep)}
+                  className="flex flex-col items-center gap-1.5 group focus:outline-none cursor-pointer"
+                  title={`${label}(으)로 이동`}
+                >
+                  {circle}
+                  {labelEl}
+                </button>
+              ) : (
+                <div
+                  className="flex flex-col items-center gap-1.5"
+                  title={active ? `현재 단계: ${label}` : done ? `${label} (이동할 수 없는 단계)` : `${label} (아직 도달하지 않은 단계)`}
+                >
+                  {circle}
+                  {labelEl}
+                </div>
+              )}
+              {i < STEP_LABELS.length - 1 && (
+                <div className={`w-2.5 sm:w-12 h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full transition-all duration-300 ${
+                  i < idx ? "bg-indigo-400" : "bg-slate-200"
+                }`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -288,7 +300,7 @@ function ProgressCard({
   dots: string[];
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-8 py-16 flex flex-col items-center">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 sm:px-8 py-12 sm:py-16 flex flex-col items-center">
       <div className="relative mb-8">
         <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-200">
           <Sparkles size={32} className="text-white" />
@@ -648,38 +660,38 @@ function DesignPageInner() {
   const errProduct = submitted && !productDef.trim();
   const errPurpose = submitted && !researchPurpose.trim();
 
+  // 임시저장 블록 — 각 step 콘텐츠 하단에 공통 배치 (로그인 + 결과 단계 제외)
+  const saveDraftBlock =
+    typeof window !== "undefined" && getAccessToken() && step !== "result" ? (
+      <div className="mt-8 flex flex-col items-center gap-1.5">
+        <button
+          onClick={handleSaveDraft}
+          disabled={saving || draftLoading}
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 transition-all"
+          title={draftId ? "임시저장한 작업에 덮어쓰기" : "임시저장"}
+        >
+          {saving
+            ? <><RefreshCw size={12} className="animate-spin" /> 저장 중…</>
+            : draftLoading
+              ? <><RefreshCw size={12} className="animate-spin" /> 불러오는 중…</>
+              : <><Save size={12} /> 임시저장</>}
+        </button>
+        {savedAt && !saving && (
+          <span className="text-[10px] text-slate-400">
+            마지막 저장 {new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
+        {saveError && (
+          <span className="text-[10px] text-rose-600 max-w-[260px] truncate" title={saveError}>{saveError}</span>
+        )}
+      </div>
+    ) : null;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar appMode />
-      <div className="max-w-5xl mx-auto px-8 py-10">
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <div className="flex-1"><StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} /></div>
-          {/* 임시저장 버튼 — 로그인 사용자만 노출 + 결과 단계는 숨김 */}
-          {typeof window !== "undefined" && getAccessToken() && step !== "result" && (
-            <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <button
-                onClick={handleSaveDraft}
-                disabled={saving || draftLoading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 transition-all"
-                title={draftId ? "임시저장한 작업에 덮어쓰기" : "임시저장"}
-              >
-                {saving
-                  ? <><RefreshCw size={12} className="animate-spin" /> 저장 중…</>
-                  : draftLoading
-                    ? <><RefreshCw size={12} className="animate-spin" /> 불러오는 중…</>
-                    : <><Save size={12} /> 임시저장</>}
-              </button>
-              {savedAt && !saving && (
-                <span className="text-[10px] text-slate-400">
-                  마지막 저장 {new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              )}
-              {saveError && (
-                <span className="text-[10px] text-rose-600 max-w-[200px] truncate" title={saveError}>{saveError}</span>
-              )}
-            </div>
-          )}
-        </div>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10">
+        <StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} />
 
         {/* ══════════════════════════════════════════
             1. 질문 입력
@@ -690,8 +702,8 @@ function DesignPageInner() {
               <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
                 <Sparkles size={12} /> AI 시장조사 설계
               </div>
-              <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">어떤 시장조사가 필요하신가요?</h1>
-              <p className="text-slate-500">입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">어떤 시장조사가 필요하신가요?</h1>
+              <p className="text-sm sm:text-base text-slate-500">입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.</p>
             </div>
 
             {apiError && (
@@ -706,7 +718,7 @@ function DesignPageInner() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               {/* 거래방식 */}
-              <div className="px-8 pt-7 pb-5 border-b border-slate-100">
+              <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
                 <FieldLabel required>
                   거래방식
                   <span className="ml-1.5 text-slate-400 text-xs font-normal">(주된 거래 대상)</span>
@@ -732,7 +744,7 @@ function DesignPageInner() {
               </div>
 
               {/* 산업 분류 */}
-              <div className="px-8 pt-7 pb-5 border-b border-slate-100">
+              <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
                 <FieldLabel required>
                   산업 분류
                   <span className="ml-1.5 text-slate-400 text-xs font-normal">(한국표준산업분류 11차 대분류)</span>
@@ -754,7 +766,7 @@ function DesignPageInner() {
               </div>
 
               {/* 제품 정의 */}
-              <div className="px-8 py-6 border-b border-slate-100">
+              <div className="px-5 sm:px-8 py-6 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-sm font-semibold text-slate-700">
                     제품 / 서비스 정의 <span className="text-red-400">*</span>
@@ -825,7 +837,7 @@ function DesignPageInner() {
               </div>
 
               {/* 시장조사 목적 */}
-              <div className="px-8 py-6">
+              <div className="px-5 sm:px-8 py-6">
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-sm font-semibold text-slate-700">
                     시장조사 목적 <span className="text-red-400">*</span>
@@ -895,7 +907,7 @@ function DesignPageInner() {
                 {errPurpose && <ErrorMsg msg="시장조사 목적을 입력해주세요." />}
               </div>
 
-              <div className="px-8 py-5 bg-slate-50 border-t border-slate-100">
+              <div className="px-5 sm:px-8 py-5 bg-slate-50 border-t border-slate-100">
                 <button
                   onClick={handleDesign}
                   className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99]"
@@ -904,6 +916,7 @@ function DesignPageInner() {
                 </button>
               </div>
             </div>
+            {saveDraftBlock}
           </div>
         )}
 
@@ -922,6 +935,7 @@ function DesignPageInner() {
               progressLabel={progressLabel}
               dots={["입력 분석", "시장 컨텍스트", "가설 도출", "검토"]}
             />
+            {saveDraftBlock}
           </div>
         )}
 
@@ -930,15 +944,15 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "hyp_review" && (
           <div>
-            <div className="flex items-center justify-between mb-7">
-              <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
+              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
                 <ArrowLeft size={15} /> 이전으로
               </button>
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">AI 생성 가설 검토</h2>
+              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 가설 검토</h2>
                 <p className="text-xs text-slate-400 mt-0.5">조사에 사용할 가설을 선택하고 필요시 수정하세요</p>
               </div>
-              <div className="inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-100">
+              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-100">
                 <Lightbulb size={12} /> 가설 {hypothesisTexts.length}개 생성
               </div>
             </div>
@@ -1016,7 +1030,7 @@ function DesignPageInner() {
             </div>
 
             {/* 선택 카운트 + 버튼 */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center justify-between">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-800">
                   {selectedHypotheses.size}개 가설 선택됨
@@ -1026,11 +1040,12 @@ function DesignPageInner() {
               <button
                 onClick={handleSurveyDesign}
                 disabled={selectedHypotheses.size === 0}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Wand2 size={15} /> AI 설문 생성 <ArrowRight size={15} />
               </button>
             </div>
+            {saveDraftBlock}
           </div>
         )}
 
@@ -1049,6 +1064,7 @@ function DesignPageInner() {
               progressLabel={progressLabel}
               dots={["가설 분석", "문항 구성", "옵션 생성", "최종 검토"]}
             />
+            {saveDraftBlock}
           </div>
         )}
 
@@ -1057,22 +1073,22 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_review" && (
           <div>
-            <div className="flex items-center justify-between mb-7">
-              <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
+              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
                 <ArrowLeft size={15} /> 이전으로
               </button>
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">AI 생성 설문 검토</h2>
+              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 설문 검토</h2>
                 <p className="text-xs text-slate-400 mt-0.5">문항을 확인하고 필요시 수정하세요</p>
               </div>
-              <div className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
+              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
                 <ListChecks size={12} /> {surveyQuestions.length}문항 생성
               </div>
             </div>
 
-            <div className="grid grid-cols-5 gap-5 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
               {/* 왼쪽: 선택된 가설 요약 */}
-              <div className="col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-20">
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:sticky lg:top-20">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-violet-50/60 to-white">
                   <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
                     <Lightbulb size={13} className="text-violet-600" />
@@ -1113,7 +1129,7 @@ function DesignPageInner() {
               </div>
 
               {/* 오른쪽: 설문 문항 */}
-              <div className="col-span-3 flex flex-col gap-3">
+              <div className="lg:col-span-3 flex flex-col gap-3">
                 {surveyQuestions.map((q, i) => {
                   const isEditingQ = editingQIdx === i;
                   const isExpanded = expandedQIdx.has(i);
@@ -1229,6 +1245,7 @@ function DesignPageInner() {
                 </button>
               </div>
             </div>
+            {saveDraftBlock}
           </div>
         )}
 
@@ -1237,21 +1254,21 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "result" && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
                 <ArrowLeft size={15} /> 이전으로
               </button>
-              <div className="text-center">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
+              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{industry || "산업 미지정"}</p>
               </div>
-              <div className="inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
+              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
                 <Sparkles size={11} /> 설계 완료
               </div>
             </div>
 
             {/* KPI */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {[
                 { icon: <Target size={18} />, label: "거래방식", value: tradeType || "—", accent: "indigo" },
                 { icon: <Target size={18} />, label: "산업 분류", value: industry ? industry.split(".")[0] : "—", accent: "violet" },
@@ -1278,7 +1295,7 @@ function DesignPageInner() {
                   <MessageSquare size={14} className="text-indigo-500" />
                   <h3 className="text-sm font-semibold text-slate-800">질문 입력</h3>
                 </div>
-                <div className="p-5 grid grid-cols-2 gap-x-6 gap-y-4">
+                <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <div>
                     <p className="text-[11px] font-semibold text-slate-400 mb-1">거래방식</p>
                     <p className="text-sm text-slate-700">
@@ -1291,20 +1308,20 @@ function DesignPageInner() {
                     <p className="text-[11px] font-semibold text-slate-400 mb-1">산업 분류</p>
                     <p className="text-sm text-slate-700">{industry || "미선택"}</p>
                   </div>
-                  <div className="col-span-2">
+                  <div className="sm:col-span-2">
                     <p className="text-[11px] font-semibold text-slate-400 mb-1">업로드 설문지</p>
                     <p className={`text-sm ${uploadedPdf ? "text-emerald-600 font-medium" : "text-slate-400"}`}>
                       {uploadedPdf ?? "없음"}
                     </p>
                   </div>
                   {productDef && (
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <p className="text-[11px] font-semibold text-slate-400 mb-1">제품 / 서비스 정의</p>
                       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{productDef}</p>
                     </div>
                   )}
                   {researchPurpose && (
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                       <p className="text-[11px] font-semibold text-slate-400 mb-1">시장조사 목적</p>
                       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{researchPurpose}</p>
                     </div>
@@ -1372,14 +1389,14 @@ function DesignPageInner() {
               </section>
 
               {/* 실행 */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center justify-between">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행 할 수 있습니다.</p>
-                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 설문실행, 결과보고서는 유료서비스입니다.<br />진행을 원하시면 우측 버튼으로 문의해 주세요</p>
+                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 설문실행, 결과보고서는 유료서비스입니다.<br className="hidden sm:inline" />진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 문의해 주세요</p>
                 </div>
                 <button
                   onClick={() => setContactOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                 >
                   <Users size={15} /> 조사 실행하기 (문의 하기) <ArrowRight size={15} />
                 </button>

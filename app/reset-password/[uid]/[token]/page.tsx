@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
 
-        <div className="px-8 pt-8 pb-10">
+        <div className="px-6 sm:px-8 pt-7 sm:pt-8 pb-8 sm:pb-10">
           <h2 className="text-xl font-bold text-slate-900 mb-1">비밀번호 재설정</h2>
           <p className="text-sm text-slate-500 mb-6">새 비밀번호를 입력하세요.</p>
 

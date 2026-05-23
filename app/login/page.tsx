@@ -186,7 +186,7 @@ function LoginInner() {
         </Link>
         <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
-          <div className="px-8 py-10 text-center">
+          <div className="px-6 sm:px-8 py-8 sm:py-10 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
               <MailCheck className="text-emerald-600" size={32} />
             </div>
@@ -238,7 +238,7 @@ function LoginInner() {
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
 
-        <div className="px-8 pt-8 pb-10">
+        <div className="px-6 sm:px-8 pt-7 sm:pt-8 pb-8 sm:pb-10">
           {/* 인증 완료 배너 */}
           {justVerified && (
             <div className="mb-5 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">

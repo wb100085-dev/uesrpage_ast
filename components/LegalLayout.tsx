@@ -18,7 +18,7 @@ export default function LegalLayout({ title, updatedAt, children }: Props) {
       <Navbar dark />
 
       {/* Header */}
-      <section className="relative overflow-hidden mesh-bg noise pt-28 pb-16">
+      <section className="relative overflow-hidden mesh-bg noise pt-20 sm:pt-28 pb-12 sm:pb-16">
         <div
           className="absolute inset-0 opacity-[.04]"
           style={{
@@ -27,14 +27,14 @@ export default function LegalLayout({ title, updatedAt, children }: Props) {
             backgroundSize: "40px 40px",
           }}
         />
-        <div className="relative max-w-3xl mx-auto px-6">
+        <div className="relative max-w-3xl mx-auto px-5 sm:px-6">
           <Link
             href="/"
             className="inline-flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors mb-5"
           >
             <ChevronLeft size={15} /> 홈으로
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">{title}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">{title}</h1>
           {updatedAt && (
             <p className="mt-3 text-sm text-slate-400">최종 개정일 · {updatedAt}</p>
           )}
@@ -43,8 +43,8 @@ export default function LegalLayout({ title, updatedAt, children }: Props) {
       </section>
 
       {/* Body */}
-      <main className="flex-1 bg-white py-16">
-        <article className="max-w-3xl mx-auto px-6 legal-content break-keep">
+      <main className="flex-1 bg-white py-12 sm:py-16">
+        <article className="max-w-3xl mx-auto px-5 sm:px-6 legal-content break-keep">
           {children}
         </article>
       </main>

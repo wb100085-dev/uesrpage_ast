@@ -126,7 +126,7 @@ function ResultsPageInner() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto w-full px-6 py-10">
+      <div className="max-w-5xl mx-auto w-full px-5 sm:px-6 py-8 sm:py-10">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-8 animate-fade-up">

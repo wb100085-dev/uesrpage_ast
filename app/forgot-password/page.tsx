@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
 
-        <div className="px-8 pt-8 pb-10">
+        <div className="px-6 sm:px-8 pt-7 sm:pt-8 pb-8 sm:pb-10">
           <h2 className="text-xl font-bold text-slate-900 mb-1">비밀번호 찾기</h2>
           <p className="text-sm text-slate-500 mb-6">
             가입하신 이메일을 입력하시면 재설정 링크를 보내드립니다.
