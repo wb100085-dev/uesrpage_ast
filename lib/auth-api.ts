@@ -29,6 +29,27 @@ export function setAuthTokens(access: string | null, refresh?: string | null): v
     if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
     else localStorage.removeItem(REFRESH_KEY);
   }
+  // 같은 탭의 SessionGuard 등이 토큰 변경을 즉시 알 수 있게 알림.
+  // (브라우저는 같은 탭 내 localStorage 변경에 storage 이벤트를 발생시키지 않음.)
+  window.dispatchEvent(new Event("vpg-auth-changed"));
+}
+
+/**
+ * JWT의 payload를 base64 디코드해 exp(만료 시각, epoch seconds)를 추출.
+ * 서명 검증은 하지 않음 — 클라이언트 타이머 표시용일 뿐, 실 인증은 백엔드가 수행.
+ */
+export function parseJwtExp(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const json = typeof atob === "function" ? atob(padded) : Buffer.from(padded, "base64").toString();
+    const payload = JSON.parse(json);
+    return typeof payload.exp === "number" ? payload.exp : null;
+  } catch {
+    return null;
+  }
 }
 export function setCachedUser(user: AuthUser | null): void {
   if (typeof window === "undefined") return;
@@ -264,6 +285,26 @@ export async function authGetMe(): Promise<AuthUser | null> {
 /** 소셜 로그인 시작 URL. 브라우저를 이 URL로 이동시키면 백엔드 → OAuth → 프론트 콜백 흐름이 시작됩니다. */
 export function authSocialLoginUrl(provider: "google" | "kakao" | "naver"): string {
   return `${API_BASE.replace(/\/$/, "")}/accounts/${provider}/login/?process=login`;
+}
+
+/** Access 토큰을 refresh로 갱신. SimpleJWT 표준 /api/auth/token/refresh/. 성공 시 새 access 반환, 실패 시 null. */
+export async function authRefreshToken(): Promise<string | null> {
+  const refresh = getRefreshToken();
+  if (!refresh) return null;
+  try {
+    const res = await request<{ access?: string; refresh?: string }>(
+      "/api/auth/token/refresh/",
+      { method: "POST", body: JSON.stringify({ refresh }) },
+      { auth: false },
+    );
+    if (res.access) {
+      setAuthTokens(res.access, res.refresh ?? refresh);
+      return res.access;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /** 비밀번호 찾기 — 이메일로 재설정 링크를 발송합니다. */
