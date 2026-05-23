@@ -852,7 +852,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Use Cases ── */}
-      <section className="py-28 bg-white">
+      <section id="use-cases" className="py-28 bg-white scroll-mt-20">
         <div className="max-w-6xl mx-auto px-6">
           <Reveal className="text-center mb-14">
             <div className="inline-block text-sky-600 text-xs font-bold uppercase tracking-[.15em] bg-sky-50 px-3 py-1.5 rounded-full mb-4">
