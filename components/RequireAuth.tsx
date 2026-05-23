@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { getAccessToken } from "@/lib/auth-api";
 
@@ -11,25 +11,23 @@ import { getAccessToken } from "@/lib/auth-api";
  * - 토큰 없으면 /login?next=<현재 경로(+검색)>으로 replace 이동.
  * - 토큰 있으면 children 렌더.
  *
- * 미들웨어를 안 쓰는 이유: 이 앱은 JWT를 localStorage에 보관 → 서버 사이드(미들웨어)에서
- * 읽을 수 없음. 쿠키로 옮기지 않는 한 가드는 클라이언트에서 한다.
+ * useSearchParams/usePathname 같은 Next 네비 훅을 안 쓰는 이유:
+ * SSG 빌드 시 Suspense 경계가 필요해져 페이지마다 wrapper가 강제됨.
+ * 이 컴포넌트는 useEffect 안에서만 동작 → window.location 직접 읽어도 안전 (client only).
  */
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
     const tok = getAccessToken();
     if (!tok) {
-      const qs = searchParams.toString();
-      const full = qs ? `${pathname}?${qs}` : (pathname || "/");
+      const full = window.location.pathname + window.location.search;
       router.replace(`/login?next=${encodeURIComponent(full)}`);
       return;
     }
     setAuthed(true);
-  }, [pathname, router, searchParams]);
+  }, [router]);
 
   if (authed !== true) {
     return (
