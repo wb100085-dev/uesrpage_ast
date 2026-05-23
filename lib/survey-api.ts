@@ -125,6 +125,15 @@ export function getMyDesigns(): Promise<{ designs: DesignHistoryItem[] }> {
   return apiFetch("/api/survey/my-designs");
 }
 
+/** /design ?design=<id> 로드용 — 단건 전체(questions 포함). */
+export interface DesignFull extends DesignHistoryItem {
+  questions?: SurveyQuestion[] | null;
+}
+
+export function getMyDesign(id: number): Promise<{ design: DesignFull }> {
+  return apiFetch(`/api/survey/my-designs/${id}`);
+}
+
 // ─── 설문 설계 임시저장 (drafts) ─────────────────────────────
 
 export interface SurveyDraft {

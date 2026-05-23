@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Menu, User, X } from "lucide-react";
+import { LayoutDashboard, LogOut, Menu, User, X } from "lucide-react";
 import {
   authLogout,
   getAccessToken,
@@ -12,7 +12,7 @@ import {
   type AuthUser,
 } from "@/lib/auth-api";
 
-export default function Navbar({ dark = false }: { dark?: boolean }) {
+export default function Navbar({ dark = false, appMode = false }: { dark?: boolean; appMode?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   // null = 아직 hydration 전(SSR 미스매치 방지용), AuthUser | "guest" 가 확정 상태
@@ -62,34 +62,36 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-7">
-          {[
-            { label: "진행 순서", href: "/#how", external: false },
-            { label: "차별성", href: "/#features", external: false },
-            { label: "활용", href: "/#use-cases", external: false },
-            { label: "(주)옴니노드", href: "https://www.omninode.kr", external: true },
-          ].map((item) =>
-            item.external ? (
-              <a
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                className={`text-sm font-medium transition-colors ${linkCls}`}
-              >
-                {item.label}
-              </a>
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`text-sm font-medium transition-colors ${linkCls}`}
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
-        </nav>
+        {!appMode && (
+          <nav className="hidden md:flex items-center gap-7">
+            {[
+              { label: "진행 순서", href: "/#how", external: false },
+              { label: "차별성", href: "/#features", external: false },
+              { label: "활용", href: "/#use-cases", external: false },
+              { label: "(주)옴니노드", href: "https://www.omninode.kr", external: true },
+            ].map((item) =>
+              item.external ? (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`text-sm font-medium transition-colors ${linkCls}`}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`text-sm font-medium transition-colors ${linkCls}`}
+                >
+                  {item.label}
+                </Link>
+              ),
+            )}
+          </nav>
+        )}
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
@@ -98,16 +100,27 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
             <div className="h-8 w-40" />
           ) : isUser ? (
             <>
-              <Link
-                href="/dashboard/user"
-                className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${linkCls}`}
-                title={authState.email}
-              >
-                <User size={14} />
-                <span className="max-w-[160px] truncate">
-                  {authState.email || authState.username}
-                </span>
-              </Link>
+              {appMode ? (
+                <Link
+                  href="/dashboard/user"
+                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all"
+                  title={authState.email}
+                >
+                  <LayoutDashboard size={14} />
+                  대시보드
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard/user"
+                  className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${linkCls}`}
+                  title={authState.email}
+                >
+                  <User size={14} />
+                  <span className="max-w-[160px] truncate">
+                    {authState.email || authState.username}
+                  </span>
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
@@ -149,29 +162,33 @@ export default function Navbar({ dark = false }: { dark?: boolean }) {
             dark ? "bg-slate-950" : "bg-white"
           } px-6 py-5 flex flex-col gap-4`}
         >
-          {[
-            { label: "진행 순서", href: "/#how" },
-            { label: "차별성", href: "/#features" },
-            { label: "활용", href: "/#use-cases" },
-          ].map((l) => (
-            <a
-              key={l.label}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className={`text-sm font-medium text-left ${linkCls}`}
-            >
-              {l.label}
-            </a>
-          ))}
-          <a
-            href="https://www.omninode.kr"
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => setOpen(false)}
-            className={`text-sm font-medium text-left ${linkCls}`}
-          >
-            (주)옴니노드
-          </a>
+          {!appMode && (
+            <>
+              {[
+                { label: "진행 순서", href: "/#how" },
+                { label: "차별성", href: "/#features" },
+                { label: "활용", href: "/#use-cases" },
+              ].map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className={`text-sm font-medium text-left ${linkCls}`}
+                >
+                  {l.label}
+                </a>
+              ))}
+              <a
+                href="https://www.omninode.kr"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setOpen(false)}
+                className={`text-sm font-medium text-left ${linkCls}`}
+              >
+                (주)옴니노드
+              </a>
+            </>
+          )}
           {isUser ? (
             <>
               <Link

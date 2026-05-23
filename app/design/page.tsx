@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Sparkles, ArrowRight, ArrowLeft, MessageSquare,
   Clock, Check, Pencil, Upload, FileText,
   X, ChevronDown, BarChart2, Target, Lightbulb,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
+  LayoutDashboard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
@@ -16,6 +18,7 @@ import {
   createDraft as apiCreateDraft,
   updateDraft as apiUpdateDraft,
   getDraft as apiGetDraft,
+  getMyDesign as apiGetMyDesign,
   type SurveyDraftPatch,
 } from "@/lib/survey-api";
 
@@ -84,27 +87,27 @@ const BACK_MAP: Partial<Record<Step, Step>> = {
 const PRODUCT_QUESTIONS = [
   {
     tag: "[대상]",
-    label: "[대상] 이 제품(서비스)은 정확히 '누구'의 문제를 해결합니까?",
+    label: "1. [대상] 이 제품(서비스)은 정확히 '누구'의 문제를 해결합니까?",
     hint: "단순한 인구통계학적 구분을 넘어, 어떤 상황에 처해 있거나 어떤 고충(Pain Point)을 겪고 있는 사람인지 정의합니다.",
   },
   {
     tag: "[본질]",
-    label: "[본질] 고객이 겪고 있는 문제 중 '어떤 핵심적인 어려움'을 해결합니까?",
+    label: "2. [본질] 고객이 겪고 있는 문제 중 '어떤 핵심적인 어려움'을 해결합니까?",
     hint: "제공자가 생각하는 기능 중심이 아니라, 고객이 느끼는 가장 가렵고 아픈 부분이 무엇인지에 집중하여 정의합니다.",
   },
   {
     tag: "[방법]",
-    label: "[방법] 그 문제를 해결하기 위한 '결정적인 솔루션'은 무엇입니까?",
+    label: "3. [방법] 그 문제를 해결하기 위한 '결정적인 솔루션'은 무엇입니까?",
     hint: "기술적 메커니즘이나 서비스의 핵심 프로세스를 설명합니다. 어떤 방식으로 고객의 문제를 해소하는지 정의합니다.",
   },
   {
     tag: "[차별화]",
-    label: "[차별화] 기존의 대안(경쟁사 혹은 관습)들과 비교했을 때 무엇이 '다릅니까'?",
+    label: "4. [차별화] 기존의 대안(경쟁사 혹은 관습)들과 비교했을 때 무엇이 '다릅니까'?",
     hint: "왜 고객이 다른 서비스가 아닌 이 제품을 선택해야 하는지, 우리만의 독보적인 강점이나 차별적 접근법을 정의합니다.",
   },
   {
     tag: "[결과]",
-    label: "[결과] 고객이 이 서비스를 이용한 후 얻게 되는 '최종적인 변화'는 무엇입니까?",
+    label: "5. [결과] 고객이 이 서비스를 이용한 후 얻게 되는 '최종적인 변화'는 무엇입니까?",
     hint: "단순한 결과물이 아니라, 고객의 삶이나 업무 효율성, 감정적 만족도 등에서 일어나는 실질적인 변화(Before & After)를 정의합니다.",
   },
 ];
@@ -112,27 +115,27 @@ const PRODUCT_QUESTIONS = [
 const PURPOSE_QUESTIONS = [
   {
     tag: "[조사 목적]",
-    label: "[조사 목적] 이번 시장조사를 통해 의사결정을 내려야 하는 '당면 과제'는 무엇입니까?",
+    label: "1. [조사 목적] 이번 시장조사를 통해 의사결정을 내려야 하는 '당면 과제'는 무엇입니까?",
     hint: "신제품 출시 여부, 가격 책정, 브랜드 인지도 파악 등 조사가 끝난 후 즉시 실행에 옮겨야 할 구체적인 목표를 확인합니다.",
   },
   {
     tag: "[가설 검증]",
-    label: "[가설 검증] 현재 내부적으로 추측하고 있는 '가장 핵심적인 가설'은 무엇입니까?",
+    label: "2. [가설 검증] 현재 내부적으로 추측하고 있는 '가장 핵심적인 가설'은 무엇입니까?",
     hint: "\"우리의 주 고객은 30대일 것이다\" 혹은 \"기존 제품의 가격이 비싸서 안 팔릴 것이다\"와 같이, 맞는지 틀린지 확인하고 싶은 전제를 파악합니다.",
   },
   {
     tag: "[타겟 상세]",
-    label: "[타겟 상세] 어떤 특성을 가진 사람들에게 질문했을 때 가장 '신뢰할 만한 답변'을 얻을 수 있습니까?",
+    label: "3. [타겟 상세] 어떤 특성을 가진 사람들에게 질문했을 때 가장 '신뢰할 만한 답변'을 얻을 수 있습니까?",
     hint: "단순 연령/성별을 넘어 실제 사용자, 잠재 고객, 혹은 경쟁사 이용자 등 응답자의 조건(Screening)을 구체화합니다.",
   },
   {
     tag: "[핵심 지표]",
-    label: "[핵심 지표] 결과 보고서에 반드시 포함되어야 하는 '가장 중요한 한 가지 데이터'는 무엇입니까?",
-    hint: "순수 추천 지수(NPS), 구매 의향도, 제품 만족도 등 의뢰인이 결과물을 받았을 때 가장 먼저 펼쳐볼 핵심 지표를 정의합니다.",
+    label: "4. [핵심 지표] 조사 결과에서 가장 먼저 확인하고 싶은 '한 가지 핵심 수치'는 무엇입니까?",
+    hint: "예) '제품을 사겠다고 답한 응답자 비율', '적정 가격이라 답한 가격대의 평균', '경쟁사 대비 만족도 점수'. 의사결정의 근거가 될 단 하나의 숫자/지표를 적어주세요.",
   },
   {
     tag: "[활용 계획]",
-    label: "[활용 계획] 조사 결과가 나온 뒤, 이 데이터를 어떤 '비즈니스 채널'에 활용하실 예정입니까?",
+    label: "5. [활용 계획] 조사 결과가 나온 뒤, 이 데이터를 어떤 '비즈니스 채널'에 활용하실 예정입니까?",
     hint: "마케팅 캠페인 전략 수립, 투자 유치용 IR 자료, 제품 기능 개선 등 활용처에 따라 설문의 톤앤매너와 분석의 깊이를 조절하기 위함입니다.",
   },
 ];
@@ -140,31 +143,96 @@ const PURPOSE_QUESTIONS = [
 /* ─────────────────────────────────────────
    StepBar
 ───────────────────────────────────────── */
-function StepBar({ step }: { step: Step }) {
+function StepBar({
+  step,
+  onJump,
+  isStepAvailable,
+}: {
+  step: Step;
+  onJump: (s: Step) => void;
+  isStepAvailable: (s: Step) => boolean;
+}) {
   const idx = STEPS.indexOf(step);
   return (
     <div className="flex items-center justify-center mb-10">
+      {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
+      <div className="flex items-center">
+        <Link
+          href="/dashboard/user"
+          className="flex flex-col items-center gap-1.5 group cursor-pointer"
+          title="내 대시보드로 이동"
+        >
+          <div className="w-9 h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
+            <LayoutDashboard size={14} className="text-indigo-500" />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
+        </Link>
+        <div className="w-12 h-0.5 mb-5 mx-1.5 rounded-full bg-slate-200" />
+      </div>
+
       {STEP_LABELS.map((label, i) => {
         const Icon = STEP_ICONS[i];
         const done = i < idx;
         const active = i === idx;
+        const targetStep = STEPS[i];
+        const canJump = !active && isStepAvailable(targetStep);
+
+        // 색/링 결정
+        let circleCls = "";
+        if (active) {
+          circleCls = "bg-indigo-600 shadow-lg shadow-indigo-300 ring-4 ring-indigo-100";
+        } else if (canJump) {
+          // 클릭 가능: 인디고 + 항상 보이는 외곽 ring
+          circleCls = done
+            ? "bg-indigo-600 shadow-md shadow-indigo-200 ring-2 ring-indigo-200 ring-offset-2 ring-offset-slate-50"
+            : "bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50";
+        } else if (done) {
+          // 클릭 불가 + 이미 지나간 단계(가설설계·설문생성 등 로딩 전환): 슬레이트 톤 + 흐림
+          circleCls = "bg-slate-300 opacity-60";
+        } else {
+          circleCls = "bg-white border-2 border-slate-200";
+        }
+
+        const circle = (
+          <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${circleCls} ${canJump ? "group-hover:scale-110 group-hover:ring-indigo-400 group-hover:shadow-lg" : ""}`}>
+            {done
+              ? <Check size={14} className={`text-white ${!canJump ? "opacity-80" : ""}`} strokeWidth={2.5} />
+              : <Icon size={14} className={active ? "text-white" : canJump ? "text-indigo-500" : "text-slate-400"} />
+            }
+          </div>
+        );
+
+        // 라벨 색상
+        let labelCls = "text-slate-400";
+        if (active) labelCls = "text-indigo-600";
+        else if (canJump) labelCls = "text-indigo-500";
+        else if (done) labelCls = "text-slate-400 opacity-70";
+
+        const labelEl = (
+          <span className={`text-[10px] font-semibold tracking-wide whitespace-nowrap ${labelCls} ${canJump ? "group-hover:underline underline-offset-4 group-hover:text-indigo-700" : ""}`}>{label}</span>
+        );
+
         return (
           <div key={label} className="flex items-center">
-            <div className="flex flex-col items-center gap-1.5">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
-                done ? "bg-indigo-600 shadow-md shadow-indigo-200"
-                  : active ? "bg-indigo-600 shadow-lg shadow-indigo-300 ring-4 ring-indigo-100"
-                  : "bg-white border-2 border-slate-200"
-              }`}>
-                {done
-                  ? <Check size={14} className="text-white" strokeWidth={2.5} />
-                  : <Icon size={14} className={active ? "text-white" : "text-slate-400"} />
-                }
+            {canJump ? (
+              <button
+                type="button"
+                onClick={() => onJump(targetStep)}
+                className="flex flex-col items-center gap-1.5 group focus:outline-none cursor-pointer"
+                title={`${label}(으)로 이동`}
+              >
+                {circle}
+                {labelEl}
+              </button>
+            ) : (
+              <div
+                className="flex flex-col items-center gap-1.5"
+                title={active ? "현재 단계" : done ? "이동할 수 없는 단계" : "아직 도달하지 않은 단계"}
+              >
+                {circle}
+                {labelEl}
               </div>
-              <span className={`text-[10px] font-semibold tracking-wide whitespace-nowrap ${
-                active ? "text-indigo-600" : done ? "text-indigo-400" : "text-slate-400"
-              }`}>{label}</span>
-            </div>
+            )}
             {i < STEP_LABELS.length - 1 && (
               <div className={`w-12 h-0.5 mb-5 mx-1.5 rounded-full transition-all duration-300 ${
                 i < idx ? "bg-indigo-400" : "bg-slate-200"
@@ -271,6 +339,7 @@ export default function DesignPage() {
 function DesignPageInner() {
   const searchParams = useSearchParams();
   const draftIdFromUrl = searchParams.get("draft");
+  const designIdFromUrl = searchParams.get("design");
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -278,10 +347,10 @@ function DesignPageInner() {
   // 입력
   const [tradeType, setTradeType] = useState("");
   const [industry, setIndustry] = useState("");
-  const [productMode, setProductMode] = useState<"structured" | "free">("structured");
+  const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
   const [productAnswers, setProductAnswers] = useState(["", "", "", "", ""]);
   const [productFree, setProductFree] = useState("");
-  const [purposeMode, setPurposeMode] = useState<"structured" | "free">("structured");
+  const [purposeMode, setPurposeMode] = useState<"structured" | "free" | null>(null);
   const [purposeAnswers, setPurposeAnswers] = useState(["", "", "", "", ""]);
   const [purposeFree, setPurposeFree] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -294,14 +363,18 @@ function DesignPageInner() {
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // 활성 모드에서 결합 텍스트 도출
+  // 활성 모드에서 결합 텍스트 도출 (모드 미선택 시 빈 문자열)
   const productDef = productMode === "structured"
     ? productAnswers.map((a, i) => a.trim() ? `${PRODUCT_QUESTIONS[i].tag}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
-    : productFree;
+    : productMode === "free"
+    ? productFree
+    : "";
 
   const researchPurpose = purposeMode === "structured"
     ? purposeAnswers.map((a, i) => a.trim() ? `${PURPOSE_QUESTIONS[i].tag}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
-    : purposeFree;
+    : purposeMode === "free"
+    ? purposeFree
+    : "";
 
   // 단계
   const [step, setStep] = useState<Step>("input");
@@ -323,6 +396,50 @@ function DesignPageInner() {
 
   // 문의 다이얼로그
   const [contactOpen, setContactOpen] = useState(false);
+
+  /* ── 기존 분석(survey_designs)에서 이어쓰기: URL ?design= 로 들어오면 로드 ── */
+  useEffect(() => {
+    if (!designIdFromUrl) return;
+    const id = parseInt(designIdFromUrl, 10);
+    if (Number.isNaN(id)) return;
+    let cancelled = false;
+    setDraftLoading(true);
+    (async () => {
+      try {
+        const { design } = await apiGetMyDesign(id);
+        if (cancelled || !design) return;
+        if (design.trade_type) setTradeType(design.trade_type);
+        if (design.industry) setIndustry(design.industry);
+        // definition은 [거래방식]/[산업 분류] 머리말이 붙어있을 수 있으므로 제거
+        const defText = (design.definition ?? "")
+          .replace(/^\[거래방식\][^\n]*\n*/m, "")
+          .replace(/^\[산업 분류\][^\n]*\n*/m, "")
+          .replace(/^\n+/, "");
+        // 구조화 입력 폼은 별도 저장 안 됐으므로 free 텍스트 모드로 복원
+        setProductMode("free");
+        setProductFree(defText);
+        setPurposeMode("free");
+        setPurposeFree(design.needs ?? "");
+        if (Array.isArray(design.hypotheses)) {
+          setHypothesisTexts(design.hypotheses);
+          setSelectedHypotheses(new Set(design.hypotheses.map((_, i) => i)));
+        }
+        if (Array.isArray(design.questions)) setSurveyQuestions(design.questions as ApiQuestion[]);
+        // 도착 단계: questions > 0 → 문항 검토 / hypotheses만 → 가설 검토 / 둘 다 없으면 input
+        let target: Step = "input";
+        if (Array.isArray(design.questions) && design.questions.length > 0) target = "survey_review";
+        else if (Array.isArray(design.hypotheses) && design.hypotheses.length > 0) target = "hyp_review";
+        setStep(target);
+        setSubmitted(true);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!cancelled) setDraftLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [designIdFromUrl]);
 
   /* ── 임시저장: URL ?draft= 로 들어오면 마운트 시 자동 로드 ── */
   useEffect(() => {
@@ -420,6 +537,24 @@ function DesignPageInner() {
     if (target) setStep(target);
   }
 
+  function isStepAvailable(s: Step): boolean {
+    switch (s) {
+      case "input": return true;
+      case "hyp_designing": return false;
+      case "hyp_review": return hypothesisTexts.length > 0;
+      case "survey_designing": return false;
+      case "survey_review": return surveyQuestions.length > 0;
+      case "result": return hypothesisTexts.length > 0 && surveyQuestions.length > 0;
+    }
+  }
+
+  function jumpToStep(s: Step) {
+    if (s === step) return;
+    if (!isStepAvailable(s)) return;
+    stopTimer();
+    setStep(s);
+  }
+
   function startAnimation(labels: string[], onDone: () => void) {
     setProgress(0);
     setProgressLabel(labels[0]);
@@ -515,10 +650,10 @@ function DesignPageInner() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
+      <Navbar appMode />
       <div className="max-w-5xl mx-auto px-8 py-10">
         <div className="flex items-start justify-between gap-4 mb-2">
-          <div className="flex-1"><StepBar step={step} /></div>
+          <div className="flex-1"><StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} /></div>
           {/* 임시저장 버튼 — 로그인 사용자만 노출 + 결과 단계는 숨김 */}
           {typeof window !== "undefined" && getAccessToken() && step !== "result" && (
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -641,9 +776,17 @@ function DesignPageInner() {
                   </div>
                 </div>
 
-                {productMode === "structured" ? (
+                {productMode === null ? (
+                  <div className={`rounded-xl border border-dashed ${errProduct ? "border-red-300 bg-red-50/30" : "border-slate-200 bg-slate-50/60"} px-5 py-8 text-center`}>
+                    <p className="text-sm font-semibold text-slate-600 mb-1">입력 방식을 먼저 선택해주세요</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <span className="font-medium text-indigo-500">질문형</span>은 항목별 가이드 질문에 답하는 방식이고,{" "}
+                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 직접 서술하는 방식입니다.
+                    </p>
+                  </div>
+                ) : productMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 됩니다.</p>
                     {PRODUCT_QUESTIONS.map((q, i) => (
                       <div key={i}>
                         <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
@@ -704,9 +847,17 @@ function DesignPageInner() {
                   </div>
                 </div>
 
-                {purposeMode === "structured" ? (
+                {purposeMode === null ? (
+                  <div className={`rounded-xl border border-dashed ${errPurpose ? "border-red-300 bg-red-50/30" : "border-slate-200 bg-slate-50/60"} px-5 py-8 text-center`}>
+                    <p className="text-sm font-semibold text-slate-600 mb-1">입력 방식을 먼저 선택해주세요</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      <span className="font-medium text-indigo-500">질문형</span>은 5개 가이드 질문에 답하는 방식이고,{" "}
+                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 자유롭게 서술하는 방식입니다.
+                    </p>
+                  </div>
+                ) : purposeMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 됩니다.</p>
                     {PURPOSE_QUESTIONS.map((q, i) => (
                       <div key={i}>
                         <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
@@ -765,7 +916,7 @@ function DesignPageInner() {
               <ArrowLeft size={15} /> 이전으로
             </button>
             <ProgressCard
-              title="작성자가 작성한 정보를 바탕으로 가설을 설계 중입니다"
+              title="작성한 정보를 바탕으로 가설을 설계 중입니다"
               subtitle={researchPurpose.slice(0, 60) + (researchPurpose.length > 60 ? "..." : "")}
               progress={progress}
               progressLabel={progressLabel}
@@ -1223,8 +1374,8 @@ function DesignPageInner() {
               {/* 실행 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">설계가 완료되었습니다</p>
-                  <p className="text-xs text-slate-400 mt-0.5">위 요약을 바탕으로 가상 인구 대상 조사를 실행할 수 있습니다</p>
+                  <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행 할 수 있습니다.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 설문실행, 결과보고서는 유료서비스입니다.<br />진행을 원하시면 우측 버튼으로 문의해 주세요</p>
                 </div>
                 <button
                   onClick={() => setContactOpen(true)}

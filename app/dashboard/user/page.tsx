@@ -57,12 +57,28 @@ type AnalysisTab = "home" | "history" | "drafts" | "settings";
 
 type HistoryItem = {
   id: string;
+  job_id?: string | null;
   industry: string;
   sido: string;
   sample_size: number;
   status: "done" | "running" | "error";
   created_at: string;
 };
+
+/**
+ * 히스토리 행 클릭 시 어디로 보낼지 결정.
+ * - completed + job_id → /results/<job_id>  (결과 보기)
+ * - running   + job_id → /survey/<job_id>   (진행 페이지)
+ * - error + job_id     → /results/<job_id>  (결과 페이지가 에러 표시)
+ * - 그 외 (가설/문항 단계 미완료, job_id 없음) → /design?design=<id> (이어쓰기)
+ */
+function historyHref(item: HistoryItem): string {
+  if (item.job_id) {
+    if (item.status === "done" || item.status === "error") return `/results/${item.job_id}`;
+    if (item.status === "running") return `/survey/${item.job_id}`;
+  }
+  return `/design?design=${item.id}`;
+}
 
 type AnalysisSettings = {
   industry: string;
@@ -134,6 +150,7 @@ function UserDashboardInner() {
         if (cancelled) return;
         const mapped: HistoryItem[] = (res.designs ?? []).map((d) => ({
           id: String(d.id),
+          job_id: d.job_id ?? null,
           industry: d.industry ?? "-",
           sido: d.sido ?? "-",
           sample_size: d.sample_size ?? 0,
@@ -416,13 +433,13 @@ function UserDashboardInner() {
                     <div className="absolute bottom-0 left-8 w-40 h-40 bg-white/5 rounded-full translate-y-1/2" />
                     <div className="relative">
                       <div className="inline-flex items-center gap-2 bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-                        <Zap size={11} /> AI 기반 시장성 조사
+                        <Zap size={11} /> AI 기반 고객조사
                       </div>
                       <h2 className="text-2xl font-bold text-white mb-3 leading-snug">
-                        가상인구로 시장을<br />미리 검증하세요
+                        가상인구로 시장의 반응을<br />미리 검증하세요
                       </h2>
                       <p className="text-indigo-200 text-sm mb-8 leading-relaxed">
-                        제품 정의와 조사 니즈를 입력하면 AI가 가설을 세우고<br />
+                        제품이나 서비스의 정의와 조사 니즈를 입력하면 AI가 가설을 세우고<br />
                         가상의 소비자 패널로 설문 결과를 즉시 생성합니다.
                       </p>
                       <Link
@@ -512,16 +529,23 @@ function UserDashboardInner() {
                     ) : (
                       <div className="divide-y divide-slate-50">
                         {history.slice(0, 3).map(item => (
-                          <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50/50">
+                          <Link
+                            key={item.id}
+                            href={historyHref(item)}
+                            className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                          >
                             <div className="min-w-0">
-                              <p className="text-sm text-slate-800 font-medium truncate">{item.industry}</p>
+                              <p className="text-sm text-slate-800 font-medium truncate group-hover:text-indigo-700">{item.industry}</p>
                               <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
                                 <span className="flex items-center gap-1"><MapPin size={9} />{item.sido}</span>
                                 <span className="flex items-center gap-1"><Users size={9} />{item.sample_size}명</span>
                               </p>
                             </div>
-                            <StatusBadge status={item.status} />
-                          </div>
+                            <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                              <StatusBadge status={item.status} />
+                              <ChevronRight size={12} className="text-slate-300 group-hover:text-indigo-500" />
+                            </div>
+                          </Link>
                         ))}
                       </div>
                     )}
@@ -548,29 +572,39 @@ function UserDashboardInner() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {history.map(item => (
-                        <div key={item.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-indigo-200 transition-all">
-                          <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{item.industry}</p>
-                              <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
-                                <span className="flex items-center gap-1"><MapPin size={10} />{item.sido}</span>
-                                <span className="flex items-center gap-1"><Users size={10} />{item.sample_size}명</span>
-                                <span className="flex items-center gap-1"><Clock size={10} />{fmtAgo(item.created_at)}</span>
+                      {history.map(item => {
+                        const href = historyHref(item);
+                        const ctaLabel = item.job_id && item.status === "done"
+                          ? "결과 보기"
+                          : item.job_id && item.status === "running"
+                            ? "진행 보기"
+                            : "이어서 작성";
+                        return (
+                          <Link
+                            key={item.id}
+                            href={href}
+                            className="block bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all group"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-indigo-700">{item.industry}</p>
+                                <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
+                                  <span className="flex items-center gap-1"><MapPin size={10} />{item.sido}</span>
+                                  <span className="flex items-center gap-1"><Users size={10} />{item.sample_size}명</span>
+                                  <span className="flex items-center gap-1"><Clock size={10} />{fmtAgo(item.created_at)}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-2 ml-4 flex-shrink-0">
+                                <StatusBadge status={item.status} />
+                                <span className="text-xs text-indigo-600 font-medium flex items-center gap-0.5 group-hover:underline">
+                                  {ctaLabel} <ChevronRight size={10} />
+                                </span>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2 ml-4 flex-shrink-0">
-                              <StatusBadge status={item.status} />
-                              {item.status === "done" && (
-                                <Link href={`/results/${item.id}`} className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">
-                                  결과 보기 <ChevronRight size={10} />
-                                </Link>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-slate-400 mt-2">{fmtDate(item.created_at)}</p>
-                        </div>
-                      ))}
+                            <p className="text-[10px] text-slate-400 mt-2">{fmtDate(item.created_at)}</p>
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
