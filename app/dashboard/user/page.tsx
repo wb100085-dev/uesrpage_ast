@@ -390,61 +390,64 @@ function UserDashboardInner() {
                 <h1 className="text-xl font-bold text-slate-900">분석 대시보드</h1>
               </div>
 
-              {/* 탭: 새 분석 | 히스토리 | 설정 */}
-              <div className="flex gap-1 bg-white border border-slate-100 rounded-xl p-1 mb-8 w-fit shadow-sm">
-                {/* 새 분석 시작 */}
-                <button onClick={() => setAnalysisTab("home")}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "home" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                  <Sparkles size={14} /> 새 분석
-                </button>
-                {/* 히스토리 */}
-                <button onClick={() => setAnalysisTab("history")}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "history" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                  <History size={14} /> 내 분석 히스토리
-                  {history.length > 0 && (
-                    <span className="ml-1 bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{history.length}</span>
-                  )}
-                </button>
-                {/* 임시저장 */}
-                <button onClick={() => setAnalysisTab("drafts")}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "drafts" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                  <FileEdit size={14} /> 임시저장
-                  {drafts.length > 0 && (
-                    <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "drafts" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>{drafts.length}</span>
-                  )}
-                </button>
-                {/* 설정 — 구현중 */}
-                <button onClick={() => setAnalysisTab("settings")}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${analysisTab === "settings" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                  <Settings size={14} /> 설정
-                  <span className="ml-1 inline-flex items-center gap-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                    <Construction size={8} /> 구현중
-                  </span>
-                </button>
+              {/* 탭: 새 분석 | 히스토리 | 설정 — 모바일 가로 스크롤 + 라벨 축약 */}
+              <div className="-mx-4 md:mx-0 px-4 md:px-0 mb-8 overflow-x-auto scrollbar-hide">
+                <div className="inline-flex gap-1 bg-white border border-slate-100 rounded-xl p-1 shadow-sm whitespace-nowrap">
+                  {/* 새 분석 시작 */}
+                  <button onClick={() => setAnalysisTab("home")}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "home" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                    <Sparkles size={14} /> 새 분석
+                  </button>
+                  {/* 히스토리 */}
+                  <button onClick={() => setAnalysisTab("history")}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "history" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                    <History size={14} />
+                    <span className="sm:hidden">히스토리</span>
+                    <span className="hidden sm:inline">내 분석 히스토리</span>
+                    {history.length > 0 && (
+                      <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "history" ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-700"}`}>{history.length}</span>
+                    )}
+                  </button>
+                  {/* 임시저장 */}
+                  <button onClick={() => setAnalysisTab("drafts")}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "drafts" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                    <FileEdit size={14} /> 임시저장
+                    {drafts.length > 0 && (
+                      <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "drafts" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>{drafts.length}</span>
+                    )}
+                  </button>
+                  {/* 설정 — 구현중 */}
+                  <button onClick={() => setAnalysisTab("settings")}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "settings" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                    <Settings size={14} /> 설정
+                    <span className="ml-1 hidden sm:inline-flex items-center gap-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      <Construction size={8} /> 구현중
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* ── 새 분석 탭 ── */}
               {analysisTab === "home" && (
                 <div className="space-y-6">
                   {/* 히어로 CTA */}
-                  <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-3xl p-10 overflow-hidden">
+                  <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 rounded-3xl p-6 md:p-10 overflow-hidden">
                     {/* 배경 장식 */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                     <div className="absolute bottom-0 left-8 w-40 h-40 bg-white/5 rounded-full translate-y-1/2" />
                     <div className="relative">
-                      <div className="inline-flex items-center gap-2 bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+                      <div className="inline-flex items-center gap-2 bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-4 md:mb-5">
                         <Zap size={11} /> AI 기반 고객조사
                       </div>
-                      <h2 className="text-2xl font-bold text-white mb-3 leading-snug">
-                        가상인구로 시장의 반응을<br />미리 검증하세요
+                      <h2 className="text-xl md:text-2xl font-bold text-white mb-3 leading-snug break-keep">
+                        가상인구로 시장의 반응을 미리 검증하세요
                       </h2>
-                      <p className="text-indigo-200 text-sm mb-8 leading-relaxed">
-                        제품이나 서비스의 정의와 조사 니즈를 입력하면 AI가 가설을 세우고<br />
-                        가상의 소비자 패널로 설문 결과를 즉시 생성합니다.
+                      <p className="text-indigo-200 text-sm mb-6 md:mb-8 leading-relaxed break-keep">
+                        제품·서비스 정의와 조사 니즈를 입력하면 AI가 가설을 세우고 가상의 소비자 패널로 설문 결과를 즉시 생성합니다.
                       </p>
                       <Link
                         href="/design"
-                        className="inline-flex items-center gap-2.5 bg-white text-indigo-700 font-bold text-sm px-7 py-3.5 rounded-2xl hover:bg-indigo-50 transition-all shadow-lg shadow-indigo-900/30 hover:shadow-xl hover:shadow-indigo-900/40 hover:-translate-y-0.5"
+                        className="inline-flex items-center gap-2 md:gap-2.5 bg-white text-indigo-700 font-bold text-sm px-5 md:px-7 py-3 md:py-3.5 rounded-2xl hover:bg-indigo-50 transition-all shadow-lg shadow-indigo-900/30 hover:shadow-xl hover:shadow-indigo-900/40 hover:-translate-y-0.5"
                       >
                         <Sparkles size={16} />
                         새 분석 시작하기
@@ -454,9 +457,9 @@ function UserDashboardInner() {
                   </div>
 
                   {/* 분석 절차 안내 — 랜딩페이지와 동일한 4단계 */}
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                    <h3 className="text-sm font-semibold text-slate-800 mb-5">분석 진행 순서</h3>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+                    <h3 className="text-sm font-semibold text-slate-800 mb-4 md:mb-5">분석 진행 순서</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                       {[
                         {
                           step: "01",
@@ -832,8 +835,8 @@ function UserDashboardInner() {
                       </div>
                     </div>
 
-                    {/* 성별 + 연령 (한 줄) */}
-                    <div className="grid grid-cols-[1fr_120px] gap-3">
+                    {/* 성별 + 연령 — 모바일은 세로, sm+ 가로 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">성별</label>
                         <div className="flex gap-1.5">
@@ -847,7 +850,7 @@ function UserDashboardInner() {
                               key={opt.value || "none"}
                               type="button"
                               onClick={() => setProfileForm((p) => ({ ...p, gender: opt.value }))}
-                              className={`flex-1 py-2 rounded-xl border text-sm font-medium transition-all ${
+                              className={`flex-1 py-2 rounded-xl border text-xs sm:text-sm font-medium transition-all ${
                                 profileForm.gender === opt.value
                                   ? "border-indigo-500 bg-indigo-50 text-indigo-700"
                                   : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -872,8 +875,8 @@ function UserDashboardInner() {
                       </div>
                     </div>
 
-                    {/* 소속 + 직급 */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* 소속 + 직급 — 모바일은 세로, sm+ 가로 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">소속</label>
                         <input
