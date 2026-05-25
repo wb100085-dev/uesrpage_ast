@@ -92,11 +92,11 @@ function StepMockup1() {
       <div>
         <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-1">알고 싶은 내용</div>
         <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-2 py-1.5">
-          <span className="text-[11px] text-indigo-700 leading-snug break-keep">메뉴 선호·가격 민감도</span>
+          <span className="text-[11px] text-indigo-700 leading-snug break-keep">선호 고객층, 메뉴선호, 가격민감도 등</span>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function StepMockup2() {
@@ -112,7 +112,7 @@ function StepMockup2() {
       <div className="mb-2">
         <div className="text-[10px] text-slate-400 font-semibold mb-1">📌 가설</div>
         <div className="space-y-1">
-          {["20대 여성고객이 더 선호 할 것이다.", "10대 남성고객이 덜 선호 할 것이다."].map((h) => (
+          {["20대 여성고객이 더 선호 할 것이다.", "비건 소비재를 함께 파는 것을 더 선호 할 것이다."].map((h) => (
             <div key={h} className="flex items-start gap-1 bg-slate-50 rounded px-1.5 py-1">
               <Check size={8} className="text-emerald-500 flex-shrink-0 mt-0.5" />
               <span className="text-[10px] text-slate-700 leading-snug break-keep">{h}</span>
@@ -138,8 +138,8 @@ function StepMockup3() {
       <div className="space-y-1 mb-2.5">
         {[
           { label: "지역", val: "서울·경기" },
-          { label: "연령", val: "20-29" },
-          { label: "성별", val: "여성" },
+          { label: "연령", val: "20~50" },
+          { label: "성별", val: "남성, 여성" },
         ].map((r) => (
           <div key={r.label} className="flex items-center justify-between text-[10px] bg-slate-50 rounded px-2 py-1">
             <span className="text-slate-400">{r.label}</span>
@@ -156,7 +156,11 @@ function StepMockup3() {
 }
 
 function StepMockup4() {
-  const bars = [{ w: "82%", c: "from-indigo-500 to-indigo-400" }, { w: "54%", c: "from-violet-500 to-violet-400" }, { w: "34%", c: "from-sky-500 to-sky-400" }];
+  const bars = [
+    { label: "20대 여성 선호", pct: 53, c: "from-indigo-500 to-indigo-400", dot: "#6366f1" },
+    { label: "소비재판매 선호", pct: 22, c: "from-violet-500 to-violet-400", dot: "#8b5cf6" },
+    { label: "가격민감도",      pct: 32, c: "from-sky-500 to-sky-400",       dot: "#0ea5e9" },
+  ];
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 text-left">
       <div className="flex items-center gap-1.5 mb-3">
@@ -164,14 +168,17 @@ function StepMockup4() {
         <span className="text-xs font-semibold text-slate-700">결과 대시보드</span>
         <span className="ml-auto text-[10px] bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full font-medium">완료</span>
       </div>
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {bars.map((b, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: ["#6366f1","#8b5cf6","#0ea5e9"][i] }} />
-            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div className={`bg-gradient-to-r ${b.c} h-2 rounded-full`} style={{ width: b.w }} />
+          <div key={i}>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: b.dot }} />
+              <span className="text-[10px] text-slate-600 font-medium truncate">{b.label}</span>
+              <span className="ml-auto text-[10px] text-slate-500 font-semibold">{b.pct}%</span>
             </div>
-            <span className="text-[10px] text-slate-400 w-5">{[41,27,17][i]}%</span>
+            <div className="bg-slate-100 rounded-full h-1.5 overflow-hidden">
+              <div className={`bg-gradient-to-r ${b.c} h-1.5 rounded-full`} style={{ width: `${b.pct}%` }} />
+            </div>
           </div>
         ))}
       </div>
@@ -376,18 +383,20 @@ function FeatureVisual5() {
             <ArrowRight size={14} className="text-amber-300" />
           </div>
           <div className="relative flex-1 bg-white/18 backdrop-blur-sm rounded-lg px-2 py-2 border border-white/30 text-center shadow-lg shadow-amber-900/30">
-            <span className="absolute -top-2 right-1 inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-md shadow-md">
-              50% OFF
-            </span>
             <div className="text-[8px] text-amber-200 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
             <div className="text-[10px] text-slate-300/70 line-through tabular-nums leading-none">₩99,000</div>
-            <div className="text-base font-extrabold text-white tabular-nums leading-tight mt-0.5">₩49,500</div>
+            <div className="flex items-center justify-center gap-1 mt-0.5">
+              <span className="text-base font-extrabold text-white tabular-nums leading-tight">₩49,500</span>
+              <span className="inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md shadow-md leading-none">
+                50% OFF
+              </span>
+            </div>
           </div>
         </div>
         {/* 절감 배지 */}
         <div className="inline-flex items-center gap-1.5 bg-emerald-500/25 backdrop-blur-sm rounded-full px-3 py-1 border border-emerald-300/40">
           <TrendingUp size={11} className="text-emerald-200" style={{ transform: "rotate(180deg)" }} />
-          <span className="text-emerald-100 text-[10px] font-bold">기존 대비 95% 절감 · 구독 없음</span>
+          <span className="text-emerald-100 text-[10px] font-bold">기존 대비 95% 절감</span>
         </div>
       </div>
     </div>
@@ -485,7 +494,7 @@ const TESTIMONIALS = [
     bg: "bg-violet-50",
     name: "박민준",
     role: "마케터",
-    text: "AI가 설문을 설계해준다는 게 처음엔 반신반의했는데, 나보다 더 잘 짜더라고요. 특히 교차분석 결과가 인상적이었습니다.",
+    text: "신규 캠페인 카피를 두 가지 안으로 돌려 타겟 연령·성별별 반응을 출시 전에 비교하고 있어요. 외부 패널 없이 바로 컨셉 A/B 테스트를 돌릴 수 있어 의사결정 속도가 크게 빨라졌습니다.",
   },
   {
     emoji: "👩‍🎨",
@@ -613,12 +622,12 @@ const features = [
   },
   {
     title: "4. 압도적 속도",
-    desc: "기존 리서치가 한 달 걸리던 일을 약 1시간 만에 결과 대시보드로 확인합니다.",
+    desc: "기존 리서치가 2주 이상 걸리던 일을 약 1시간 만에 결과 대시보드로 확인합니다.",
     visual: <FeatureVisualTime />,
   },
   {
     title: "5. 10분의 1 비용",
-    desc: "리서치 회사 의뢰 대비 90% 이상 저렴한 가격. 월 구독 없이 조사 한 건당 결제합니다.",
+    desc: "기존 리서치 회사 의뢰 대비 95% 이상 저렴한 가격. 월 구독 없이 조사 한 건당 결제합니다.",
     visual: <FeatureVisual5 />,
   },
   {
@@ -693,12 +702,12 @@ export default function LandingPage() {
             <div className="inline-block text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-4">
               How it works
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight mb-4">
               4단계로 완성되는 AI 고객조사
-              <span className="block mt-2 text-lg sm:text-2xl font-medium text-slate-500">
-                (여러분은 단 두 문장만 입력하세요)
-              </span>
             </h2>
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">
+              여러분은 단 두 문장만 입력하시면 됩니다.
+            </p>
           </Reveal>
 
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -770,6 +779,9 @@ export default function LandingPage() {
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-4xl mx-auto px-5 sm:px-6">
           <Reveal className="text-center mb-10 sm:mb-12">
+            <div className="inline-block text-amber-600 text-xs font-bold uppercase tracking-[.15em] bg-amber-50 px-3 py-1.5 rounded-full mb-4">
+              Comparison
+            </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">기존 방식과 비교</h2>
           </Reveal>
           <Reveal delay={100}>
@@ -789,8 +801,8 @@ export default function LandingPage() {
                 old: React.ReactNode;
                 neu: React.ReactNode;
               }> = [
-                { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 수천, 수만명 설문조사 결과 보고서" },
-                { label: "비용", old: "건당 100만원 이상", neu: "90% 이상 절감" },
+                { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 500명 설문조사 결과 보고서" },
+                { label: "비용", old: "건당 100만원 이상", neu: "95% 이상 절감" },
                 { label: "시간", old: "2주 이상", neu: "1시간 이내" },
                 { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
                 { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
@@ -798,7 +810,7 @@ export default function LandingPage() {
                   label: "편향",
                   old: (
                     <ul className="space-y-2 text-left list-disc pl-4 marker:text-slate-300">
-                      <li>사회적 시선을 의식한 의식적 거짓 답변</li>
+                      <li>사회적 시선을 의식한 <HLOld>의식적 거짓 답변</HLOld></li>
                       <li>질문자 의도에 맞추는 <HLOld>맹목적 순응/동조</HLOld></li>
                       <li>주관적 기준에 따른 <HLOld>척도 점수 왜곡</HLOld></li>
                     </ul>
@@ -833,7 +845,7 @@ export default function LandingPage() {
                             )}
                           </div>
                           <div className="px-4 py-3 bg-indigo-50/60">
-                            <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1.5">Socialtwin</div>
+                            <div className="text-sm font-extrabold text-indigo-600 uppercase tracking-wider mb-1.5">Socialtwin</div>
                             {neuIsText ? (
                               <p className="text-sm font-semibold text-indigo-700 leading-relaxed">{neu}</p>
                             ) : (
@@ -853,7 +865,7 @@ export default function LandingPage() {
                           <th className="text-left p-4 text-slate-400 font-medium text-xs w-[18%]" />
                           <th className="text-center p-4 font-semibold text-slate-500 text-xs w-[41%]">기존방식의 고객조사</th>
                           <th className="text-center p-4 w-[41%] bg-indigo-50">
-                            <span className="font-bold text-indigo-600 text-xs">Socialtwin</span>
+                            <span className="font-extrabold text-indigo-600 text-base sm:text-lg tracking-wide">Socialtwin</span>
                           </th>
                         </tr>
                       </thead>
@@ -935,7 +947,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-5 sm:px-6">
           <Reveal className="text-center mb-12 sm:mb-14">
             <div className="inline-block text-emerald-600 text-xs font-bold uppercase tracking-[.15em] bg-emerald-50 px-3 py-1.5 rounded-full mb-4">
-              Testimonials
+              USE CASES
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
               활용 사례
