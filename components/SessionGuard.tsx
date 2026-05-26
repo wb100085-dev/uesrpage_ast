@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Clock, RefreshCw, LogOut } from "lucide-react";
 import {
   getAccessToken,
@@ -26,8 +26,18 @@ const ACTION_BEFORE_EXP_S = 5 * 60; // 만료 5분 전에 행동 결정
 const ACTIVE_WINDOW_MS = 10 * 60 * 1000; // 최근 10분 내 활동이면 "활동 중"
 const ACTIVITY_THROTTLE_MS = 60 * 1000; // 활동 기록 1분에 한 번만 갱신
 
+// 로그인이 필요한 보호 경로. 그 외(랜딩·인증·약관 등)는 공개 페이지로 간주.
+const PROTECTED_PREFIXES = ["/dashboard", "/design", "/results", "/survey"];
+function isProtectedPath(p: string): boolean {
+  return PROTECTED_PREFIXES.some((pre) => p === pre || p.startsWith(pre + "/"));
+}
+function currentPath(): string {
+  return typeof window !== "undefined" ? window.location.pathname : "/";
+}
+
 export default function SessionGuard() {
   const router = useRouter();
+  const pathname = usePathname();
   const [showWarn, setShowWarn] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,10 +61,13 @@ export default function SessionGuard() {
     clearTimers();
     clearAuth();
     setShowWarn(false);
-    if (reason === "expired") {
-      router.push("/login?error=session_expired");
-    } else {
+    if (reason === "user") {
       router.push("/");
+      return;
+    }
+    // expired — 보호 페이지에서만 로그인으로. 랜딩 등 공개 페이지면 토큰만 정리하고 머무름.
+    if (isProtectedPath(currentPath())) {
+      router.push("/login?error=session_expired");
     }
   }
 
@@ -100,8 +113,15 @@ export default function SessionGuard() {
     const expMs = exp * 1000;
     const now = Date.now();
     const ttl = expMs - now;
+    const onProtected = isProtectedPath(currentPath());
     if (ttl <= 0) {
-      forceLogout("expired");
+      // 만료 토큰 정리. 보호 페이지면 로그인으로 보내고, 공개/랜딩 페이지면 머무름.
+      clearAuth();
+      if (onProtected) router.push("/login?error=session_expired");
+      return;
+    }
+    if (!onProtected) {
+      // 공개/랜딩 페이지에서는 만료 모달·리다이렉트 없이 대기 (보호 페이지 진입 시 재스케줄).
       return;
     }
     const warnInMs = ttl - ACTION_BEFORE_EXP_S * 1000;
@@ -147,8 +167,6 @@ export default function SessionGuard() {
     }
     window.addEventListener("vpg-auth-changed", onAuthChanged);
 
-    scheduleFromToken();
-
     return () => {
       events.forEach((e) => window.removeEventListener(e, onActivity));
       window.removeEventListener("storage", onStorage);
@@ -157,6 +175,12 @@ export default function SessionGuard() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 경로 변경 시 재스케줄 — 공개 페이지에서 보호 페이지로 진입하면 가드를 다시 무장.
+  useEffect(() => {
+    scheduleFromToken();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   if (!showWarn) return null;
 
