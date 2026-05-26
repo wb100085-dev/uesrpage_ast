@@ -2,6 +2,11 @@ import { getAccessToken } from "./auth-api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// 기본 AI 모델 — GPT-5.5 (최고급). 백엔드 ai_router 가 요청별 model 오버라이드로 사용.
+export const DEFAULT_AI_MODEL = "gpt-5.5";
+// 가상인구 추출 기본 표본 수
+export const DEFAULT_SAMPLE_SIZE = 500;
+
 export interface SurveyQuestion {
   type: string;
   title: string;
@@ -77,7 +82,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export function designSurvey(definition: string, needs: string): Promise<DesignResponse> {
   return apiFetch("/api/survey/design", {
     method: "POST",
-    body: JSON.stringify({ definition, needs }),
+    body: JSON.stringify({ definition, needs, model: DEFAULT_AI_MODEL }),
   });
 }
 
@@ -85,11 +90,12 @@ export function runSurvey(
   hypotheses: string[],
   questions: SurveyQuestion[],
   sido = "서울특별시",
-  sampleSize = 50,
+  sampleSize = DEFAULT_SAMPLE_SIZE,
+  model = DEFAULT_AI_MODEL,
 ): Promise<RunResponse> {
   return apiFetch("/api/survey/run", {
     method: "POST",
-    body: JSON.stringify({ hypotheses, questions, sido, sample_size: sampleSize }),
+    body: JSON.stringify({ hypotheses, questions, sido, sample_size: sampleSize, model }),
   });
 }
 

@@ -19,6 +19,7 @@ import {
   updateDraft as apiUpdateDraft,
   getDraft as apiGetDraft,
   getMyDesign as apiGetMyDesign,
+  DEFAULT_AI_MODEL,
   type SurveyDraftPatch,
 } from "@/lib/survey-api";
 
@@ -617,6 +618,7 @@ function DesignPageInner() {
           needs: researchPurpose,
           trade_type: tradeType,
           industry,
+          model: DEFAULT_AI_MODEL,
         }),
       });
       if (!res.ok) throw new Error(`서버 오류 (${res.status})`);

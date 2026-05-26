@@ -11,7 +11,7 @@ import {
   authChangePassword,
   type AuthUser,
 } from "@/lib/auth-api";
-import { getMyDesigns, listDrafts, deleteDraft, type SurveyDraft } from "@/lib/survey-api";
+import { getMyDesigns, listDrafts, deleteDraft, DEFAULT_SAMPLE_SIZE, type SurveyDraft } from "@/lib/survey-api";
 import RequireAuth from "@/components/RequireAuth";
 import {
   BarChart2, Settings, History, ChevronRight,
@@ -300,7 +300,7 @@ function UserDashboardInner() {
   /* 설정 (잠금 탭 — 미리보기용 state) */
   const [settings, setSettings] = useState<AnalysisSettings>({
     industry: INDUSTRIES[0], definition: "", needs: "", target: "",
-    sido: "서울특별시", sampleSize: 50,
+    sido: "서울특별시", sampleSize: DEFAULT_SAMPLE_SIZE,
   });
   const [saved, setSaved] = useState(false);
   function updateSettings(patch: Partial<AnalysisSettings>) { setSettings(p => ({ ...p, ...patch })); setSaved(false); }
