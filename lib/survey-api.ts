@@ -86,6 +86,31 @@ export function designSurvey(definition: string, needs: string): Promise<DesignR
   });
 }
 
+/** 1단계: 가설만 생성 (설문 문항은 만들지 않음 — AI 호출 절약 + 가설 수정 후 재생성 가능) */
+export function generateHypotheses(body: {
+  definition: string;
+  needs: string;
+  trade_type?: string;
+  industry?: string;
+  attachments?: { data: string; mime?: string; description?: string }[];
+}): Promise<{ hypotheses: string[]; attachment_analysis?: string }> {
+  return apiFetch("/api/survey/hypotheses", {
+    method: "POST",
+    body: JSON.stringify({ ...body, model: DEFAULT_AI_MODEL }),
+  });
+}
+
+/** 2단계: 검토·수정한 가설로 설문 문항 생성 */
+export function generateQuestions(body: {
+  hypotheses: string[];
+  definition?: string;
+}): Promise<{ questions: SurveyQuestion[] }> {
+  return apiFetch("/api/survey/questions", {
+    method: "POST",
+    body: JSON.stringify({ ...body, model: DEFAULT_AI_MODEL }),
+  });
+}
+
 export function runSurvey(
   hypotheses: string[],
   questions: SurveyQuestion[],

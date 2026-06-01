@@ -8,22 +8,22 @@ import {
   Clock, Check, Pencil, Upload, FileText,
   X, ChevronDown, BarChart2, Target, Lightbulb,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
-  LayoutDashboard,
+  LayoutDashboard, ImagePlus,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import RequireAuth from "@/components/RequireAuth";
+import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
 import { getAccessToken } from "@/lib/auth-api";
 import {
   createDraft as apiCreateDraft,
   updateDraft as apiUpdateDraft,
   getDraft as apiGetDraft,
   getMyDesign as apiGetMyDesign,
-  DEFAULT_AI_MODEL,
+  generateHypotheses,
+  generateQuestions,
   type SurveyDraftPatch,
 } from "@/lib/survey-api";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 /* ─────────────────────────────────────────
    타입
@@ -41,7 +41,18 @@ type ApiQuestion = {
   title: string;
   question: string;
   options: string[];
+  image?: string | null; // 문항 첨부 이미지(data:URL). 실행 시 GPT 비전으로 함께 평가
 };
+
+/** 이미지 파일 → base64 data:URL */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
+}
 
 /* ─────────────────────────────────────────
    상수
@@ -366,6 +377,7 @@ function DesignPageInner() {
   const [purposeMode, setPurposeMode] = useState<"structured" | "free" | null>(null);
   const [purposeAnswers, setPurposeAnswers] = useState(["", "", "", "", ""]);
   const [purposeFree, setPurposeFree] = useState("");
+  const [attachments, setAttachments] = useState<SurveyAttachment[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [apiError, setApiError] = useState("");
 
@@ -588,6 +600,15 @@ function DesignPageInner() {
   }
 
   /* ── Step 1→2: 가설 설계 API 호출 ── */
+  // 거래방식·산업을 정의 본문 앞에 명시해 AI가 컨텍스트로 활용 (가설·문항 생성 공용)
+  function buildDefinitionPayload() {
+    const tradeFull = TRADE_TYPES.find((t) => t.code === tradeType);
+    const tradeLine = tradeFull ? `[거래방식] ${tradeFull.code} (${tradeFull.en})` : "";
+    const industryLine = industry ? `[산업 분류] ${industry}` : "";
+    return [tradeLine, industryLine, productDef].filter(Boolean).join("\n\n");
+  }
+
+  /* ── Step 1→2: 가설만 생성 (문항은 만들지 않음 — AI 호출 절약 + 가설 수정 반영 가능) ── */
   async function handleDesign() {
     setSubmitted(true);
     if (!tradeType || !industry || !productDef.trim() || !researchPurpose.trim()) return;
@@ -600,32 +621,20 @@ function DesignPageInner() {
       () => setStep("hyp_review")
     );
 
-    // 거래방식·산업을 정의 본문 앞에 명시해 AI가 가설 설계 시 컨텍스트로 활용
-    const tradeFull = TRADE_TYPES.find((t) => t.code === tradeType);
-    const tradeLine = tradeFull ? `[거래방식] ${tradeFull.code} (${tradeFull.en})` : "";
-    const industryLine = industry ? `[산업 분류] ${industry}` : "";
-    const definitionPayload = [tradeLine, industryLine, productDef].filter(Boolean).join("\n\n");
-
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      const tok = getAccessToken();
-      if (tok) headers.Authorization = `Bearer ${tok}`;
-      const res = await fetch(`${API_URL}/api/survey/design`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          definition: definitionPayload,
-          needs: researchPurpose,
-          trade_type: tradeType,
-          industry,
-          model: DEFAULT_AI_MODEL,
-        }),
+      const data = await generateHypotheses({
+        definition: buildDefinitionPayload(),
+        needs: researchPurpose,
+        trade_type: tradeType,
+        industry,
+        attachments: attachments.map((a) => ({
+          data: a.dataUrl,
+          mime: a.mime,
+          description: a.description,
+        })),
       });
-      if (!res.ok) throw new Error(`서버 오류 (${res.status})`);
-      const data = await res.json();
-
       setHypothesisTexts(data.hypotheses ?? []);
-      setSurveyQuestions(data.questions ?? []);
+      setSurveyQuestions([]); // 가설만 — 문항은 검토 후 '설문 생성'에서 생성
       setSelectedHypotheses(new Set(data.hypotheses?.length ? [0] : []));
       finish();
     } catch (err) {
@@ -635,14 +644,31 @@ function DesignPageInner() {
     }
   }
 
-  /* ── Step 3→4: 설문 생성 (이미 가져온 데이터, 애니메이션만) ── */
-  function handleSurveyDesign() {
+  /* ── Step 3→4: 검토·수정한 가설로 설문 문항 생성 (이 시점에 실제 AI 호출) ── */
+  async function handleSurveyDesign() {
+    const hyps = hypothesisTexts.filter((h) => h.trim());
+    if (hyps.length === 0) {
+      setApiError("가설을 먼저 작성·검토해 주세요.");
+      return;
+    }
+    setApiError("");
     setStep("survey_designing");
     const finish = startAnimation(
       ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "최종 검토 중..."],
       () => setStep("survey_review")
     );
-    setTimeout(finish, 2500);
+    try {
+      const data = await generateQuestions({
+        hypotheses: hyps,
+        definition: buildDefinitionPayload(),
+      });
+      setSurveyQuestions((data.questions ?? []) as ApiQuestion[]);
+      finish();
+    } catch (err) {
+      stopTimer();
+      setApiError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setStep("hyp_review");
+    }
   }
 
   /* ── 객관식 토글 ── */
@@ -909,6 +935,9 @@ function DesignPageInner() {
                 {errPurpose && <ErrorMsg msg="시장조사 목적을 입력해주세요." />}
               </div>
 
+              {/* 참고 이미지 첨부(선택) — 시장조사 목적 바로 아래 */}
+              <AttachmentSection attachments={attachments} setAttachments={setAttachments} />
+
               <div className="px-5 sm:px-8 py-5 bg-slate-50 border-t border-slate-100">
                 <button
                   onClick={handleDesign}
@@ -1020,6 +1049,7 @@ function DesignPageInner() {
                             onClick={() => {
                               const u = [...hypothesisTexts]; u[i] = hypDraft;
                               setHypothesisTexts(u); setEditingHypIdx(null);
+                              setSurveyQuestions([]); // 가설 수정 → 기존 문항 무효화(재생성 강제)
                             }}
                             className="px-3.5 py-1.5 text-xs font-semibold bg-violet-600 text-white rounded-lg hover:bg-violet-500"
                           >저장</button>
@@ -1158,6 +1188,39 @@ function DesignPageInner() {
                             }`}>{q.type}</span>
                           </div>
                           <p className="text-xs text-slate-500 leading-relaxed">{q.question}</p>
+                          {/* 문항 이미지(선택) */}
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {q.image ? (
+                              <div className="relative">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={q.image} alt="문항 이미지" className="h-14 w-14 object-cover rounded-lg border border-slate-200" />
+                                <button
+                                  type="button"
+                                  onClick={() => setSurveyQuestions((prev) => prev.map((sq, si) => (si === i ? { ...sq, image: null } : sq)))}
+                                  className="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-5 h-5 flex items-center justify-center text-rose-500 hover:bg-rose-50"
+                                  title="이미지 제거"
+                                >
+                                  <X size={11} />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] text-slate-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
+                                <ImagePlus size={12} /> 이미지 추가 <span className="text-slate-300">(선택)</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const f = e.target.files?.[0];
+                                    e.currentTarget.value = "";
+                                    if (!f || !f.type.startsWith("image/") || f.size > 6 * 1024 * 1024) return;
+                                    const url = await fileToDataUrl(f);
+                                    setSurveyQuestions((prev) => prev.map((sq, si) => (si === i ? { ...sq, image: url } : sq)));
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {canExpand && (
