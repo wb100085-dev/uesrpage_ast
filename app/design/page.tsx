@@ -57,13 +57,11 @@ function fileToDataUrl(file: File): Promise<string> {
 /* ─────────────────────────────────────────
    상수
 ───────────────────────────────────────── */
-const TRADE_TYPES: { code: string; en: string }[] = [
-  { code: "B2C", en: "Business-to-Consumer" },
-  { code: "B2B", en: "Business-to-Business" },
-  { code: "B2G", en: "Business-to-Government" },
-  { code: "C2C", en: "Consumer-to-Consumer" },
-  { code: "D2C", en: "Direct-to-Consumer" },
-  { code: "B2B2C", en: "Business-to-Business-to-Consumer" },
+const TRADE_TYPES: { code: string; en: string; ko: string; desc: string; icon: string }[] = [
+  { code: "B2C", en: "Business-to-Consumer", ko: "기업 → 소비자", desc: "일반 소비자에게 직접 판매", icon: "🛍️" },
+  { code: "B2B", en: "Business-to-Business", ko: "기업 → 기업", desc: "다른 기업에 납품·판매", icon: "🏢" },
+  { code: "B2G", en: "Business-to-Government", ko: "기업 → 정부·공공", desc: "정부·공공기관에 납품", icon: "🏛️" },
+  { code: "기타", en: "Others", ko: "그외 거래방식 혹은 해당없음", desc: "C2C·D2C·B2B2C 등", icon: "🧩" },
 ];
 
 const INDUSTRIES = [
@@ -749,24 +747,40 @@ function DesignPageInner() {
               <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
                 <FieldLabel required>
                   거래방식
-                  <span className="ml-1.5 text-slate-400 text-xs font-normal">(주된 거래 대상)</span>
+                  <span className="ml-1.5 text-slate-400 text-xs font-normal">(주된 거래 대상 — 하나를 선택하세요)</span>
                 </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={tradeType}
-                    onChange={(e) => setTradeType(e.target.value)}
-                    className={`w-full appearance-none bg-slate-50 border rounded-xl px-4 py-3 pr-10 text-sm text-slate-700 outline-none focus:bg-white focus:ring-2 transition-all cursor-pointer ${
-                      errTradeType ? "border-red-300 focus:ring-red-400/20" : "border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
-                    }`}
-                  >
-                    <option value="">거래방식을 선택하세요</option>
-                    {TRADE_TYPES.map((t) => (
-                      <option key={t.code} value={t.code}>
-                        {t.code} ({t.en})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown size={15} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                  {TRADE_TYPES.map((t) => {
+                    const selected = tradeType === t.code;
+                    const dimmed = tradeType !== "" && !selected;
+                    return (
+                      <button
+                        key={t.code}
+                        type="button"
+                        onClick={() => setTradeType(selected ? "" : t.code)}
+                        aria-pressed={selected}
+                        title={`${t.code} (${t.en})`}
+                        className={`relative flex flex-col items-center text-center rounded-xl border-2 px-1.5 sm:px-2.5 py-4 transition-all duration-150 ${
+                          selected
+                            ? "border-indigo-500 bg-indigo-50 shadow-sm"
+                            : errTradeType
+                              ? "border-red-200 bg-white hover:border-slate-300"
+                              : "border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50"
+                        } ${dimmed ? "opacity-40 grayscale hover:opacity-100 hover:grayscale-0" : ""}`}
+                      >
+                        {selected && (
+                          <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-500">
+                            <Check size={11} className="text-white" strokeWidth={3} />
+                          </span>
+                        )}
+                        <span className="text-3xl mb-1.5 leading-none" aria-hidden>{t.icon}</span>
+                        <span className="text-sm font-bold text-slate-800">{t.code}</span>
+                        <span className="text-[10px] text-slate-400 leading-tight mb-1.5">{t.en}</span>
+                        <span className="text-[11px] font-semibold text-slate-600">{t.ko}</span>
+                        <span className="text-[11px] text-slate-400 leading-snug mt-0.5">{t.desc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
                 {errTradeType && <ErrorMsg msg="거래방식을 선택해주세요." />}
               </div>
