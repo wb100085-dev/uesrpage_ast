@@ -79,48 +79,79 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function designSurvey(definition: string, needs: string): Promise<DesignResponse> {
+// ─── 전역 앱 설정 (관리자가 대시보드에서 지정) ────────────────
+// 관리자 페이지에서 저장한 기본 AI 모델/표본 수를 백엔드에서 조회해 따른다.
+// 세션당 1회만 호출하고 캐싱 (실패 시 하드코드 기본값으로 폴백).
+
+export interface AppSettings {
+  default_ai_model: string;
+  analysis_sample_size: number;
+}
+
+let _settingsPromise: Promise<AppSettings> | null = null;
+
+export function getAppSettings(): Promise<AppSettings> {
+  if (!_settingsPromise) {
+    _settingsPromise = apiFetch<AppSettings>("/api/settings").catch(() => ({
+      default_ai_model: DEFAULT_AI_MODEL,
+      analysis_sample_size: DEFAULT_SAMPLE_SIZE,
+    }));
+  }
+  return _settingsPromise;
+}
+
+/** 관리자가 지정한 기본 AI 모델 (실패 시 DEFAULT_AI_MODEL). */
+export async function getEffectiveModel(): Promise<string> {
+  const s = await getAppSettings();
+  return s.default_ai_model || DEFAULT_AI_MODEL;
+}
+
+export async function designSurvey(definition: string, needs: string): Promise<DesignResponse> {
+  const model = await getEffectiveModel();
   return apiFetch("/api/survey/design", {
     method: "POST",
-    body: JSON.stringify({ definition, needs, model: DEFAULT_AI_MODEL }),
+    body: JSON.stringify({ definition, needs, model }),
   });
 }
 
 /** 1단계: 가설만 생성 (설문 문항은 만들지 않음 — AI 호출 절약 + 가설 수정 후 재생성 가능) */
-export function generateHypotheses(body: {
+export async function generateHypotheses(body: {
   definition: string;
   needs: string;
   trade_type?: string;
   industry?: string;
   attachments?: { data: string; mime?: string; description?: string }[];
 }): Promise<{ hypotheses: string[]; attachment_analysis?: string }> {
+  const model = await getEffectiveModel();
   return apiFetch("/api/survey/hypotheses", {
     method: "POST",
-    body: JSON.stringify({ ...body, model: DEFAULT_AI_MODEL }),
+    body: JSON.stringify({ ...body, model }),
   });
 }
 
 /** 2단계: 검토·수정한 가설로 설문 문항 생성 */
-export function generateQuestions(body: {
+export async function generateQuestions(body: {
   hypotheses: string[];
   definition?: string;
 }): Promise<{ questions: SurveyQuestion[] }> {
+  const model = await getEffectiveModel();
   return apiFetch("/api/survey/questions", {
     method: "POST",
-    body: JSON.stringify({ ...body, model: DEFAULT_AI_MODEL }),
+    body: JSON.stringify({ ...body, model }),
   });
 }
 
-export function runSurvey(
+export async function runSurvey(
   hypotheses: string[],
   questions: SurveyQuestion[],
   sido = "서울특별시",
   sampleSize = DEFAULT_SAMPLE_SIZE,
-  model = DEFAULT_AI_MODEL,
+  model?: string,
 ): Promise<RunResponse> {
+  const effModel = model ?? (await getEffectiveModel());
   return apiFetch("/api/survey/run", {
     method: "POST",
-    body: JSON.stringify({ hypotheses, questions, sido, sample_size: sampleSize, model }),
+    body: JSON.stringify({ hypotheses, questions, sido, sample_size: sampleSize, model: effModel }),
   });
 }
 

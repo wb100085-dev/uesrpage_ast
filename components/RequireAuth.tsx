@@ -20,6 +20,11 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // [DEV 전용] 로컬 개발에서는 로그인 단계를 건너뛴다. production 빌드에선 무효.
+    if (process.env.NODE_ENV === "development") {
+      setAuthed(true);
+      return;
+    }
     const tok = getAccessToken();
     if (!tok) {
       const full = window.location.pathname + window.location.search;
