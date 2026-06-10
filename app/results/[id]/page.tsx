@@ -80,7 +80,12 @@ function ResultsPageInner() {
     getSurveyResults(jobId)
       .then((res) => {
         if (res.status === "done") {
-          setData({ results: res.results, report: res.report, n_respondents: res.n_respondents, sido: res.sido });
+          setData({
+            results: res.results ?? [],
+            report: res.report ?? { 상세분석: "", 결과및전략: "" },
+            n_respondents: res.n_respondents ?? 0,
+            sido: res.sido ?? "—",
+          });
         } else {
           setError(res.status === "error" ? "설문 실행 중 오류가 발생했습니다." : "결과를 불러오는 중입니다...");
         }

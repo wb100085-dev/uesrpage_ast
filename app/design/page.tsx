@@ -8,11 +8,12 @@ import {
   Clock, Check, Pencil, Upload, FileText,
   X, ChevronDown, BarChart2, Target, Lightbulb,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
-  LayoutDashboard, ImagePlus,
+  LayoutDashboard, ImagePlus, PieChart, Search,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import RequireAuth from "@/components/RequireAuth";
+import InfographicCard from "@/components/InfographicCard";
 import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
 import { getAccessToken } from "@/lib/auth-api";
 import {
@@ -22,7 +23,11 @@ import {
   getMyDesign as apiGetMyDesign,
   generateHypotheses,
   generateQuestions,
+  runSurvey as apiRunSurvey,
+  getSurveyStatus,
+  getSurveyResults,
   type SurveyDraftPatch,
+  type InfographicSummary,
 } from "@/lib/survey-api";
 
 /* ─────────────────────────────────────────
@@ -34,7 +39,9 @@ type Step =
   | "hyp_review"
   | "survey_designing"
   | "survey_review"
-  | "result";
+  | "result"
+  | "survey_running"
+  | "survey_result";
 
 type ApiQuestion = {
   type: string;
@@ -82,9 +89,9 @@ const INDUSTRIES = [
 
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
 
-const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result"];
-const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "요약"];
-const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, BarChart2];
+const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_result"];
+const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "요약", "결과"];
+const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, BarChart2, PieChart];
 
 const BACK_MAP: Partial<Record<Step, Step>> = {
   hyp_designing: "input",
@@ -92,6 +99,8 @@ const BACK_MAP: Partial<Record<Step, Step>> = {
   survey_designing: "hyp_review",
   survey_review: "hyp_review",
   result: "survey_review",
+  survey_running: "result",
+  survey_result: "result",
 };
 
 const PRODUCT_QUESTIONS = [
@@ -162,7 +171,8 @@ function StepBar({
   onJump: (s: Step) => void;
   isStepAvailable: (s: Step) => boolean;
 }) {
-  const idx = STEPS.indexOf(step);
+  // survey_running 은 스테퍼 노드가 없는 로딩 단계 — "결과" 위치를 활성으로 표시
+  const idx = STEPS.indexOf(step === "survey_running" ? "survey_result" : step);
   const activeLabel = STEP_LABELS[idx];
   return (
     <div className="mb-6 sm:mb-10">
@@ -420,6 +430,19 @@ function DesignPageInner() {
   // 문의 다이얼로그
   const [contactOpen, setContactOpen] = useState(false);
 
+  // ── 조사 실행 (8단계 결과) ──
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [designId, setDesignId] = useState<number | null>(null); // 백엔드 survey_designs 연결용
+  const [runJobId, setRunJobId] = useState<string | null>(null);
+  const [runError, setRunError] = useState("");
+  const [infographic, setInfographic] = useState<InfographicSummary | null>(null);
+  const [runMeta, setRunMeta] = useState<{ n: number; sido: string } | null>(null);
+
+  // 언마운트 시 상태 폴링 정리
+  useEffect(() => () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+  }, []);
+
   /* ── 기존 분석(survey_designs)에서 이어쓰기: URL ?design= 로 들어오면 로드 ── */
   useEffect(() => {
     if (!designIdFromUrl) return;
@@ -431,6 +454,7 @@ function DesignPageInner() {
       try {
         const { design } = await apiGetMyDesign(id);
         if (cancelled || !design) return;
+        setDesignId(design.id);
         if (design.trade_type) setTradeType(design.trade_type);
         if (design.industry) setIndustry(design.industry);
         // definition은 [거래방식]/[산업 분류] 머리말이 붙어있을 수 있으므로 제거
@@ -554,8 +578,13 @@ function DesignPageInner() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
+  function stopPolling() {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+  }
+
   function goBack() {
     stopTimer();
+    stopPolling();
     const target = BACK_MAP[step];
     if (target) setStep(target);
   }
@@ -568,6 +597,8 @@ function DesignPageInner() {
       case "survey_designing": return false;
       case "survey_review": return surveyQuestions.length > 0;
       case "result": return hypothesisTexts.length > 0 && surveyQuestions.length > 0;
+      case "survey_running": return false;
+      case "survey_result": return infographic != null; // 조사 결과가 있을 때만 재진입 가능
     }
   }
 
@@ -575,6 +606,7 @@ function DesignPageInner() {
     if (s === step) return;
     if (!isStepAvailable(s)) return;
     stopTimer();
+    stopPolling();
     setStep(s);
   }
 
@@ -634,6 +666,7 @@ function DesignPageInner() {
       setHypothesisTexts(data.hypotheses ?? []);
       setSurveyQuestions([]); // 가설만 — 문항은 검토 후 '설문 생성'에서 생성
       setSelectedHypotheses(new Set(data.hypotheses?.length ? [0] : []));
+      if (data.design_id != null) setDesignId(data.design_id); // 조사 실행 시 같은 설계에 결과가 쌓이도록 연결
       finish();
     } catch (err) {
       stopTimer();
@@ -659,6 +692,7 @@ function DesignPageInner() {
       const data = await generateQuestions({
         hypotheses: hyps,
         definition: buildDefinitionPayload(),
+        design_id: designId,
       });
       setSurveyQuestions((data.questions ?? []) as ApiQuestion[]);
       finish();
@@ -666,6 +700,75 @@ function DesignPageInner() {
       stopTimer();
       setApiError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
       setStep("hyp_review");
+    }
+  }
+
+  /* ── Step 7→8: 가상인구 대상 조사 실행 → 인포그래픽 결과 ──
+     지역·표본 수는 관리자 대시보드 전역 설정(analysis_sido / analysis_sample_size)을 따른다. */
+  async function handleRunSurvey() {
+    if (surveyQuestions.length === 0) return;
+    const selected = [...selectedHypotheses].sort((a, b) => a - b).map((i) => hypothesisTexts[i]);
+    const hyps = (selected.length > 0 ? selected : hypothesisTexts).filter((h) => h && h.trim());
+
+    setRunError("");
+    setInfographic(null);
+    setRunMeta(null);
+    setProgress(0);
+    setProgressLabel("조사 실행 준비 중...");
+    setStep("survey_running");
+
+    try {
+      const { job_id } = await apiRunSurvey({
+        hypotheses: hyps,
+        questions: surveyQuestions,
+        definition: buildDefinitionPayload(),
+        needs: researchPurpose,
+        design_id: designId,
+      });
+      setRunJobId(job_id);
+
+      stopPolling();
+      pollRef.current = setInterval(async () => {
+        try {
+          const st = await getSurveyStatus(job_id);
+          const pg = st.progress;
+          if (pg?.total) {
+            // 백엔드 4단계(패널 로드→AI 응답→집계→인포그래픽) 진행률 — 완료 전까지 95% 캡
+            setProgress(Math.min(95, Math.round(((pg.done ?? 0) / pg.total) * 100)));
+            if (pg.stage) setProgressLabel(pg.stage);
+          }
+          if (st.status === "error") {
+            stopPolling();
+            setRunError(st.error || "조사 실행 중 오류가 발생했습니다.");
+            setStep("result");
+            return;
+          }
+          if (st.status === "done") {
+            stopPolling();
+            setProgress(100);
+            const res = await getSurveyResults(job_id);
+            if (res.infographic) {
+              setInfographic(res.infographic);
+              setRunMeta({ n: res.n_respondents ?? 0, sido: res.sido ?? "" });
+              setStep("survey_result");
+            } else {
+              setRunError(res.error || "결과 요약을 생성하지 못했습니다. 다시 시도해 주세요.");
+              setStep("result");
+            }
+          }
+        } catch (err) {
+          // 일시적 네트워크 오류는 다음 폴링에서 재시도 — 404(잡 소실)만 중단
+          if (err instanceof Error && err.message.includes("404")) {
+            stopPolling();
+            setRunError("조사 작업을 찾을 수 없습니다. 다시 실행해 주세요.");
+            setStep("result");
+          }
+        }
+      }, 3000);
+    } catch (err) {
+      stopPolling();
+      setRunError(err instanceof Error ? err.message : "조사 실행에 실패했습니다.");
+      setStep("result");
     }
   }
 
@@ -686,9 +789,9 @@ function DesignPageInner() {
   const errProduct = submitted && !productDef.trim();
   const errPurpose = submitted && !researchPurpose.trim();
 
-  // 임시저장 블록 — 각 step 콘텐츠 하단에 공통 배치 (로그인 + 결과 단계 제외)
+  // 임시저장 블록 — 각 step 콘텐츠 하단에 공통 배치 (로그인 + 요약·실행·결과 단계 제외)
   const saveDraftBlock =
-    typeof window !== "undefined" && getAccessToken() && step !== "result" ? (
+    typeof window !== "undefined" && getAccessToken() && step !== "result" && step !== "survey_running" && step !== "survey_result" ? (
       <div className="mt-8 flex flex-col items-center gap-1.5">
         <button
           onClick={handleSaveDraft}
@@ -1470,14 +1573,90 @@ function DesignPageInner() {
               {/* 실행 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행 할 수 있습니다.</p>
-                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 설문실행, 결과보고서는 유료서비스입니다.<br className="hidden sm:inline" />진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 문의해 주세요</p>
+                  <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행합니다.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 AI 응답 생성에 몇 분 정도 걸릴 수 있습니다.</p>
+                  {runError && (
+                    <p className="mt-1.5 flex items-start gap-1 text-xs text-rose-500 font-medium">
+                      <AlertCircle size={13} className="flex-shrink-0 mt-0.5" /> {runError}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleRunSurvey}
+                  disabled={surveyQuestions.length === 0}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Users size={15} /> 조사 실행하기 <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            7. 가상인구 조사 실행 중
+        ══════════════════════════════════════════ */}
+        {step === "survey_running" && (
+          <div>
+            <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
+              <ArrowLeft size={15} /> 이전으로
+            </button>
+            <ProgressCard
+              title="가상인구 대상 조사를 실행 중입니다"
+              subtitle={`가상인구 패널이 ${surveyQuestions.length}개 문항에 응답하고 있습니다. 몇 분 정도 걸릴 수 있어요`}
+              progress={progress}
+              progressLabel={progressLabel}
+              dots={["패널 매칭", "AI 응답 생성", "결과 집계", "요약 생성"]}
+            />
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            8. 결과 — 인포그래픽 요약 + 상세분석 안내
+        ══════════════════════════════════════════ */}
+        {step === "survey_result" && (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+                <ArrowLeft size={15} /> 이전으로
+              </button>
+              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 결과</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : industry || ""}
+                </p>
+              </div>
+              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
+                <PieChart size={11} /> 조사 완료
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              {/* 인포그래픽 요약 — 1슬라이드 핵심 카드 */}
+              {infographic ? (
+                <InfographicCard info={infographic} />
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center text-sm text-slate-400">
+                  표시할 결과 요약이 없습니다. 요약 단계로 돌아가 조사를 다시 실행해 주세요.
+                </div>
+              )}
+
+              {/* 상세분석 안내 + 문의 */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">위 요약을 넘어서는 상세분석 보고서를 받아보실 수 있습니다.</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    상세분석에는 가상패널에게 질문하기, 가상인구 패널 인구통계 정보, 문항별 응답 분포,
+                    상세분석 및 시사점 등을 포함한 상세분석 보고서와 Raw Data가 포함됩니다.
+                    <br className="hidden sm:inline" />
+                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 문의해 주세요
+                  </p>
                 </div>
                 <button
                   onClick={() => setContactOpen(true)}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                 >
-                  <Users size={15} /> 조사 실행하기 (문의 하기) <ArrowRight size={15} />
+                  <Search size={15} /> 상세분석하기 (문의 하기) <ArrowRight size={15} />
                 </button>
               </div>
             </div>
@@ -1488,9 +1667,11 @@ function DesignPageInner() {
       <ContactDialog
         open={contactOpen}
         onClose={() => setContactOpen(false)}
-        title="조사 실행 문의"
-        subtitle="설계한 조사를 가상 인구 대상으로 실행하려면 담당자에게 문의해주세요."
+        title="상세분석 문의"
+        subtitle="가상패널 질문하기·패널 인구통계·문항별 응답 분포·시사점 보고서·Raw Data가 포함된 상세분석을 받아보려면 담당자에게 문의해주세요."
         prefill={[
+          runJobId ? `조사 Job ID: ${runJobId}` : null,
+          runMeta ? `조사 규모: ${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명` : null,
           `거래방식: ${tradeType || "미선택"}`,
           `산업 분류: ${industry || "미선택"}`,
           `선택 가설 수: ${selectedHypotheses.size}개 / 총 ${hypothesisTexts.length}개`,

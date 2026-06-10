@@ -4,8 +4,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // 기본 AI 모델 — GPT-5.5 (최고급). 백엔드 ai_router 가 요청별 model 오버라이드로 사용.
 export const DEFAULT_AI_MODEL = "gpt-5.5";
-// 가상인구 추출 기본 표본 수
-export const DEFAULT_SAMPLE_SIZE = 500;
+// 가상인구 추출 기본 표본 수 (설정 API 실패 시 폴백 — 평소엔 관리자 대시보드 값을 따름)
+export const DEFAULT_SAMPLE_SIZE = 50;
+// 조사 실행 기본 지역 (설정 API 실패 시 폴백)
+export const DEFAULT_SIDO = "전국";
 
 export interface SurveyQuestion {
   type: string;
@@ -46,15 +48,34 @@ export interface RunResponse {
 
 export interface StatusResponse {
   status: "running" | "done" | "error";
-  error?: string;
+  /** 백엔드 잡 진행 상황 — 패널 로드(1/4) → AI 응답 생성(2/4) → 결과 집계(3/4) → 인포그래픽(4/4) */
+  progress?: { done?: number; total?: number; stage?: string };
+  error?: string | null;
+}
+
+/** 조사 결과 1슬라이드 요약 (관리자 프론트 InfographicSummary 와 동일 형태) */
+export interface InfographicSummary {
+  headline: string;
+  subheadline?: string;
+  kpi_cards: { label: string; value: string; sub?: string }[];
+  key_findings: string[];
+  next_actions: string[];
+  hypothesis_validation?: { hypothesis: string; verdict: string; evidence: string }[];
+  target_segments?: { segment: string; insight: string }[];
+  risks?: string[];
+  opportunities?: string[];
+  key_quote?: { text: string; source: string };
+  key_quotes?: { text: string; source: string }[];
 }
 
 export interface ResultsResponse {
   status: string;
-  results: SurveyResult[];
-  report: SurveyReport;
-  n_respondents: number;
-  sido: string;
+  results?: SurveyResult[];
+  report?: SurveyReport;
+  infographic?: InfographicSummary;
+  n_respondents?: number;
+  sido?: string;
+  error?: string | null;
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -86,6 +107,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 export interface AppSettings {
   default_ai_model: string;
   analysis_sample_size: number;
+  analysis_sido: string;
 }
 
 let _settingsPromise: Promise<AppSettings> | null = null;
@@ -95,6 +117,7 @@ export function getAppSettings(): Promise<AppSettings> {
     _settingsPromise = apiFetch<AppSettings>("/api/settings").catch(() => ({
       default_ai_model: DEFAULT_AI_MODEL,
       analysis_sample_size: DEFAULT_SAMPLE_SIZE,
+      analysis_sido: DEFAULT_SIDO,
     }));
   }
   return _settingsPromise;
@@ -121,7 +144,7 @@ export async function generateHypotheses(body: {
   trade_type?: string;
   industry?: string;
   attachments?: { data: string; mime?: string; description?: string }[];
-}): Promise<{ hypotheses: string[]; attachment_analysis?: string }> {
+}): Promise<{ hypotheses: string[]; attachment_analysis?: string; design_id?: number | null }> {
   const model = await getEffectiveModel();
   return apiFetch("/api/survey/hypotheses", {
     method: "POST",
@@ -133,6 +156,7 @@ export async function generateHypotheses(body: {
 export async function generateQuestions(body: {
   hypotheses: string[];
   definition?: string;
+  design_id?: number | null;
 }): Promise<{ questions: SurveyQuestion[] }> {
   const model = await getEffectiveModel();
   return apiFetch("/api/survey/questions", {
@@ -141,17 +165,28 @@ export async function generateQuestions(body: {
   });
 }
 
-export async function runSurvey(
-  hypotheses: string[],
-  questions: SurveyQuestion[],
-  sido = "서울특별시",
-  sampleSize = DEFAULT_SAMPLE_SIZE,
-  model?: string,
-): Promise<RunResponse> {
-  const effModel = model ?? (await getEffectiveModel());
+/**
+ * 가상인구 대상 조사 실행 (8단계 결과).
+ * 지역·표본 수·모델은 관리자 대시보드의 전역 설정(analysis_sido / analysis_sample_size /
+ * default_ai_model)을 따른다. 즉시 job_id 를 반환하며 getSurveyStatus 로 폴링한다.
+ */
+export async function runSurvey(body: {
+  hypotheses: string[];
+  questions: SurveyQuestion[];
+  definition?: string;
+  needs?: string;
+  design_id?: number | null;
+}): Promise<RunResponse> {
+  const s = await getAppSettings();
   return apiFetch("/api/survey/run", {
     method: "POST",
-    body: JSON.stringify({ hypotheses, questions, sido, sample_size: sampleSize, model: effModel }),
+    body: JSON.stringify({
+      ...body,
+      sido: s.analysis_sido || DEFAULT_SIDO,
+      // 백엔드 RunRequestSerializer 상한(10000)에 맞춰 클램프
+      sample_size: Math.max(1, Math.min(10000, s.analysis_sample_size || DEFAULT_SAMPLE_SIZE)),
+      model: s.default_ai_model || DEFAULT_AI_MODEL,
+    }),
   });
 }
 
