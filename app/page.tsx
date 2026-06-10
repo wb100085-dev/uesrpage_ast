@@ -34,7 +34,7 @@ function HeroMockup() {
           <div className="grid grid-cols-4 gap-2 mb-4">
             {[
               { v: "500명", l: "응답자" }, { v: "95%", l: "신뢰도" },
-              { v: "3분", l: "소요" },     { v: "A+", l: "품질" },
+              { v: "1시간", l: "소요" },   { v: "A+", l: "품질" },
             ].map((k) => (
               <div key={k.l} className="bg-white/6 rounded-xl p-3 text-center">
                 <div className="text-sm font-bold text-white">{k.v}</div>
@@ -599,7 +599,7 @@ const steps = [
     bg: "bg-emerald-50",
     num: "04",
     title: "대시보드 · 보고서",
-    desc: "교차분석 차트와 PDF 보고서로 결과를 30분 안에 확인합니다.",
+    desc: "교차분석 차트와 PDF 보고서로 결과를 1시간 안에 확인합니다.",
     mockup: <StepMockup4 />,
   },
 ];
@@ -617,7 +617,7 @@ const features = [
   },
   {
     title: "3. 인사이트 · 보고서",
-    desc: "성별, 소득, 연령대 등 세그먼크별 비교를 통해 한눈에 시각화 합니다.",
+    desc: "성별, 소득, 연령대 등 세그먼트별 비교를 통해 한눈에 시각화 합니다.",
     visual: <FeatureVisual4 />,
   },
   {
@@ -626,7 +626,7 @@ const features = [
     visual: <FeatureVisualTime />,
   },
   {
-    title: "5. 10분의 1 비용",
+    title: "5. 20분의 1 비용",
     desc: "기존 리서치 회사 의뢰 대비 95% 이상 저렴한 가격. 월 구독 없이 조사 한 건당 결제합니다.",
     visual: <FeatureVisual5 />,
   },
@@ -671,8 +671,8 @@ export default function LandingPage() {
               </h1>
               <p className="animate-fade-up-3 text-base sm:text-lg text-slate-400 leading-relaxed mb-10 max-w-md">
                 AI가 설문을 설계하고, 가상인구가 응답합니다.{" "}<br className="hidden sm:inline" />
-                <span className="text-slate-200 font-medium">기존 고객조사 대비 90%이상 저렴한 비용</span>으로{" "}<br className="hidden sm:inline" />
-                <span className="text-slate-200 font-medium">1시간안에 안에</span> 인사이트를 얻으세요.
+                <span className="text-slate-200 font-medium">기존 고객조사 대비 95% 이상 저렴한 비용</span>으로{" "}<br className="hidden sm:inline" />
+                <span className="text-slate-200 font-medium">1시간 안에</span> 인사이트를 얻으세요.
               </p>
               <div className="animate-fade-up-4 flex flex-wrap gap-3 mb-12">
                 <CtaLink className="btn-primary">

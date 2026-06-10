@@ -493,7 +493,7 @@ function UserDashboardInner() {
                           step: "04",
                           icon: BarChart2,
                           title: "대시보드 · 보고서",
-                          desc: "교차분석 차트와 PDF 보고서로 결과를 30분 안에 확인합니다.",
+                          desc: "교차분석 차트와 PDF 보고서로 결과를 1시간 안에 확인합니다.",
                           iconColor: "text-emerald-500",
                           bg: "bg-emerald-50",
                           numColor: "text-emerald-400",

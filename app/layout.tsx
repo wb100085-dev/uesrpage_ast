@@ -5,9 +5,38 @@ import SessionGuard from "@/components/SessionGuard";
 
 const GA_ID = "G-RXEWRM02JQ";
 
+const SITE_URL = "https://www.socialtwin.site";
+const SITE_TITLE = "Socialtwin — AI 시장조사 플랫폼";
+const SITE_DESCRIPTION =
+  "한 문장으로 시작하는 AI 기반 시장조사. 가상인구 분석으로 1시간 안에 결과를 확인하세요.";
+
 export const metadata: Metadata = {
-  title: "Socialtwin — AI 시장조사 플랫폼",
-  description: "한 문장으로 시작하는 AI 기반 시장조사. 가상인구 분석으로 5분 안에 결과를 확인하세요.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Socialtwin",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    locale: "ko_KR",
+    images: [
+      {
+        url: "/Socialtwin_o2.png",
+        width: 1146,
+        height: 318,
+        alt: "Socialtwin — AI 시장조사 플랫폼",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/Socialtwin_o2.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
