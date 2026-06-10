@@ -20,6 +20,7 @@ import {
   User, Users, ArrowRight, Zap, X,
   FileText, Target, Globe, ChevronDown, Save,
   Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
+  Info,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
@@ -559,6 +560,14 @@ function UserDashboardInner() {
               {/* ── 히스토리 탭 ── */}
               {analysisTab === "history" && (
                 <div>
+                  {/* 데이터 보관 정책 안내 */}
+                  <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5">
+                    <Info size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] leading-relaxed text-amber-800">
+                      <span className="font-semibold">분석 결과는 완료일로부터 1년간 보관</span>되며, 이후 자동으로 삭제됩니다.
+                      필요한 분석 결과나 원자료(CSV)는 보관기간 내에 미리 다운로드해 주세요.
+                    </p>
+                  </div>
                   {history.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
                       <div className="flex flex-col items-center justify-center py-20 text-center">
