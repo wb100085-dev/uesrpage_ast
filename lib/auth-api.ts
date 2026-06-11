@@ -418,10 +418,10 @@ function translateAuthError(raw: string): string {
   if (
     /Unable to log in with provided credentials/i.test(s) ||
     /no active account/i.test(s) ||
-    /제공된 인증 데이터로는 로그인 할 수 없습니다/.test(s) ||
-    /제공된 자격으로 로그인 할 수 없습니다/.test(s)
+    /제공된 인증 데이터로는 로그인\s*할 수 없습니다/.test(s) ||
+    /제공된 자격으로 로그인\s*할 수 없습니다/.test(s)
   ) {
-    return "이메일 또는 비밀번호가 올바르지 않습니다. 비밀번호 찾기로 재설정해보세요.";
+    return "등록되지 않은 이메일이거나 비밀번호가 일치하지 않습니다. 입력 내용을 다시 확인해주세요.";
   }
   if (/This password is too short/i.test(s) || /this password is too common/i.test(s)) {
     return "비밀번호가 너무 단순합니다. 영문·숫자 포함 8자 이상을 사용해주세요.";

@@ -64,6 +64,15 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
+/* SocialTwinLoader 전용 */
+@keyframes stw-link {
+  0%, 100% { opacity: .15; }
+  50%      { opacity: .9; }
+}
+@keyframes stw-sweep {
+  from { transform: translateX(-60%); }
+  to   { transform: translateX(260%); }
+}
 
 .animate-fade-up   { animation: fade-up   .65s cubic-bezier(.16,1,.3,1) both; }
 .animate-fade-up-2 { animation: fade-up   .65s .12s cubic-bezier(.16,1,.3,1) both; }
@@ -74,6 +83,11 @@ body {
 .animate-float     { animation: float 4s ease-in-out infinite; }
 .animate-pulse-ring {
   animation: pulse-ring 1.8s cubic-bezier(.215,.61,.355,1) infinite;
+}
+.animate-stw-link  { animation: stw-link 2.4s infinite; }
+.animate-stw-sweep { animation: stw-sweep 1.6s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-stw-link, .animate-stw-sweep { animation: none; }
 }
 
 /* ── Shimmer text gradient ── */
