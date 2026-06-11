@@ -37,11 +37,6 @@ export interface SurveyReport {
   결과및전략: string;
 }
 
-export interface DesignResponse {
-  hypotheses: string[];
-  questions: SurveyQuestion[];
-}
-
 export interface RunResponse {
   job_id: string;
 }
@@ -127,14 +122,6 @@ export function getAppSettings(): Promise<AppSettings> {
 export async function getEffectiveModel(): Promise<string> {
   const s = await getAppSettings();
   return s.default_ai_model || DEFAULT_AI_MODEL;
-}
-
-export async function designSurvey(definition: string, needs: string): Promise<DesignResponse> {
-  const model = await getEffectiveModel();
-  return apiFetch("/api/survey/design", {
-    method: "POST",
-    body: JSON.stringify({ definition, needs, model }),
-  });
 }
 
 /** 1단계: 가설만 생성 (설문 문항은 만들지 않음 — AI 호출 절약 + 가설 수정 후 재생성 가능) */
