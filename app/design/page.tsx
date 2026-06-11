@@ -14,6 +14,7 @@ import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import RequireAuth from "@/components/RequireAuth";
 import InfographicCard from "@/components/InfographicCard";
+import SocialTwinLoader from "@/components/SocialTwinLoader";
 import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
 import { getAccessToken } from "@/lib/auth-api";
 import {
@@ -304,54 +305,6 @@ function ErrorMsg({ msg }: { msg: string }) {
       <span className="w-3.5 h-3.5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 text-[9px] font-bold">!</span>
       {msg}
     </p>
-  );
-}
-
-/* ─────────────────────────────────────────
-   ProgressCard (공통 애니메이션 카드)
-───────────────────────────────────────── */
-function ProgressCard({
-  title, subtitle, progress, progressLabel, dots,
-}: {
-  title: string;
-  subtitle: string;
-  progress: number;
-  progressLabel: string;
-  dots: string[];
-}) {
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 sm:px-8 py-12 sm:py-16 flex flex-col items-center">
-      <div className="relative mb-8">
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-200">
-          <Sparkles size={32} className="text-white" />
-        </div>
-        <div className="absolute inset-0 rounded-2xl bg-indigo-400 animate-pulse opacity-30" />
-      </div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">{title}</h2>
-      <p className="text-slate-400 text-sm mb-10 max-w-md text-center leading-relaxed">
-        &ldquo;{subtitle}&rdquo;
-      </p>
-      <div className="w-full max-w-lg mb-3">
-        <div className="flex justify-between text-xs text-slate-400 mb-2">
-          <span>{progressLabel}</span>
-          <span className="font-semibold text-indigo-600 tabular-nums">{Math.floor(progress)}%</span>
-        </div>
-        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
-      <div className="flex items-center gap-6 mt-8 text-xs text-slate-400">
-        {dots.map((s, i) => (
-          <div key={s} className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${progress > i * (100 / dots.length) + 5 ? "bg-indigo-400" : "bg-slate-200"}`} />
-            <span className={progress > i * (100 / dots.length) + 5 ? "text-slate-500" : ""}>{s}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -1076,12 +1029,11 @@ function DesignPageInner() {
             <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
               <ArrowLeft size={15} /> 이전으로
             </button>
-            <ProgressCard
+            <SocialTwinLoader
+              screen="hypothesis"
               title="작성한 정보를 바탕으로 가설을 설계 중입니다"
-              subtitle={researchPurpose.slice(0, 60) + (researchPurpose.length > 60 ? "..." : "")}
+              subtitle={`“${researchPurpose.slice(0, 60)}${researchPurpose.length > 60 ? "..." : ""}”`}
               progress={progress}
-              progressLabel={progressLabel}
-              dots={["입력 분석", "시장 컨텍스트", "가설 도출", "검토"]}
             />
             {saveDraftBlock}
           </div>
@@ -1206,12 +1158,11 @@ function DesignPageInner() {
             <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
               <ArrowLeft size={15} /> 이전으로
             </button>
-            <ProgressCard
-              title="가성을 바탕으로 설문을 생성 중입니다"
+            <SocialTwinLoader
+              screen="generate"
+              title="가설을 바탕으로 설문을 생성 중입니다"
               subtitle={`${selectedHypotheses.size}개 가설 기반으로 설문 문항을 구성하고 있습니다`}
               progress={progress}
-              progressLabel={progressLabel}
-              dots={["가설 분석", "문항 구성", "옵션 생성", "최종 검토"]}
             />
             {saveDraftBlock}
           </div>
@@ -1601,12 +1552,12 @@ function DesignPageInner() {
             <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
               <ArrowLeft size={15} /> 이전으로
             </button>
-            <ProgressCard
+            <SocialTwinLoader
+              screen="survey"
               title="가상인구 대상 조사를 실행 중입니다"
               subtitle={`가상인구 패널이 ${surveyQuestions.length}개 문항에 응답하고 있습니다. 몇 분 정도 걸릴 수 있어요`}
               progress={progress}
               progressLabel={progressLabel}
-              dots={["패널 매칭", "AI 응답 생성", "결과 집계", "요약 생성"]}
             />
           </div>
         )}
@@ -1644,11 +1595,12 @@ function DesignPageInner() {
               {/* 상세분석 안내 + 문의 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">위 요약을 넘어서는 상세분석 보고서를 받아보실 수 있습니다.</p>
+                  <p className="text-sm font-semibold text-slate-800">상세보고서는 유료서비스입니다.</p>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    상세분석에는 가상패널에게 질문하기, 가상인구 패널 인구통계 정보, 문항별 응답 분포,
-                    상세분석 및 시사점 등을 포함한 상세분석 보고서와 Raw Data가 포함됩니다.
-                    <br className="hidden sm:inline" />
+                    상세분석에는 가상패널에게 질문하기, 가상인구 패널 인구통계 정보, 문항별 응답 분포, 상세분석 및 시사점 등을
+                    <br />
+                    포함한 상세분석 보고서와 Raw Data가 포함됩니다.
+                    <br />
                     진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 문의해 주세요
                   </p>
                 </div>
@@ -1656,7 +1608,9 @@ function DesignPageInner() {
                   onClick={() => setContactOpen(true)}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                 >
-                  <Search size={15} /> 상세분석하기 (문의 하기) <ArrowRight size={15} />
+                  <Search size={15} />
+                  <span className="leading-tight">상세분석하기<br />(문의하기)</span>
+                  <ArrowRight size={15} />
                 </button>
               </div>
             </div>
