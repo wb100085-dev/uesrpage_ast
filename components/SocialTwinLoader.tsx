@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, FlaskConical, Lightbulb, ListChecks, Users } from "lucide-react";
+import { Check, FlaskConical, Lightbulb, ListChecks, PenLine, Users } from "lucide-react";
 
 /* ─────────────────────────────────────────
    SocialTwinLoader — 작업 대기 로딩 화면
@@ -69,8 +69,6 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
   },
 };
 
-/* 응답 점등이 끝나는 지점 — 백엔드 4단계 중 2단계(AI 응답 생성)까지가 응답 구간 */
-const RESPONSES_DONE_AT_PCT = 50;
 /* 화면에 그리는 사람 아이콘 최대 개수 (표본이 더 크면 아이콘 1개가 여러 명을 대표) */
 const MAX_PEOPLE_ICONS = 100;
 
@@ -134,30 +132,66 @@ function PersonGlyph({ className, style }: { className?: string; style?: React.C
 }
 
 /**
- * 가상인구 패널 그리드.
- * - ratio(0~1)만큼 앞에서부터 "응답 완료"(인디고)로 점등, 바로 뒤 3명은 "응답 중"(점멸)
- * - 전원 완료 후에도 작업이 진행 중이면(working) 물결 점멸로 "응답 처리 중"을 표현
+ * 가상인구 패널 그리드 — 단계(stage)별로 다르게 반응한다.
+ * - stage 0 패널 매칭: 빈 화면에서 회색 아이콘이 진행률만큼 하나씩 생겨남
+ * - stage 1 응답 생성: 전원 회색으로 서 있고, 진행 위치의 3명이 보라색으로 점멸(응답 작성 중),
+ *                      응답을 마친 앞쪽 인원은 살짝 진한 회색
+ * - stage 2 응답 집계: 회색 → 파란색(인디고)으로 앞에서부터 1명씩 점등
  */
-function PeopleVisual({ count, ratio, working }: { count: number; ratio: number; working: boolean }) {
+function PeopleVisual({ count, stage, ratio }: { count: number; stage: 0 | 1 | 2; ratio: number }) {
   const clamped = Math.min(Math.max(ratio, 0), 1);
-  const doneCount = Math.floor(clamped * count);
-  const allDone = doneCount >= count;
+  const n = Math.floor(clamped * count);
   return (
     <div className="w-full flex flex-wrap justify-center content-center gap-x-1.5 gap-y-2">
       {Array.from({ length: count }, (_, i) => {
-        const done = i < doneCount;
-        const responding = !done && i < doneCount + 3 && !allDone;
-        const wave = allDone && working;
+        let cls = "text-slate-200";
+        let hidden = false;
+        if (stage === 0) {
+          hidden = i >= n;
+          cls = "text-slate-300";
+        } else if (stage === 1) {
+          if (i < n) cls = "text-slate-400";
+          else if (i < n + 3 && n < count) cls = "text-violet-400 animate-pulse";
+          else cls = "text-slate-300";
+        } else {
+          if (i < n) cls = "text-indigo-500";
+          else if (i < n + 3 && n < count) cls = "text-indigo-300 animate-pulse";
+          else cls = "text-slate-300";
+        }
         return (
           <PersonGlyph
             key={i}
-            className={`w-4 h-4 transition-colors duration-500 ${
-              done ? "text-indigo-500" : responding ? "text-indigo-300 animate-pulse" : "text-slate-200"
-            } ${wave ? "animate-stw-link" : ""}`}
-            style={wave ? { animationDelay: `${(i % 25) * 0.08}s` } : undefined}
+            className={`w-4 h-4 transition-all duration-500 ${cls} ${
+              hidden ? "opacity-0 scale-50" : "opacity-100 scale-100"
+            }`}
           />
         );
       })}
+    </div>
+  );
+}
+
+/* 결과 요약 단계 — 보고서에 글줄이 써지는 모션 */
+function ReportWritingVisual() {
+  return (
+    <div className="relative">
+      <div className="w-36 h-[136px] bg-white border border-slate-200 rounded-xl shadow-sm px-4 py-4 flex flex-col gap-2.5">
+        <div className="h-2 w-1/2 rounded bg-indigo-300" />
+        {[100, 85, 92, 70].map((w, i) => (
+          <div key={i} className="h-1.5 rounded bg-slate-100" style={{ width: `${w}%` }}>
+            <div
+              className="h-full rounded bg-slate-300 animate-stw-write"
+              style={{ animationDelay: `${i * 1.1}s` }}
+            />
+          </div>
+        ))}
+        <div className="mt-auto flex gap-1.5">
+          <div className="h-5 flex-1 rounded bg-indigo-50" />
+          <div className="h-5 flex-1 rounded bg-violet-50" />
+          <div className="h-5 flex-1 rounded bg-emerald-50" />
+        </div>
+      </div>
+      <PenLine size={22} className="absolute -right-3 -bottom-1.5 text-indigo-500 animate-float" />
     </div>
   );
 }
@@ -257,12 +291,17 @@ export default function SocialTwinLoader({
   const effectivePct = isShort ? pct : displayPct;
   const active = steps.length > 0 ? Math.min(Math.floor((effectivePct / 100) * steps.length), steps.length - 1) : 0;
 
-  // survey 화면: 응답 점등 비율·카운터 (응답 구간 = 전체의 앞 50%)
-  const peopleRatio = Math.min(effectivePct / RESPONSES_DONE_AT_PCT, 1);
+  // survey 화면: 현재 단계 안에서의 진행 비율 (0~1) — 단계별 점등·카운터에 사용
+  const stageRatio = Math.min(Math.max((effectivePct - active * segment) / segment, 0), 1);
   const peopleTotal = totalRespondents && totalRespondents > 0 ? totalRespondents : null;
   const peopleIcons = Math.min(peopleTotal ?? 60, MAX_PEOPLE_ICONS);
-  const respondedCount = peopleTotal ? Math.floor(peopleRatio * peopleTotal) : null;
-  const allResponded = peopleRatio >= 1;
+  const stageCount = peopleTotal ? Math.floor(stageRatio * peopleTotal) : null;
+  /** 단계별 카운터 머리말 (마지막 단계는 카운터 없이 문구만) */
+  const STAGE_COUNTER: Record<number, string> = {
+    0: "가상인구 패널 매칭 중",
+    1: "AI 페르소나 응답 생성 중",
+    2: "응답 데이터 집계 중",
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 sm:px-8 py-12 sm:py-14 flex flex-col items-center">
@@ -290,23 +329,29 @@ export default function SocialTwinLoader({
       <div className="min-h-[140px] w-full max-w-lg flex items-center justify-center mb-4">
         {cfg.visual === "nodes" && <NodesVisual />}
         {cfg.visual === "lines" && <LinesVisual />}
-        {cfg.visual === "people" && <PeopleVisual count={peopleIcons} ratio={peopleRatio} working={pct < 100} />}
+        {cfg.visual === "people" &&
+          (active >= 3 ? (
+            <ReportWritingVisual />
+          ) : (
+            <PeopleVisual count={peopleIcons} stage={Math.min(active, 2) as 0 | 1 | 2} ratio={stageRatio} />
+          ))}
         {cfg.visual === "bars" && <BarsVisual level={active + 1} />}
       </div>
 
-      {/* survey 화면: 응답 카운터 */}
+      {/* survey 화면: 단계별 카운터 */}
       {cfg.visual === "people" && (
         <p className="text-xs text-slate-400 mb-5 tabular-nums">
-          {peopleTotal ? (
-            allResponded ? (
-              <>가상인구 <b className="text-indigo-600">{peopleTotal.toLocaleString()}명</b> 전원 응답 완료 · 응답 데이터 처리 중</>
-            ) : (
-              <>가상인구 {peopleTotal.toLocaleString()}명 중 <b className="text-indigo-600">{(respondedCount ?? 0).toLocaleString()}명</b> 응답 완료</>
-            )
-          ) : allResponded ? (
-            <>패널 전원 응답 완료 · 응답 데이터 처리 중</>
+          {active >= 3 ? (
+            <>응답 분석을 마치고 결과 요약 보고서를 작성하고 있어요</>
+          ) : peopleTotal ? (
+            <>
+              {STAGE_COUNTER[active]} ·{" "}
+              <b className="text-indigo-600">{(stageCount ?? 0).toLocaleString()}</b> / {peopleTotal.toLocaleString()}명
+            </>
           ) : (
-            <>가상인구 패널 응답 진행률 <b className="text-indigo-600">{Math.floor(peopleRatio * 100)}%</b></>
+            <>
+              {STAGE_COUNTER[active]} · <b className="text-indigo-600">{Math.floor(stageRatio * 100)}%</b>
+            </>
           )}
         </p>
       )}
