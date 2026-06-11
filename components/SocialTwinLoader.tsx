@@ -8,7 +8,7 @@ import { Check, FlaskConical, Lightbulb, ListChecks, Users } from "lucide-react"
    4개 화면:
    - hypothesis : 가설 설계 중   (짧은 작업 · 노드 그래프 + 문구 순환)
    - generate   : 설문 생성 중   (짧은 작업 · 문항 라인 스윕 + 문구 순환)
-   - survey     : 조사 실행 중   (긴 작업 · 페르소나 점등 + 단계 + 진행률)
+   - survey     : 조사 실행 중   (긴 작업 · 가상인구 응답 점등 + 단계 + 진행률)
    - pilot      : 설문 파일럿 생성 중 (긴 작업 · 막대 차트 + 단계 + 진행률)
                   ⚠️ pilot은 백엔드 기능 미구현 — 화면만 준비됨, 아직 어디에도 적용하지 말 것
 ───────────────────────────────────────── */
@@ -20,7 +20,7 @@ type ScreenConfig = {
   icon: React.ElementType;
   title: string;
   subtitle: string;
-  visual: "nodes" | "lines" | "swarm" | "bars";
+  visual: "nodes" | "lines" | "people" | "bars";
   /** 짧은 작업: 순환 문구 / 긴 작업: 단계 목록 */
   captions?: string[];
   steps?: string[];
@@ -56,7 +56,7 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
     icon: Users,
     title: "가상인구 대상 조사를 실행 중입니다",
     subtitle: "통계 기반으로 합성된 가상인구 패널이 직접 응답합니다",
-    visual: "swarm",
+    visual: "people",
     steps: ["가상인구 패널 매칭 중", "AI 페르소나 응답 생성 중", "응답 데이터 집계 중", "결과 요약 생성 중"],
   },
   pilot: {
@@ -68,6 +68,11 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
     steps: ["파일럿 표본 구성 중", "파일럿 응답 수집 중", "문항 품질 점검 중", "설문 보정 중"],
   },
 };
+
+/* 응답 점등이 끝나는 지점 — 백엔드 4단계 중 2단계(AI 응답 생성)까지가 응답 구간 */
+const RESPONSES_DONE_AT_PCT = 50;
+/* 화면에 그리는 사람 아이콘 최대 개수 (표본이 더 크면 아이콘 1개가 여러 명을 대표) */
+const MAX_PEOPLE_ICONS = 100;
 
 /* ── 시각 요소 ── */
 
@@ -118,31 +123,41 @@ function LinesVisual() {
   );
 }
 
-// 렌더 간 동일해야 하므로(SSR hydration·React Compiler 순수성) 시드 기반 고정 좌표 사용
-function seededRandom(seed: number) {
-  const x = Math.sin(seed * 12.9898) * 43758.5453;
-  return x - Math.floor(x);
-}
-const SWARM_DOTS = Array.from({ length: 42 }, (_, i) => ({
-  left: 8 + seededRandom(i + 1) * 84,
-  top: 8 + seededRandom((i + 1) * 7.31) * 84,
-  delay: seededRandom((i + 1) * 3.7) * 1.2,
-}));
-
-function SwarmVisual({ ratio }: { ratio: number }) {
-  const dots = SWARM_DOTS;
-  const onCount = Math.round(Math.min(Math.max(ratio, 0), 1) * dots.length);
+/* 사람 글리프 (머리 + 어깨) — 상태별 색을 currentColor로 받음 */
+function PersonGlyph({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className="relative w-full h-full">
-      {dots.map((p, i) => (
-        <div
-          key={i}
-          className={`absolute w-2.5 h-2.5 rounded-full animate-scale-in transition-colors duration-500 ${
-            i < onCount ? "bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,.5)]" : "bg-slate-200"
-          }`}
-          style={{ left: `${p.left}%`, top: `${p.top}%`, animationDelay: `${p.delay}s` }}
-        />
-      ))}
+    <svg viewBox="0 0 24 24" className={className} style={style} fill="currentColor" aria-hidden>
+      <circle cx="12" cy="7" r="4.2" />
+      <path d="M3.5 21c0-4.7 3.8-8.5 8.5-8.5s8.5 3.8 8.5 8.5z" />
+    </svg>
+  );
+}
+
+/**
+ * 가상인구 패널 그리드.
+ * - ratio(0~1)만큼 앞에서부터 "응답 완료"(인디고)로 점등, 바로 뒤 3명은 "응답 중"(점멸)
+ * - 전원 완료 후에도 작업이 진행 중이면(working) 물결 점멸로 "응답 처리 중"을 표현
+ */
+function PeopleVisual({ count, ratio, working }: { count: number; ratio: number; working: boolean }) {
+  const clamped = Math.min(Math.max(ratio, 0), 1);
+  const doneCount = Math.floor(clamped * count);
+  const allDone = doneCount >= count;
+  return (
+    <div className="w-full flex flex-wrap justify-center content-center gap-x-1.5 gap-y-2">
+      {Array.from({ length: count }, (_, i) => {
+        const done = i < doneCount;
+        const responding = !done && i < doneCount + 3 && !allDone;
+        const wave = allDone && working;
+        return (
+          <PersonGlyph
+            key={i}
+            className={`w-4 h-4 transition-colors duration-500 ${
+              done ? "text-indigo-500" : responding ? "text-indigo-300 animate-pulse" : "text-slate-200"
+            } ${wave ? "animate-stw-link" : ""}`}
+            style={wave ? { animationDelay: `${(i % 25) * 0.08}s` } : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -167,14 +182,7 @@ function BarsVisual({ level }: { level: number }) {
   );
 }
 
-function Visual({ kind, ratio, level }: { kind: ScreenConfig["visual"]; ratio: number; level: number }) {
-  if (kind === "nodes") return <NodesVisual />;
-  if (kind === "lines") return <LinesVisual />;
-  if (kind === "swarm") return <SwarmVisual ratio={ratio} />;
-  return <BarsVisual level={level} />;
-}
-
-/* ── 진행률 바 (ProgressCard와 동일 스타일) ── */
+/* ── 진행률 바 (공통 스타일) ── */
 function ProgressBar({ label, pct }: { label: string; pct: number }) {
   return (
     <div className="w-full max-w-lg mt-2">
@@ -199,6 +207,7 @@ export default function SocialTwinLoader({
   subtitle,
   progress,
   progressLabel,
+  totalRespondents,
 }: {
   screen: LoaderScreen;
   /** 헤더 제목 덮어쓰기 */
@@ -209,6 +218,8 @@ export default function SocialTwinLoader({
   progress?: number;
   /** 진행률 바 좌측 상태 문구 (긴 작업: 백엔드 stage 등) */
   progressLabel?: string;
+  /** survey 화면: 가상인구 표본 수 — 사람 아이콘 개수·응답 카운터에 사용 */
+  totalRespondents?: number;
 }) {
   const cfg = SCREENS[screen];
   const Icon = cfg.icon;
@@ -224,9 +235,34 @@ export default function SocialTwinLoader({
     return () => clearInterval(t);
   }, [isShort, captions.length]);
 
-  // 긴 작업: 진행률로 현재 단계 도출
+  // 긴 작업: 백엔드 진행률이 단계 단위로 듬성듬성 와도 멈춰 보이지 않도록,
+  // 표시용 진행률(displayPct)을 실제 값까지 빠르게 따라간 뒤
+  // 정체 구간에서는 현재 단계 상한(다음 단계 경계 -2%) 아래로 천천히 차오르게 한다.
   const steps = cfg.steps ?? [];
-  const active = steps.length > 0 ? Math.min(Math.floor((pct / 100) * steps.length), steps.length - 1) : 0;
+  const segment = steps.length > 0 ? 100 / steps.length : 100;
+  const [displayPct, setDisplayPct] = useState(0);
+  useEffect(() => {
+    if (isShort) return;
+    const t = setInterval(() => {
+      setDisplayPct((prev) => {
+        if (pct >= 100) return 100;
+        if (prev < pct) return Math.min(prev + Math.max((pct - prev) * 0.25, 0.5), pct);
+        const stageCeil = Math.min((Math.floor(pct / segment) + 1) * segment - 2, 97);
+        return prev < stageCeil ? Math.min(prev + 0.15, stageCeil) : prev;
+      });
+    }, 400);
+    return () => clearInterval(t);
+  }, [isShort, pct, segment]);
+
+  const effectivePct = isShort ? pct : displayPct;
+  const active = steps.length > 0 ? Math.min(Math.floor((effectivePct / 100) * steps.length), steps.length - 1) : 0;
+
+  // survey 화면: 응답 점등 비율·카운터 (응답 구간 = 전체의 앞 50%)
+  const peopleRatio = Math.min(effectivePct / RESPONSES_DONE_AT_PCT, 1);
+  const peopleTotal = totalRespondents && totalRespondents > 0 ? totalRespondents : null;
+  const peopleIcons = Math.min(peopleTotal ?? 60, MAX_PEOPLE_ICONS);
+  const respondedCount = peopleTotal ? Math.floor(peopleRatio * peopleTotal) : null;
+  const allResponded = peopleRatio >= 1;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 sm:px-8 py-12 sm:py-14 flex flex-col items-center">
@@ -251,9 +287,29 @@ export default function SocialTwinLoader({
       </p>
 
       {/* 시각 요소 */}
-      <div className="h-[140px] w-full max-w-lg flex items-center justify-center mb-6">
-        <Visual kind={cfg.visual} ratio={pct / 100} level={active + 1} />
+      <div className="min-h-[140px] w-full max-w-lg flex items-center justify-center mb-4">
+        {cfg.visual === "nodes" && <NodesVisual />}
+        {cfg.visual === "lines" && <LinesVisual />}
+        {cfg.visual === "people" && <PeopleVisual count={peopleIcons} ratio={peopleRatio} working={pct < 100} />}
+        {cfg.visual === "bars" && <BarsVisual level={active + 1} />}
       </div>
+
+      {/* survey 화면: 응답 카운터 */}
+      {cfg.visual === "people" && (
+        <p className="text-xs text-slate-400 mb-5 tabular-nums">
+          {peopleTotal ? (
+            allResponded ? (
+              <>가상인구 <b className="text-indigo-600">{peopleTotal.toLocaleString()}명</b> 전원 응답 완료 · 응답 데이터 처리 중</>
+            ) : (
+              <>가상인구 {peopleTotal.toLocaleString()}명 중 <b className="text-indigo-600">{(respondedCount ?? 0).toLocaleString()}명</b> 응답 완료</>
+            )
+          ) : allResponded ? (
+            <>패널 전원 응답 완료 · 응답 데이터 처리 중</>
+          ) : (
+            <>가상인구 패널 응답 진행률 <b className="text-indigo-600">{Math.floor(peopleRatio * 100)}%</b></>
+          )}
+        </p>
+      )}
 
       {isShort ? (
         <>
@@ -307,7 +363,7 @@ export default function SocialTwinLoader({
               );
             })}
           </div>
-          <ProgressBar label={progressLabel ?? steps[active]} pct={pct} />
+          <ProgressBar label={progressLabel ?? steps[active]} pct={effectivePct} />
         </>
       )}
     </div>

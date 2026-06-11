@@ -27,6 +27,7 @@ import {
   runSurvey as apiRunSurvey,
   getSurveyStatus,
   getSurveyResults,
+  getAppSettings,
   type SurveyDraftPatch,
   type InfographicSummary,
 } from "@/lib/survey-api";
@@ -390,6 +391,7 @@ function DesignPageInner() {
   const [runError, setRunError] = useState("");
   const [infographic, setInfographic] = useState<InfographicSummary | null>(null);
   const [runMeta, setRunMeta] = useState<{ n: number; sido: string } | null>(null);
+  const [sampleSize, setSampleSize] = useState<number | null>(null); // 로딩 화면 사람 아이콘·응답 카운터용
 
   // 언마운트 시 상태 폴링 정리
   useEffect(() => () => {
@@ -669,6 +671,9 @@ function DesignPageInner() {
     setProgress(0);
     setProgressLabel("조사 실행 준비 중...");
     setStep("survey_running");
+
+    // 표본 수(전역 설정)를 조회해 로딩 화면에 전달 (실패해도 기본 아이콘 수로 표시)
+    getAppSettings().then((s) => setSampleSize(s.analysis_sample_size || null));
 
     try {
       const { job_id } = await apiRunSurvey({
@@ -1558,6 +1563,7 @@ function DesignPageInner() {
               subtitle={`가상인구 패널이 ${surveyQuestions.length}개 문항에 응답하고 있습니다. 몇 분 정도 걸릴 수 있어요`}
               progress={progress}
               progressLabel={progressLabel}
+              totalRespondents={sampleSize ?? undefined}
             />
           </div>
         )}
