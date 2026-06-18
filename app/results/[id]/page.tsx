@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Download, Users, Target, Sparkles, ChevronRight, TrendingUp, BarChart2, FileText,
+  Download, Users, Target, Sparkles, ChevronRight, BarChart2, FileText, MessageCircle, Send,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
 import {
   getSurveyResults,
-  startDetail,
-  getDetailStatus,
+  askPanel,
   downloadDesignPdf,
   downloadRawCsv,
   downloadReportPdf,
@@ -80,84 +79,43 @@ function ResultsPageInner() {
   const params = useParams();
   const jobId = params.id as string;
 
-  const [tab, setTab] = useState<"overview" | "report">("report");
+  const [tab, setTab] = useState<"overview" | "chat">("overview");
   const [data, setData] = useState<{ results: SurveyResult[]; report: SurveyReport; n_respondents: number; sido: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
+  // 가상인구 패널에게 질문 (챗)
+  const [messages, setMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatSending, setChatSending] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+
   useEffect(() => {
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const applyReport = (r?: SurveyReport | null) => {
-      if (r) setData((d) => (d ? { ...d, report: r } : d));
-    };
-
-    (async () => {
-      try {
-        const res = await getSurveyResults(jobId);
+    getSurveyResults(jobId)
+      .then((res) => {
         if (cancelled) return;
-        if (res.status !== "done") {
+        if (res.status === "done") {
+          setData({
+            results: res.results ?? [],
+            report: res.report ?? { 상세분석: "", 결과및전략: "" },
+            n_respondents: res.n_respondents ?? 0,
+            sido: res.sido ?? "—",
+          });
+        } else {
           setError(res.status === "error" ? "설문 실행 중 오류가 발생했습니다." : "결과를 불러오는 중입니다...");
-          setLoading(false);
-          return;
         }
-        setData({
-          results: res.results ?? [],
-          report: res.report ?? { 상세분석: "", 결과및전략: "" },
-          n_respondents: res.n_respondents ?? 0,
-          sido: res.sido ?? "—",
-        });
-        setLoading(false);
-
-        // 상세 분석(on-demand) 트리거 + 폴링 — 결제 후 보는 상세 보고서
-        setDetailLoading(true);
-        const start = await startDetail(jobId);
-        if (cancelled) return;
-        if (start.detail_status === "done") {
-          applyReport(start.report);
-          setDetailLoading(false);
-          return;
-        }
-        if (start.detail_status === "error") {
-          setDetailError("상세분석 생성에 실패했습니다.");
-          setDetailLoading(false);
-          return;
-        }
-        const poll = async () => {
-          if (cancelled) return;
-          try {
-            const st = await getDetailStatus(jobId);
-            if (cancelled) return;
-            if (st.detail_status === "done") {
-              applyReport(st.report);
-              setDetailLoading(false);
-            } else if (st.detail_status === "error") {
-              setDetailError(st.detail_error || "상세분석 생성에 실패했습니다.");
-              setDetailLoading(false);
-            } else {
-              timer = setTimeout(poll, 2500);
-            }
-          } catch {
-            timer = setTimeout(poll, 3000);
-          }
-        };
-        timer = setTimeout(poll, 2500);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "결과를 불러올 수 없습니다.");
-          setLoading(false);
-        }
-      }
-    })();
-
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : "결과를 불러올 수 없습니다.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
-      if (timer) clearTimeout(timer);
     };
   }, [jobId]);
 
@@ -170,6 +128,23 @@ function ResultsPageInner() {
       setDownloadError(e instanceof Error ? e.message : "다운로드에 실패했습니다.");
     } finally {
       setDownloading(null);
+    }
+  }
+
+  async function sendChat() {
+    const q = chatInput.trim();
+    if (!q || chatSending) return;
+    setMessages((m) => [...m, { role: "user", text: q }]);
+    setChatInput("");
+    setChatSending(true);
+    setChatError(null);
+    try {
+      const { answer } = await askPanel(jobId, q);
+      setMessages((m) => [...m, { role: "panel", text: answer }]);
+    } catch (e) {
+      setChatError(e instanceof Error ? e.message : "답변을 받지 못했습니다.");
+    } finally {
+      setChatSending(false);
     }
   }
 
@@ -288,7 +263,7 @@ function ResultsPageInner() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit mb-6 animate-fade-up-2 shadow-sm">
-          {(["overview", "report"] as const).map((t) => (
+          {(["overview", "chat"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -298,7 +273,7 @@ function ResultsPageInner() {
             >
               {t === "overview"
                 ? <span className="flex items-center gap-1.5"><BarChart2 size={13} />문항별 결과</span>
-                : <span className="flex items-center gap-1.5"><TrendingUp size={13} />AI 분석 보고서</span>
+                : <span className="flex items-center gap-1.5"><MessageCircle size={13} />가상인구 패널에게 질문</span>
               }
             </button>
           ))}
@@ -336,57 +311,93 @@ function ResultsPageInner() {
           </div>
         )}
 
-        {/* Report — 상세분석 결과 (관리자 7단계 상세 보고서) */}
-        {tab === "report" && (
-          <div className="space-y-5 animate-scale-in">
-            {detailLoading && (
-              <div className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-sm text-slate-500">
-                <span className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                AI가 상세 분석 보고서를 생성하고 있습니다… (수십 초 정도 걸릴 수 있어요)
+        {/* 가상인구 패널에게 질문 (챗) */}
+        {tab === "chat" && (
+          <div className="animate-scale-in">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[26rem]">
+              <div className="px-5 py-4 border-b border-slate-100">
+                <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                  <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  이 조사에 응답한 가상인구 패널 결과를 바탕으로 AI가 답합니다.
+                </p>
               </div>
-            )}
-            {detailError && (
-              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{detailError}</p>
-            )}
-            {(
-              [
-                { key: "executive_summary", label: "핵심 요약", color: "text-indigo-500" },
-                { key: "상세분석", label: "상세분석", color: "text-indigo-500" },
-                { key: "segment_analysis", label: "세그먼트 분석", color: "text-violet-500" },
-                { key: "pain_points", label: "페인포인트·미충족 니즈", color: "text-rose-500" },
-                { key: "market_competitive", label: "시장·경쟁 관점", color: "text-sky-500" },
-                { key: "strategy", label: "마케팅 전략 제안", color: "text-emerald-500" },
-                { key: "limitations", label: "한계 및 후속 조사", color: "text-amber-500" },
-                { key: "결과및전략", label: "결과 및 전략", color: "text-emerald-500" },
-              ] as const
-            ).map((s) => {
-              const text = (data.report[s.key] ?? "").trim();
-              if (!text) return null;
-              return (
-                <div key={s.key} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                  <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                    <BarChart2 size={15} className={s.color} /> {s.label}
-                  </h3>
-                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{text}</p>
-                </div>
-              );
-            })}
-            {!detailLoading &&
-              !detailError &&
-              !(
-                [
-                  "executive_summary",
-                  "상세분석",
-                  "segment_analysis",
-                  "pain_points",
-                  "market_competitive",
-                  "strategy",
-                  "limitations",
-                  "결과및전략",
-                ] as const
-              ).some((k) => (data.report[k] ?? "").trim()) && (
-                <p className="text-sm text-slate-400 text-center py-8">표시할 분석 보고서가 없습니다.</p>
-              )}
+
+              {/* 메시지 */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                {messages.length === 0 && (
+                  <div className="text-center text-sm text-slate-400 py-10">
+                    <MessageCircle size={28} className="mx-auto mb-3 text-slate-300" />
+                    궁금한 점을 물어보세요.
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                      {["가장 중요한 시사점은?", "어떤 세그먼트를 먼저 공략해야 하나요?", "가격 저항은 어느 정도인가요?"].map((ex) => (
+                        <button
+                          key={ex}
+                          onClick={() => setChatInput(ex)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition"
+                        >
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {messages.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
+                        m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
+                      }`}
+                    >
+                      {m.text}
+                    </div>
+                  </div>
+                ))}
+                {chatSending && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-100 text-slate-400 rounded-2xl px-4 py-2.5 text-sm flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin" />
+                      답변 생성 중…
+                    </div>
+                  </div>
+                )}
+                {chatError && <p className="text-sm text-red-600">{chatError}</p>}
+              </div>
+
+              {/* 입력 */}
+              <div className="border-t border-slate-100 p-3">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendChat();
+                  }}
+                  className="flex items-end gap-2"
+                >
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendChat();
+                      }
+                    }}
+                    rows={1}
+                    placeholder="가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
+                    className="flex-1 resize-none rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-400 max-h-32"
+                  />
+                  <button
+                    type="submit"
+                    disabled={chatSending || !chatInput.trim()}
+                    className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50"
+                    aria-label="전송"
+                  >
+                    <Send size={16} />
+                  </button>
+                </form>
+              </div>
+            </div>
           </div>
         )}
       </div>

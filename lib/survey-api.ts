@@ -211,6 +211,15 @@ export function getDetailStatus(jobId: string): Promise<DetailStatusResponse> {
   return apiFetch(`/api/survey/${jobId}/detail-status`);
 }
 
+// ─── 가상인구 패널에게 질문 (패널 챗) ─────────────────────────
+// 완료된 설문의 결과 컨텍스트로 AI가 가상패널 입장에서 자유 질문에 답한다.
+export function askPanel(jobId: string, question: string): Promise<{ answer: string }> {
+  return apiFetch(`/api/survey/${jobId}/chat`, {
+    method: "POST",
+    body: JSON.stringify({ question }),
+  });
+}
+
 // ─── 파일 다운로드 (Blob, Bearer 첨부) ────────────────────────
 
 async function apiBlob(path: string): Promise<Blob> {
