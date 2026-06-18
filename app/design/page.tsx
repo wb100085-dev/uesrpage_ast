@@ -386,6 +386,11 @@ function DesignPageInner() {
   const [contactOpen, setContactOpen] = useState(false);
   // 상세보고서 결제 다이얼로그
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // 결제(토스) 노출 여부 — 개발 환경에서만 결제 플로우, 배포(프로덕션)는 기존 문의(메일) 유지.
+  // 토스 가맹점 심사·승인 완료 후 프로덕션에서도 켜려면 Vercel에 NEXT_PUBLIC_ENABLE_PAYMENTS=true.
+  const paymentsEnabled =
+    process.env.NEXT_PUBLIC_ENABLE_PAYMENTS === "true" ||
+    process.env.NODE_ENV !== "production";
 
   // ── 조사 실행 (8단계 결과) ──
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1610,15 +1615,15 @@ function DesignPageInner() {
                     <br />
                     포함한 상세분석 보고서와 Raw Data가 포함됩니다.
                     <br />
-                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 결제해 주세요
+                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 {paymentsEnabled ? "결제해" : "문의해"} 주세요
                   </p>
                 </div>
                 <button
-                  onClick={() => setCheckoutOpen(true)}
+                  onClick={() => (paymentsEnabled ? setCheckoutOpen(true) : setContactOpen(true))}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                 >
                   <Search size={15} />
-                  <span className="leading-tight">상세분석하기<br />(결제하기)</span>
+                  <span className="leading-tight">상세분석하기<br />({paymentsEnabled ? "결제하기" : "문의하기"})</span>
                   <ArrowRight size={15} />
                 </button>
               </div>
@@ -1627,7 +1632,7 @@ function DesignPageInner() {
         )}
       </div>
 
-      {checkoutOpen && (
+      {paymentsEnabled && checkoutOpen && (
         <CheckoutDialog
           productKey="detailed_report"
           onClose={() => setCheckoutOpen(false)}
