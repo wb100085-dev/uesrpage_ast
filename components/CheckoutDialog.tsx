@@ -1,14 +1,14 @@
 "use client";
 
-// 토스페이먼츠 결제 모달 — 버튼 클릭 시 결제위젯을 띄운다.
+// 토스페이먼츠 결제 모달 — 결제창(API 개별 연동) 방식.
+// 결제수단(카드/계좌이체/간편결제)을 고르고 '결제하기'를 누르면 토스 결제창이 뜬다.
 // 부모는 열려 있을 때만 이 컴포넌트를 마운트한다: {open && <CheckoutDialog onClose=... />}
-// (마운트=초기화이므로 내부 reset 불필요 — 닫았다 열면 새 주문이 생성된다.)
-// 결제 성공 시 토스가 successUrl(/checkout/success)로 전체 페이지를 리다이렉트하며,
+// 결제 성공 시 토스가 successUrl(/checkout/success)로 리다이렉트하며,
 // 그 페이지가 서버 승인(confirm)을 호출해 결제를 확정한다.
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { X, ShieldCheck, Loader2, Check } from "lucide-react";
+import { X, ShieldCheck, Loader2, Check, CreditCard, Landmark, Wallet } from "lucide-react";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
 
@@ -24,6 +24,14 @@ const REPORT_FEATURES = [
   "원본 데이터(Raw Data) 포함",
 ];
 
+// 결제창에서 선택할 결제수단 (토스 payment.requestPayment 의 method 값)
+const METHODS = [
+  { key: "CARD", label: "신용·체크카드", icon: CreditCard },
+  { key: "TRANSFER", label: "계좌이체", icon: Landmark },
+  { key: "EASY_PAY", label: "간편결제", icon: Wallet },
+] as const;
+type MethodKey = (typeof METHODS)[number]["key"];
+
 export default function CheckoutDialog({
   onClose,
   productKey = "detailed_report",
@@ -35,8 +43,9 @@ export default function CheckoutDialog({
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<CreateOrderResponse | null>(null);
+  const [method, setMethod] = useState<MethodKey>("CARD");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const widgetsRef = useRef<any>(null);
+  const paymentRef = useRef<any>(null);
   const initRef = useRef(false);
 
   useEffect(() => {
@@ -46,14 +55,9 @@ export default function CheckoutDialog({
       try {
         const o = await createOrder(productKey);
         const toss = await loadTossPayments(o.client_key);
-        const w = toss.widgets({ customerKey: ANONYMOUS });
-        await w.setAmount({ currency: "KRW", value: o.amount });
-        widgetsRef.current = w;
+        // 결제창(개별 연동) — 위젯과 달리 render 없이 requestPayment 로 결제창을 띄운다.
+        paymentRef.current = toss.payment({ customerKey: ANONYMOUS });
         setOrder(o);
-        await Promise.all([
-          w.renderPaymentMethods({ selector: "#cd-payment-method", variantKey: "DEFAULT" }),
-          w.renderAgreement({ selector: "#cd-agreement", variantKey: "AGREEMENT" }),
-        ]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "결제 준비 중 오류가 발생했습니다.");
       } finally {
@@ -63,12 +67,14 @@ export default function CheckoutDialog({
   }, [productKey]);
 
   async function pay() {
-    const w = widgetsRef.current;
-    if (!w || !order) return;
+    const payment = paymentRef.current;
+    if (!payment || !order) return;
     setPaying(true);
     setError(null);
     try {
-      await w.requestPayment({
+      await payment.requestPayment({
+        method,
+        amount: { currency: "KRW", value: order.amount },
         orderId: order.order_id,
         orderName: order.order_name,
         successUrl: `${window.location.origin}/checkout/success`,
@@ -184,23 +190,47 @@ export default function CheckoutDialog({
           </div>
         </div>
 
-        {/* ── 오른쪽: 결제창 ── */}
+        {/* ── 오른쪽: 결제수단 선택 (결제창 방식) ── */}
         <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col">
           <h3 className="text-base font-bold text-slate-900">결제 수단 선택</h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            카드 · 계좌이체 · 간편결제 중 선택하세요.
+            선택 후 결제하기를 누르면 토스 결제창이 열립니다.
           </p>
 
-          {/* 결제위젯 (토스 SDK가 아래 div 안에 렌더) */}
-          <div className="mt-3 relative min-h-[180px]">
-            {loading && (
+          <div className="mt-4 relative min-h-[180px]">
+            {loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400">
                 <Loader2 className="animate-spin" size={28} />
-                <span className="text-sm">결제수단을 불러오는 중…</span>
+                <span className="text-sm">결제 준비 중…</span>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {METHODS.map((m) => {
+                  const active = m.key === method;
+                  const Icon = m.icon;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setMethod(m.key)}
+                      className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                        active
+                          ? "border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50/50"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <Icon size={18} className={active ? "text-indigo-600" : "text-slate-400"} />
+                      <span className="text-sm font-medium text-slate-800">{m.label}</span>
+                      <span
+                        className={`ml-auto w-4 h-4 rounded-full border-2 ${
+                          active ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
               </div>
             )}
-            <div id="cd-payment-method" />
-            <div id="cd-agreement" />
           </div>
 
           {error && (
