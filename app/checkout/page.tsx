@@ -26,10 +26,11 @@ const PRODUCT = {
   ],
 };
 
+// 간편결제(토스페이·카카오페이 등)는 별도 method가 아니라 카드 결제창 안에서 선택됨.
 const METHODS = [
-  { key: "CARD", label: "신용·체크카드", icon: CreditCard },
+  { key: "CARD", label: "카드·간편결제", icon: CreditCard },
   { key: "TRANSFER", label: "계좌이체", icon: Landmark },
-  { key: "EASY_PAY", label: "간편결제", icon: Wallet },
+  { key: "VIRTUAL_ACCOUNT", label: "가상계좌", icon: Wallet },
 ] as const;
 type MethodKey = (typeof METHODS)[number]["key"];
 
