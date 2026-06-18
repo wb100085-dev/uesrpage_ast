@@ -16,6 +16,7 @@ function SuccessInner() {
   const paymentKey = params.get("paymentKey");
   const orderId = params.get("orderId");
   const amount = params.get("amount");
+  const job = params.get("job"); // 결제와 연결된 설문 job_id (상세분석 결과로 이동)
   const validParams = !!(paymentKey && orderId && amount);
 
   const [confirmState, setConfirmState] = useState<"loading" | "ok" | "error">("loading");
@@ -91,12 +92,21 @@ function SuccessInner() {
                     영수증 보기
                   </a>
                 )}
-                <Link
-                  href="/dashboard/user"
-                  className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
-                >
-                  대시보드로 이동
-                </Link>
+                {job ? (
+                  <Link
+                    href={`/results/${job}`}
+                    className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
+                  >
+                    상세분석 결과 보기
+                  </Link>
+                ) : (
+                  <Link
+                    href="/dashboard/user"
+                    className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
+                  >
+                    대시보드로 이동
+                  </Link>
+                )}
               </div>
             </>
           )}

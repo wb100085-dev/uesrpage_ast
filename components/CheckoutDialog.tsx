@@ -36,9 +36,11 @@ type MethodKey = (typeof METHODS)[number]["key"];
 export default function CheckoutDialog({
   onClose,
   productKey = "detailed_report",
+  jobId,
 }: {
   onClose: () => void;
   productKey?: string;
+  jobId?: string; // 결제 후 상세분석 결과로 연결할 설문 job_id
 }) {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -73,12 +75,15 @@ export default function CheckoutDialog({
     setPaying(true);
     setError(null);
     try {
+      const successUrl =
+        `${window.location.origin}/checkout/success` +
+        (jobId ? `?job=${encodeURIComponent(jobId)}` : "");
       await payment.requestPayment({
         method,
         amount: { currency: "KRW", value: order.amount },
         orderId: order.order_id,
         orderName: order.order_name,
-        successUrl: `${window.location.origin}/checkout/success`,
+        successUrl,
         failUrl: `${window.location.origin}/checkout/fail`,
         customerEmail: order.customer_email ?? undefined,
       });

@@ -35,6 +35,13 @@ export interface SurveyResult {
 export interface SurveyReport {
   상세분석: string;
   결과및전략: string;
+  // on-demand 상세 분석(POST /detail)으로 채워지는 추가 섹션들 (관리자 7단계와 동일)
+  executive_summary?: string;
+  segment_analysis?: string;
+  pain_points?: string;
+  market_competitive?: string;
+  strategy?: string;
+  limitations?: string;
 }
 
 export interface RunResponse {
@@ -183,6 +190,71 @@ export function getSurveyStatus(jobId: string): Promise<StatusResponse> {
 
 export function getSurveyResults(jobId: string): Promise<ResultsResponse> {
   return apiFetch(`/api/survey/${jobId}/results`);
+}
+
+// ─── 상세 분석 (on-demand) ────────────────────────────────────
+// 결제 후 사용자가 상세분석 결과를 볼 때 트리거. POST /detail 로 시작하고
+// GET /detail-status 로 폴링하여 report(상세 보고서)를 받는다.
+
+export interface DetailStatusResponse {
+  detail_status: "idle" | "running" | "done" | "error";
+  detail_progress?: { done?: number; total?: number; stage?: string };
+  detail_error?: string | null;
+  report?: SurveyReport | null;
+}
+
+export function startDetail(jobId: string): Promise<DetailStatusResponse> {
+  return apiFetch(`/api/survey/${jobId}/detail`, { method: "POST", body: JSON.stringify({}) });
+}
+
+export function getDetailStatus(jobId: string): Promise<DetailStatusResponse> {
+  return apiFetch(`/api/survey/${jobId}/detail-status`);
+}
+
+// ─── 파일 다운로드 (Blob, Bearer 첨부) ────────────────────────
+
+async function apiBlob(path: string): Promise<Blob> {
+  const headers = new Headers();
+  if (typeof window !== "undefined") {
+    const tok = getAccessToken();
+    if (tok) headers.set("Authorization", `Bearer ${tok}`);
+  }
+  const res = await fetch(`${API_BASE}${path}`, { headers });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`다운로드 오류 ${res.status}: ${t}`);
+  }
+  return res.blob();
+}
+
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function stamp(): string {
+  return new Date().toISOString().slice(0, 10).replace(/-/g, "");
+}
+
+/** 가설 및 설문 문항 (설계서 PDF) */
+export async function downloadDesignPdf(jobId: string): Promise<void> {
+  saveBlob(await apiBlob(`/api/survey/${jobId}/design.pdf`), `가설_설문문항_${stamp()}.pdf`);
+}
+
+/** 가상인구 Raw Data (CSV) */
+export async function downloadRawCsv(jobId: string): Promise<void> {
+  saveBlob(await apiBlob(`/api/survey/${jobId}/raw-csv`), `가상인구_RawData_${stamp()}.csv`);
+}
+
+/** 상세보고서 (전체 보고서 PDF) */
+export async function downloadReportPdf(jobId: string): Promise<void> {
+  saveBlob(await apiBlob(`/api/survey/${jobId}/report.pdf`), `상세보고서_${stamp()}.pdf`);
 }
 
 export interface DesignHistoryItem {

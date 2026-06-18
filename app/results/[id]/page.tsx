@@ -8,7 +8,16 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
-import { getSurveyResults, type SurveyResult, type SurveyReport } from "@/lib/survey-api";
+import {
+  getSurveyResults,
+  startDetail,
+  getDetailStatus,
+  downloadDesignPdf,
+  downloadRawCsv,
+  downloadReportPdf,
+  type SurveyResult,
+  type SurveyReport,
+} from "@/lib/survey-api";
 
 const COLORS = [
   "from-indigo-500 to-indigo-400",
@@ -71,28 +80,98 @@ function ResultsPageInner() {
   const params = useParams();
   const jobId = params.id as string;
 
-  const [tab, setTab] = useState<"overview" | "report">("overview");
+  const [tab, setTab] = useState<"overview" | "report">("report");
   const [data, setData] = useState<{ results: SurveyResult[]; report: SurveyReport; n_respondents: number; sido: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSurveyResults(jobId)
-      .then((res) => {
-        if (res.status === "done") {
-          setData({
-            results: res.results ?? [],
-            report: res.report ?? { 상세분석: "", 결과및전략: "" },
-            n_respondents: res.n_respondents ?? 0,
-            sido: res.sido ?? "—",
-          });
-        } else {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const applyReport = (r?: SurveyReport | null) => {
+      if (r) setData((d) => (d ? { ...d, report: r } : d));
+    };
+
+    (async () => {
+      try {
+        const res = await getSurveyResults(jobId);
+        if (cancelled) return;
+        if (res.status !== "done") {
           setError(res.status === "error" ? "설문 실행 중 오류가 발생했습니다." : "결과를 불러오는 중입니다...");
+          setLoading(false);
+          return;
         }
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+        setData({
+          results: res.results ?? [],
+          report: res.report ?? { 상세분석: "", 결과및전략: "" },
+          n_respondents: res.n_respondents ?? 0,
+          sido: res.sido ?? "—",
+        });
+        setLoading(false);
+
+        // 상세 분석(on-demand) 트리거 + 폴링 — 결제 후 보는 상세 보고서
+        setDetailLoading(true);
+        const start = await startDetail(jobId);
+        if (cancelled) return;
+        if (start.detail_status === "done") {
+          applyReport(start.report);
+          setDetailLoading(false);
+          return;
+        }
+        if (start.detail_status === "error") {
+          setDetailError("상세분석 생성에 실패했습니다.");
+          setDetailLoading(false);
+          return;
+        }
+        const poll = async () => {
+          if (cancelled) return;
+          try {
+            const st = await getDetailStatus(jobId);
+            if (cancelled) return;
+            if (st.detail_status === "done") {
+              applyReport(st.report);
+              setDetailLoading(false);
+            } else if (st.detail_status === "error") {
+              setDetailError(st.detail_error || "상세분석 생성에 실패했습니다.");
+              setDetailLoading(false);
+            } else {
+              timer = setTimeout(poll, 2500);
+            }
+          } catch {
+            timer = setTimeout(poll, 3000);
+          }
+        };
+        timer = setTimeout(poll, 2500);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : "결과를 불러올 수 없습니다.");
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [jobId]);
+
+  async function handleDownload(kind: string, fn: () => Promise<void>) {
+    setDownloading(kind);
+    setDownloadError(null);
+    try {
+      await fn();
+    } catch (e) {
+      setDownloadError(e instanceof Error ? e.message : "다운로드에 실패했습니다.");
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -157,10 +236,36 @@ function ResultsPageInner() {
               </span>
             </div>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 hover:-translate-y-px self-start">
-            <Download size={15} />
-            PDF 다운로드
-          </button>
+        </div>
+
+        {/* 다운로드 */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6 animate-fade-up-2">
+          <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+            <Download size={15} className="text-indigo-500" /> 다운로드
+          </h3>
+          <div className="grid sm:grid-cols-3 gap-3">
+            {[
+              { kind: "design", label: "가설 및 설문 문항", sub: "PDF", fn: () => downloadDesignPdf(jobId) },
+              { kind: "raw", label: "가상인구 Raw Data", sub: "CSV", fn: () => downloadRawCsv(jobId) },
+              { kind: "report", label: "상세보고서", sub: "PDF", fn: () => downloadReportPdf(jobId) },
+            ].map((d) => (
+              <button
+                key={d.kind}
+                onClick={() => handleDownload(d.kind, d.fn)}
+                disabled={downloading !== null}
+                className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Download size={16} className="text-indigo-500 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-slate-800 truncate">
+                    {downloading === d.kind ? "준비 중…" : d.label}
+                  </span>
+                  <span className="block text-[11px] text-slate-400">{d.sub}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          {downloadError && <p className="mt-2 text-xs text-red-600">{downloadError}</p>}
         </div>
 
         {/* KPI */}
@@ -231,25 +336,57 @@ function ResultsPageInner() {
           </div>
         )}
 
-        {/* Report */}
+        {/* Report — 상세분석 결과 (관리자 7단계 상세 보고서) */}
         {tab === "report" && (
           <div className="space-y-5 animate-scale-in">
-            {data.report.상세분석 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <BarChart2 size={15} className="text-indigo-500" /> 상세분석
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{data.report.상세분석}</p>
+            {detailLoading && (
+              <div className="flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 text-sm text-slate-500">
+                <span className="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
+                AI가 상세 분석 보고서를 생성하고 있습니다… (수십 초 정도 걸릴 수 있어요)
               </div>
             )}
-            {data.report.결과및전략 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                  <TrendingUp size={15} className="text-emerald-500" /> 결과 및 전략
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{data.report.결과및전략}</p>
-              </div>
+            {detailError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{detailError}</p>
             )}
+            {(
+              [
+                { key: "executive_summary", label: "핵심 요약", color: "text-indigo-500" },
+                { key: "상세분석", label: "상세분석", color: "text-indigo-500" },
+                { key: "segment_analysis", label: "세그먼트 분석", color: "text-violet-500" },
+                { key: "pain_points", label: "페인포인트·미충족 니즈", color: "text-rose-500" },
+                { key: "market_competitive", label: "시장·경쟁 관점", color: "text-sky-500" },
+                { key: "strategy", label: "마케팅 전략 제안", color: "text-emerald-500" },
+                { key: "limitations", label: "한계 및 후속 조사", color: "text-amber-500" },
+                { key: "결과및전략", label: "결과 및 전략", color: "text-emerald-500" },
+              ] as const
+            ).map((s) => {
+              const text = (data.report[s.key] ?? "").trim();
+              if (!text) return null;
+              return (
+                <div key={s.key} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                  <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                    <BarChart2 size={15} className={s.color} /> {s.label}
+                  </h3>
+                  <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{text}</p>
+                </div>
+              );
+            })}
+            {!detailLoading &&
+              !detailError &&
+              !(
+                [
+                  "executive_summary",
+                  "상세분석",
+                  "segment_analysis",
+                  "pain_points",
+                  "market_competitive",
+                  "strategy",
+                  "limitations",
+                  "결과및전략",
+                ] as const
+              ).some((k) => (data.report[k] ?? "").trim()) && (
+                <p className="text-sm text-slate-400 text-center py-8">표시할 분석 보고서가 없습니다.</p>
+              )}
           </div>
         )}
       </div>

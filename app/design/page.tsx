@@ -1635,6 +1635,7 @@ function DesignPageInner() {
       {paymentsEnabled && checkoutOpen && (
         <CheckoutDialog
           productKey="detailed_report"
+          jobId={runJobId ?? undefined}
           onClose={() => setCheckoutOpen(false)}
         />
       )}
