@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight, Sparkles, BarChart2, Users, FileText,
+  ArrowRight, Sparkles, BarChart2, Users,
   Zap, Globe, Brain, Check, TrendingUp, Clock,
   ChevronRight, Shield, MessageSquare,
 } from "lucide-react";
@@ -14,62 +14,52 @@ import SiteFooter from "@/components/SiteFooter";
    Hero — floating app mockup
 ───────────────────────────────────────── */
 function HeroMockup() {
-  const bars = [
-    { label: "아이스 아메리카노", w: 82 },
-    { label: "카페 라떼",        w: 54 },
-    { label: "프라푸치노",       w: 34 },
-    { label: "기타",             w: 30 },
+  // 메인 화면 캡처(대시보드) + 상세보고서 3장(부채꼴 플로팅)
+  // unoptimized: UI 스크린샷은 webp 압축 없이 원본 PNG로 표시해 글자를 선명하게 유지
+  const reports = [
+    { src: "/checkout/report-cover.png", alt: "상세보고서 표지 예시", rot: "-rotate-[10deg]", ml: "" },
+    { src: "/checkout/report-summary.png", alt: "상세보고서 요약 예시", rot: "-rotate-[2deg]", ml: "-ml-14" },
+    { src: "/checkout/report-detail.png", alt: "문항별 분포 예시", rot: "rotate-[7deg]", ml: "-ml-14" },
   ];
   return (
-    <div className="animate-float relative">
-      <div className="glass rounded-2xl overflow-hidden shadow-2xl shadow-black/60 w-full max-w-lg mx-auto">
-        {/* Window chrome */}
-        <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/8">
-          <div className="w-3 h-3 rounded-full bg-red-400/80" />
-          <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-          <div className="w-3 h-3 rounded-full bg-emerald-400/80" />
-          <div className="flex-1 mx-4 bg-white/8 rounded-full h-4" />
+    <div className="animate-float relative max-w-lg mx-auto">
+      {/* 메인 — 분석 대시보드 화면 */}
+      <div className="relative z-10 rounded-2xl overflow-hidden ring-1 ring-white/20 shadow-2xl shadow-black/60 bg-white">
+        {/* 윈도우 크롬 */}
+        <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 border-b border-slate-200">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+          <div className="flex-1 mx-3 bg-white rounded-full h-3.5 border border-slate-200" />
         </div>
-        <div className="p-5">
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            {[
-              { v: "500명", l: "응답자" }, { v: "95%", l: "신뢰도" },
-              { v: "1시간", l: "소요" },   { v: "A+", l: "품질" },
-            ].map((k) => (
-              <div key={k.l} className="bg-white/6 rounded-xl p-3 text-center">
-                <div className="text-sm font-bold text-white">{k.v}</div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{k.l}</div>
+        <Image
+          src="/features/hero-dashboard.png"
+          alt="분석 대시보드 화면"
+          width={793}
+          height={688}
+          className="w-full h-auto"
+          sizes="520px"
+          priority
+          unoptimized
+        />
+      </div>
+      {/* 플로팅 — 상세보고서 3장 부채꼴 + 분석완료 칩 (우하단, 칩은 부채꼴 우상단) */}
+      <div className="absolute z-20 -bottom-14 -right-6">
+        <div className="relative">
+          {/* 부채꼴 스택 */}
+          <div className="flex items-end">
+            {reports.map((r) => (
+              <div
+                key={r.src}
+                className={`relative w-32 h-44 ${r.ml} ${r.rot} rounded-lg overflow-hidden ring-1 ring-white/40 shadow-xl shadow-black/40 bg-white`}
+              >
+                <Image src={r.src} alt={r.alt} fill sizes="128px" className="object-cover object-top" unoptimized />
               </div>
             ))}
           </div>
-          <div className="bg-white/5 rounded-xl p-4">
-            <div className="text-[11px] font-semibold text-slate-400 mb-3 uppercase tracking-wider">선호 음료</div>
-            <div className="space-y-2.5">
-              {bars.map((b) => (
-                <div key={b.label} className="flex items-center gap-3">
-                  <div className="w-24 text-[10px] text-slate-400 truncate">{b.label}</div>
-                  <div className="flex-1 bg-white/8 rounded-full h-2">
-                    <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-2 rounded-full" style={{ width: `${b.w}%` }} />
-                  </div>
-                  <div className="text-[10px] text-slate-400 w-6">{Math.round(b.w / 2)}%</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* Floating chips */}
-      <div className="absolute -top-3 -right-3 flex items-center gap-1.5 bg-emerald-500 text-white rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-emerald-500/40">
-        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" /> 분석 완료
-      </div>
-      <div className="absolute -bottom-5 -left-5 glass-light rounded-2xl p-3 shadow-xl max-w-[210px]">
-        <div className="flex items-start gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-            <Sparkles size={13} className="text-indigo-600" />
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-500 font-medium mb-0.5">AI 설계 완료</div>
-            <div className="text-xs text-slate-800 leading-relaxed">"20대 여성 카페 선호도" 조사가 설계되었습니다</div>
+          {/* 칩 — 부채꼴 우상단 */}
+          <div className="absolute z-30 -top-3 -right-3 flex items-center gap-1.5 bg-emerald-500 text-white rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-emerald-500/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" /> 분석 완료
           </div>
         </div>
       </div>
@@ -190,172 +180,64 @@ function StepMockup4() {
    Feature showcase — large visual cards
 ───────────────────────────────────────── */
 function FeatureVisual1() {
-  // 연령대별 남녀 인구 피라미드 — KOSIS 분포 시각화
-  const ageGroups = [
-    { label: "60+", m: 12, f: 14 },
-    { label: "50대", m: 19, f: 19 },
-    { label: "40대", m: 23, f: 22 },
-    { label: "30대", m: 25, f: 24 },
-    { label: "20대", m: 21, f: 20 },
-    { label: "10대", m: 14, f: 13 },
-  ];
-  const max = 28;
+  // 국가 통계 기반 지역별 가상인구 분포 (실제 화면 캡처)
   return (
-    <div className="relative h-48 bg-gradient-to-br from-indigo-700 via-violet-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
-      <div
-        className="absolute inset-0 opacity-15"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "14px 14px",
-        }}
-      />
-      {/* 상단 — 카운터 */}
-      <div className="relative flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1.5">
-          <Users size={11} className="text-white/80" />
-          <span className="text-[9px] text-white/80 font-semibold uppercase tracking-wider">인구 피라미드</span>
-        </div>
-        <span className="text-[10px] text-white font-bold bg-white/15 backdrop-blur-sm rounded-full px-2 py-0.5 border border-white/20">
-          20만여개 통계 활용
-        </span>
-      </div>
-      {/* 인구 피라미드 */}
-      <div className="relative space-y-1">
-        {ageGroups.map((g) => (
-          <div key={g.label} className="flex items-center gap-1.5">
-            <div className="flex-1 flex justify-end">
-              <div
-                className="h-2 bg-gradient-to-l from-sky-300 to-sky-500 rounded-l-sm"
-                style={{ width: `${(g.m / max) * 100}%` }}
-              />
-            </div>
-            <div className="w-8 text-center text-[8px] text-white/75 font-medium tabular-nums">
-              {g.label}
-            </div>
-            <div className="flex-1 flex justify-start">
-              <div
-                className="h-2 bg-gradient-to-r from-rose-300 to-rose-500 rounded-r-sm"
-                style={{ width: `${(g.f / max) * 100}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* 하단 — 범례 + 데이터 출처 */}
-      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[8px]">
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-sky-200">
-            <span className="w-1.5 h-1.5 bg-sky-400 rounded-sm" /> 남성
-          </span>
-          <span className="flex items-center gap-1 text-rose-200">
-            <span className="w-1.5 h-1.5 bg-rose-400 rounded-sm" /> 여성
-          </span>
-        </div>
-        <div className="flex gap-1">
-          {["KOSIS", "행안부"].map((t) => (
-            <span
-              key={t}
-              className="px-1.5 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-white/90 font-semibold border border-white/20"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
+    <div className="relative h-48 bg-indigo-50 overflow-hidden border-b border-indigo-100 p-4">
+      <div className="relative h-full w-full">
+        <Image
+          src="/features/ai-population.png"
+          alt="국가 통계 기반 지역별 가상인구 분포"
+          fill
+          sizes="(max-width: 768px) 100vw, 380px"
+          className="object-contain"
+          unoptimized
+        />
       </div>
     </div>
   );
 }
 
 function FeatureVisual2() {
+  // 한 문장 입력 → AI 자동 생성 가설·설문 문항 (실제 화면 캡처)
   return (
-    <div className="relative h-48 bg-gradient-to-br from-violet-700 via-purple-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
-      <div className="h-full flex flex-col gap-1.5">
-        {/* 입력 프롬프트 */}
-        <div className="bg-white/12 backdrop-blur-sm rounded-lg px-2.5 py-1.5 border border-white/20 flex items-center gap-1.5">
-          <MessageSquare size={11} className="text-violet-200 flex-shrink-0" />
-          <span className="text-[10px] text-white truncate">&ldquo;비건 카페 메뉴 선호도&rdquo;</span>
-        </div>
-        {/* AI 처리 상태 */}
-        <div className="flex items-center gap-1.5 px-1">
-          <Sparkles size={10} className="text-violet-200" />
-          <span className="text-[9px] text-violet-100 font-medium">AI 자동 설계 중</span>
-          <div className="ml-auto flex gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-violet-200" />
-            <span className="w-1 h-1 rounded-full bg-violet-200/60" />
-            <span className="w-1 h-1 rounded-full bg-violet-200/30" />
-          </div>
-        </div>
-        {/* 자동 생성된 문항 */}
-        <div className="flex-1 space-y-1 mt-0.5">
-          {[
-            "Q1. 카페 방문 빈도는?",
-            "Q2. 선호 음료 종류는?",
-            "Q3. 가격 민감도는?",
-            "Q4. 비건 인증 영향은?",
-          ].map((q) => (
-            <div
-              key={q}
-              className="bg-white/8 backdrop-blur-sm rounded-md px-2 py-1 border border-white/10 flex items-center gap-1.5"
-            >
-              <Check size={9} className="text-emerald-300 flex-shrink-0" />
-              <span className="text-[10px] text-white/90 truncate">{q}</span>
-            </div>
-          ))}
-        </div>
+    <div className="relative h-48 bg-violet-50 overflow-hidden border-b border-violet-100 p-4">
+      <div className="relative h-full w-full">
+        <Image
+          src="/features/ai-design.png"
+          alt="AI가 자동 생성한 가설과 설문 문항"
+          fill
+          sizes="(max-width: 768px) 100vw, 380px"
+          className="object-contain"
+          unoptimized
+        />
       </div>
     </div>
   );
 }
 
 function FeatureVisual4() {
-  const bars = [
-    { w: 82, c: "from-sky-400 to-indigo-400" },
-    { w: 64, c: "from-indigo-400 to-violet-400" },
-    { w: 47, c: "from-violet-400 to-rose-400" },
-    { w: 32, c: "from-rose-400 to-amber-400" },
-  ];
+  // 실제 상세보고서 예시 — 표지 · 문항별 분포
   return (
-    <div className="relative h-48 bg-gradient-to-br from-sky-700 via-indigo-800 to-slate-900 rounded-xl overflow-hidden p-3.5">
-      <div className="flex gap-2.5 h-full">
-        {/* 좌측 — 분석 대시보드 */}
-        <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-lg p-2.5 border border-white/15 flex flex-col">
-          <div className="flex items-center gap-1 mb-2">
-            <BarChart2 size={10} className="text-sky-300" />
-            <span className="text-[9px] text-white font-semibold">분석 대시보드</span>
-            <span className="ml-auto text-[8px] text-white/50">N=500</span>
-          </div>
-          <div className="space-y-1.5 flex-1 flex flex-col justify-center">
-            {bars.map((b, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <div className="flex-1 bg-white/10 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className={`bg-gradient-to-r ${b.c} h-1.5 rounded-full`}
-                    style={{ width: `${b.w}%` }}
-                  />
-                </div>
-                <span className="text-[8px] text-white/70 w-6 text-right tabular-nums">{b.w}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {/* 우측 — PDF 보고서 시트 */}
-        <div className="w-20 bg-white rounded-lg p-2 shadow-xl flex flex-col">
-          <div className="flex items-center gap-1 mb-1.5 pb-1 border-b border-slate-100">
-            <FileText size={9} className="text-rose-500" />
-            <span className="text-[8px] text-slate-700 font-bold">PDF 12p</span>
-          </div>
-          <div className="space-y-1 flex-1">
-            {[60, 80, 50, 70, 65, 45, 75, 55].map((w, i) => (
-              <div
-                key={i}
-                className="h-1 bg-slate-200 rounded"
-                style={{ width: `${w}%` }}
-              />
-            ))}
-          </div>
-          <div className="mt-1.5 h-3 rounded bg-gradient-to-r from-indigo-500 to-violet-500" />
-        </div>
+    <div className="relative h-48 bg-sky-50 overflow-hidden border-b border-sky-100 grid grid-cols-2 gap-2.5 p-4">
+      <div className="relative rounded-lg overflow-hidden ring-1 ring-slate-200 shadow-sm">
+        <Image
+          src="/checkout/report-cover.png"
+          alt="보고서 표지 예시"
+          fill
+          sizes="190px"
+          className="object-cover object-top"
+          unoptimized
+        />
+      </div>
+      <div className="relative rounded-lg overflow-hidden ring-1 ring-slate-200 shadow-sm">
+        <Image
+          src="/checkout/report-detail.png"
+          alt="문항별 응답 분포 예시"
+          fill
+          sizes="190px"
+          className="object-cover object-top"
+          unoptimized
+        />
       </div>
     </div>
   );
@@ -363,40 +245,32 @@ function FeatureVisual4() {
 
 function FeatureVisual5() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-amber-600 via-orange-700 to-slate-900 rounded-xl overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-15"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "16px 16px",
-        }}
-      />
+    <div className="relative h-48 bg-rose-50 overflow-hidden border-b border-rose-100">
       <div className="absolute inset-0 p-4 flex flex-col items-center justify-center gap-3">
         {/* 좌(기존) → 우(Socialtwin) 비교 카드 */}
         <div className="flex items-stretch gap-2 w-full max-w-[300px]">
-          <div className="flex-1 bg-white/8 backdrop-blur-sm rounded-lg px-2 py-2 border border-white/10 text-center flex flex-col justify-center">
-            <div className="text-[8px] text-slate-300 mb-0.5 uppercase tracking-wider">기존 리서치</div>
-            <div className="text-base font-bold text-slate-300/70 line-through tabular-nums">₩100만+</div>
+          <div className="flex-1 bg-white rounded-lg px-2 py-2 border border-slate-200 text-center flex flex-col justify-center">
+            <div className="text-[8px] text-slate-400 mb-0.5 uppercase tracking-wider">기존 리서치</div>
+            <div className="text-base font-bold text-slate-400 line-through tabular-nums">₩100만+</div>
           </div>
           <div className="flex items-center">
-            <ArrowRight size={14} className="text-amber-300" />
+            <ArrowRight size={14} className="text-rose-400" />
           </div>
-          <div className="relative flex-1 bg-white/18 backdrop-blur-sm rounded-lg px-2 py-2 border border-white/30 text-center shadow-lg shadow-amber-900/30">
-            <div className="text-[8px] text-amber-200 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
-            <div className="text-[10px] text-slate-300/70 line-through tabular-nums leading-none">₩99,000</div>
+          <div className="relative flex-1 bg-white rounded-lg px-2 py-2 border border-indigo-200 text-center shadow-sm">
+            <div className="text-[8px] text-indigo-500 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
+            <div className="text-[10px] text-slate-400 line-through tabular-nums leading-none">₩99,000</div>
             <div className="flex items-center justify-center gap-1 mt-0.5">
-              <span className="text-base font-extrabold text-white tabular-nums leading-tight">₩49,500</span>
-              <span className="inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md shadow-md leading-none">
+              <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">₩49,500</span>
+              <span className="inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md shadow-sm leading-none">
                 50% OFF
               </span>
             </div>
           </div>
         </div>
         {/* 절감 배지 */}
-        <div className="inline-flex items-center gap-1.5 bg-emerald-500/25 backdrop-blur-sm rounded-full px-3 py-1 border border-emerald-300/40">
-          <TrendingUp size={11} className="text-emerald-200" style={{ transform: "rotate(180deg)" }} />
-          <span className="text-emerald-100 text-[10px] font-bold">기존 대비 95% 절감</span>
+        <div className="inline-flex items-center gap-1.5 bg-emerald-50 rounded-full px-3 py-1 border border-emerald-200">
+          <TrendingUp size={11} className="text-emerald-500" style={{ transform: "rotate(180deg)" }} />
+          <span className="text-emerald-600 text-[10px] font-bold">기존 대비 95% 절감</span>
         </div>
       </div>
     </div>
@@ -405,31 +279,23 @@ function FeatureVisual5() {
 
 function FeatureVisualTime() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-orange-600 via-rose-700 to-slate-900 rounded-xl overflow-hidden">
-      <div
-        className="absolute inset-0 opacity-15"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "16px 16px",
-        }}
-      />
-      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/20">
-        <Clock size={11} className="text-white" />
-        <span className="text-white text-[10px] font-medium">실시간</span>
+    <div className="relative h-48 bg-amber-50 overflow-hidden border-b border-amber-100">
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white rounded-full px-2.5 py-1 border border-slate-200 shadow-sm">
+        <Clock size={11} className="text-amber-500" />
+        <span className="text-slate-600 text-[10px] font-medium">실시간</span>
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-5xl font-extrabold text-white tracking-tight">
+          <div className="text-5xl font-extrabold text-slate-900 tracking-tight">
             ~1<span className="text-2xl font-bold ml-0.5">시간</span>
           </div>
-          <div className="text-slate-200 text-sm mt-1">결제 후 결과 확인까지</div>
+          <div className="text-slate-500 text-sm mt-1">결제 후 결과 확인까지</div>
         </div>
       </div>
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2 text-[10px]">
-        <span className="text-slate-300/80 line-through">기존 2주 이상</span>
-        <ArrowRight size={10} className="text-emerald-300" />
-        <span className="text-emerald-300 font-semibold">Socialtwin 1시간</span>
+        <span className="text-slate-400 line-through">기존 2주 이상</span>
+        <ArrowRight size={10} className="text-emerald-500" />
+        <span className="text-emerald-600 font-semibold">Socialtwin 1시간</span>
       </div>
     </div>
   );
@@ -437,41 +303,37 @@ function FeatureVisualTime() {
 
 function FeatureVisualTrust() {
   return (
-    <div className="relative h-48 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900 rounded-xl overflow-hidden">
-      <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-400/20 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-32 h-32 bg-sky-400/15 rounded-full blur-3xl" />
-      <div className="absolute inset-0 p-4 flex flex-col justify-center gap-3">
-        {/* 검증 라벨 */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1 border border-white/20">
-            <Shield size={11} className="text-emerald-300" />
-            <span className="text-white text-[10px] font-semibold">검증된 정합성</span>
-          </div>
+    <div className="relative h-48 bg-emerald-50 overflow-hidden border-b border-emerald-100">
+      <div className="absolute inset-0 p-4 flex flex-col justify-center gap-2.5">
+        {/* 핵심 수치 — 정합성 95% 강조 */}
+        <div className="flex items-end justify-center gap-1.5">
+          <span className="text-4xl font-extrabold text-emerald-700 tracking-tight tabular-nums leading-none">95%</span>
+          <span className="text-[11px] text-emerald-600/80 font-medium mb-0.5">정합성</span>
         </div>
-        {/* 실 패널 vs Socialtwin 비교 막대 */}
-        <div className="space-y-1.5 max-w-[280px] mx-auto w-full">
+        {/* 실 패널 vs Socialtwin 비교 막대 — 흰 패널로 대비 확보 */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2.5 space-y-1.5 max-w-[280px] mx-auto w-full">
           <div className="flex items-center gap-2">
-            <span className="w-16 text-[9px] text-slate-300 text-right">실 패널 조사</span>
-            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
-              <div className="bg-white/70 h-2 rounded-full" style={{ width: "100%" }} />
+            <span className="w-16 text-[9px] text-slate-500 text-right">실 패널 조사</span>
+            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="bg-slate-300 h-2 rounded-full" style={{ width: "100%" }} />
             </div>
-            <span className="w-9 text-[9px] text-white/80 text-right tabular-nums">100%</span>
+            <span className="w-9 text-[9px] text-slate-500 text-right tabular-nums">100%</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-16 text-[9px] text-emerald-200 text-right font-semibold">Socialtwin</span>
-            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
+            <span className="w-16 text-[9px] text-emerald-600 text-right font-semibold">Socialtwin</span>
+            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-emerald-400 to-teal-300 h-2 rounded-full"
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full"
                 style={{ width: "95%" }}
               />
             </div>
-            <span className="w-9 text-[9px] text-emerald-200 text-right font-bold tabular-nums">95%</span>
+            <span className="w-9 text-[9px] text-emerald-600 text-right font-bold tabular-nums">95%</span>
           </div>
         </div>
         {/* 캡션 */}
         <div className="text-center flex items-center justify-center gap-1.5">
-          <Check size={10} className="text-emerald-300" />
-          <span className="text-emerald-200 text-[10px] font-medium">KOSIS 인구통계 분포 반영</span>
+          <Shield size={10} className="text-emerald-500" />
+          <span className="text-emerald-600 text-[10px] font-medium">KOSIS 인구통계 분포 반영</span>
         </div>
       </div>
     </div>
@@ -1034,68 +896,62 @@ export default function LandingPage() {
       <section className="py-20 md:py-28 bg-white">
         <div className="max-w-6xl mx-auto px-5 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            {/* 왼쪽 — CSS 대시보드 미리보기 */}
+            {/* 왼쪽 — 실제 상세보고서 예시 (배경 없이 이미지 강조) */}
             <Reveal>
-              <div className="relative aspect-[4/3] rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-700 to-slate-900 overflow-hidden shadow-2xl shadow-indigo-200">
-                {/* 글로우 장식 */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-rose-400/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl" />
-                {/* 격자 점 배경 */}
-                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-
-                {/* 내부 카드 — 가상 대시보드 미리보기 */}
-                <div className="absolute inset-6 md:inset-8 flex flex-col gap-3">
-                  {/* 상단 헤더 */}
-                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2 border border-white/15">
-                    <BarChart2 size={14} className="text-white" />
-                    <span className="text-[11px] text-white font-semibold">분석 대시보드</span>
-                    <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-400/30 text-emerald-100 text-[9px] font-bold">완료</span>
-                  </div>
-                  {/* 차트 카드 */}
-                  <div className="flex-1 bg-white rounded-2xl p-4 flex flex-col">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-semibold text-slate-700">선호 메뉴 분포</span>
-                      <span className="text-[10px] text-slate-400">N=500</span>
+              <div className="flex flex-col gap-3">
+                {/* 상세보고서 예시 3종 — 동일 크기 3열 배치 */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { src: "/checkout/report-cover.png", alt: "보고서 표지 예시" },
+                    { src: "/checkout/report-summary.png", alt: "상세보고서 '조사결과 요약' 페이지 예시" },
+                    { src: "/checkout/report-detail.png", alt: "문항별 응답 분포 예시" },
+                  ].map((img) => (
+                    <div key={img.src} className="relative aspect-[3/4] rounded-xl overflow-hidden ring-1 ring-slate-200 shadow-lg bg-white">
+                      <Image
+                        src={img.src}
+                        alt={img.alt}
+                        fill
+                        sizes="(max-width: 1024px) 30vw, 200px"
+                        className="object-cover object-top"
+                      />
                     </div>
-                    <div className="flex-1 space-y-2.5">
-                      {[
-                        { label: "비건 라떼", pct: 82, color: "from-indigo-500 to-violet-500" },
-                        { label: "곡물 스무디", pct: 64, color: "from-violet-500 to-rose-500" },
-                        { label: "콜드브루", pct: 47, color: "from-rose-500 to-amber-500" },
-                        { label: "허브티", pct: 28, color: "from-emerald-500 to-sky-500" },
-                      ].map((b) => (
-                        <div key={b.label} className="flex items-center gap-2">
-                          <div className="w-20 text-[10px] text-slate-600 truncate">{b.label}</div>
-                          <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
-                            <div className={`bg-gradient-to-r ${b.color} h-2 rounded-full`} style={{ width: `${b.pct}%` }} />
-                          </div>
-                          <div className="w-7 text-[10px] text-slate-500 text-right tabular-nums">{b.pct}%</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  {/* 하단 칩 */}
-                  <div className="flex gap-2">
-                    {["KOSIS", "AI 가설", "PDF"].map((t) => (
-                      <span key={t} className="flex-1 text-center px-2 py-1.5 bg-white/15 backdrop-blur-sm rounded-lg border border-white/20 text-white text-[10px] font-medium">{t}</span>
-                    ))}
-                  </div>
+                  ))}
                 </div>
+                <p className="text-xs text-slate-400 text-center">
+                  ▲ 실제 상세보고서 예시 (표지·요약·문항별 분포)
+                </p>
+                {/* 결제창에서 가져온 상세보고서 포함 내역 — 그림 아래 배치 */}
+                <ul className="mt-3 grid sm:grid-cols-2 gap-x-5 gap-y-2.5">
+                  {[
+                    "핵심 지표(KPI)·가설 검증 요약",
+                    "가상인구 패널 인구통계 정보",
+                    "문항별 응답 분포 (전 문항)",
+                    "시장반응·세그먼트·가격·전략 심층 분석",
+                    "원본 데이터(Raw Data) 포함",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-slate-600">
+                      <span className="mt-0.5 shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-600">
+                        <Check size={12} strokeWidth={3} />
+                      </span>
+                      <span className="text-sm">{f}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </Reveal>
 
-            {/* 오른쪽 — 텍스트 + CTA */}
+            {/* 오른쪽 — 텍스트 + CTA (결제창 상세보고서 설명 반영) */}
             <Reveal delay={120}>
               <div className="lg:pl-4">
-                <div className="inline-block text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-5">
-                  Get started
+                <div className="inline-flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-[.15em] bg-indigo-50 px-3 py-1.5 rounded-full mb-5">
+                  상세보고서 <span className="text-[10px] font-semibold normal-case bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">30페이지 분량</span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
                   지금 바로<br />
                   시작해보세요
                 </h2>
                 <p className="text-base sm:text-lg text-slate-500 mb-9 leading-relaxed">
-                  가입 즉시 무료로 시장조사를 설계하고, AI가 만든 가상인구 응답을 확인할 수 있습니다.
+                  가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요.
                 </p>
                 <CtaLink className="btn-primary text-base px-8 py-4">
                   무료 체험하기 <ArrowRight size={18} />
