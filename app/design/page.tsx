@@ -17,7 +17,7 @@ import RequireAuth from "@/components/RequireAuth";
 import InfographicCard from "@/components/InfographicCard";
 import SocialTwinLoader from "@/components/SocialTwinLoader";
 import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
-import { getAccessToken } from "@/lib/auth-api";
+import { getAccessToken, getCachedUser } from "@/lib/auth-api";
 import {
   createDraft as apiCreateDraft,
   updateDraft as apiUpdateDraft,
@@ -91,6 +91,9 @@ const INDUSTRIES = [
 ];
 
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
+
+// 결제 플로우 허용 이메일(소문자). 프로덕션에서도 이 계정으로 로그인하면 상세보고서 결제 가능.
+const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr"];
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_result"];
 const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "요약", "결과"];
@@ -388,9 +391,17 @@ function DesignPageInner() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   // 결제(토스) 노출 여부 — 개발 환경에서만 결제 플로우, 배포(프로덕션)는 기존 문의(메일) 유지.
   // 토스 가맹점 심사·승인 완료 후 프로덕션에서도 켜려면 Vercel에 NEXT_PUBLIC_ENABLE_PAYMENTS=true.
-  const paymentsEnabled =
+  const envPaymentsEnabled =
     process.env.NEXT_PUBLIC_ENABLE_PAYMENTS === "true" ||
     process.env.NODE_ENV !== "production";
+  // 결제 허용 이메일(allowlist) — 프로덕션에서도 이 계정으로 로그인하면 결제 플로우 노출.
+  // localStorage(캐시 사용자)는 마운트 후 effect에서 읽어 SSR 하이드레이션 미스매치를 피한다.
+  const [paymentsAllowlisted, setPaymentsAllowlisted] = useState(false);
+  useEffect(() => {
+    const email = getCachedUser()?.email?.trim().toLowerCase();
+    setPaymentsAllowlisted(PAYMENTS_ALLOWLIST.includes(email ?? ""));
+  }, []);
+  const paymentsEnabled = envPaymentsEnabled || paymentsAllowlisted;
 
   // ── 조사 실행 (8단계 결과) ──
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
