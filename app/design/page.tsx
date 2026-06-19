@@ -93,7 +93,7 @@ const INDUSTRIES = [
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
 
 // 결제 플로우 허용 이메일(소문자). 프로덕션에서도 이 계정으로 로그인하면 상세보고서 결제 가능.
-const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr"];
+const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr", "hys@omninode.kr"];
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_result"];
 const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "요약", "결과"];
