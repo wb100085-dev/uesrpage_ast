@@ -22,6 +22,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       const j = await res.json();
       detail = j?.error || j?.message || JSON.stringify(j);
+      // 백엔드가 주는 진단 힌트(예: 누락된 DB 테이블 안내)도 함께 노출해 원인 파악을 돕는다.
+      if (j?.hint) detail += ` (${j.hint})`;
     } catch {
       detail = await res.text();
     }
