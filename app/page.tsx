@@ -198,16 +198,26 @@ function FeatureVisual1() {
 }
 
 function FeatureVisual2() {
-  // 한 문장 입력 → AI 자동 생성 가설·설문 문항 (실제 화면 캡처)
+  // AI 자동 생성 — 조사 가설 + 설문 문항 (실제 화면 캡처 2장)
   return (
-    <div className="relative h-48 bg-violet-50 overflow-hidden border-b border-violet-100 p-4">
-      <div className="relative h-full w-full">
+    <div className="relative h-48 bg-violet-50 overflow-hidden border-b border-violet-100 grid grid-cols-2 gap-2.5 p-4">
+      <div className="relative rounded-lg overflow-hidden ring-1 ring-violet-200 shadow-sm bg-white">
         <Image
-          src="/features/ai-design.png"
-          alt="AI가 자동 생성한 가설과 설문 문항"
+          src="/features/design-hypothesis.png"
+          alt="AI가 자동 생성한 조사 가설"
           fill
-          sizes="(max-width: 768px) 100vw, 380px"
-          className="object-contain"
+          sizes="190px"
+          className="object-cover object-top"
+          unoptimized
+        />
+      </div>
+      <div className="relative rounded-lg overflow-hidden ring-1 ring-violet-200 shadow-sm bg-white">
+        <Image
+          src="/features/design-questions.png"
+          alt="AI가 자동 생성한 설문 문항"
+          fill
+          sizes="190px"
+          className="object-cover object-top"
           unoptimized
         />
       </div>
