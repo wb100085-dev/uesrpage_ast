@@ -79,6 +79,14 @@ export default function SiteFooter() {
                   </dd>
                 </div>
                 <div className="flex gap-2">
+                  <dt className="text-slate-400 flex-shrink-0 w-20">고객센터</dt>
+                  <dd>
+                    <a href="tel:+821099690406" className="hover:text-slate-800 transition-colors">
+                      010-9969-0406
+                    </a>
+                  </dd>
+                </div>
+                <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-20">운영시간</dt>
                   <dd>평일 10:00 – 18:00 (주말·공휴일 휴무)</dd>
                 </div>
