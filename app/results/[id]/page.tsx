@@ -10,6 +10,8 @@ import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
 import {
   getSurveyResults,
+  startDetail,
+  getDetailStatus,
   askPanel,
   downloadDesignPdf,
   downloadRawCsv,
@@ -17,6 +19,11 @@ import {
   type SurveyResult,
   type SurveyReport,
 } from "@/lib/survey-api";
+
+// 상세분석 보고서에 실제 내용이 있는지 — 없으면 자동 생성 트리거 대상.
+function hasReportContent(r?: SurveyReport | null): boolean {
+  return !!(r && ((r.상세분석 ?? "").trim() || (r.결과및전략 ?? "").trim()));
+}
 
 const COLORS = [
   "from-indigo-500 to-indigo-400",
@@ -85,6 +92,8 @@ function ResultsPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  // 상세분석(상세보고서) 생성 상태 — 결제 후 결과 진입 시 자동 트리거·폴링.
+  const [detailStatus, setDetailStatus] = useState<"idle" | "running" | "done" | "error">("idle");
 
   // 가상인구 패널에게 질문 (챗)
   const [messages, setMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
@@ -94,28 +103,66 @@ function ResultsPageInner() {
 
   useEffect(() => {
     let cancelled = false;
-    getSurveyResults(jobId)
-      .then((res) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // 상세분석 상태를 done/error 가 될 때까지 폴링한다. 완료되면 report 를 병합.
+    async function pollDetail() {
+      try {
+        const s = await getDetailStatus(jobId);
+        if (cancelled) return;
+        if (s.detail_status === "done") {
+          if (s.report) setData((prev) => (prev ? { ...prev, report: s.report! } : prev));
+          setDetailStatus("done");
+          return;
+        }
+        if (s.detail_status === "error") {
+          setDetailStatus("error");
+          return;
+        }
+        timer = setTimeout(pollDetail, 3000); // idle/running → 계속 폴링
+      } catch {
+        if (!cancelled) timer = setTimeout(pollDetail, 5000);
+      }
+    }
+
+    (async () => {
+      try {
+        const res = await getSurveyResults(jobId);
         if (cancelled) return;
         if (res.status === "done") {
+          const report = res.report ?? { 상세분석: "", 결과및전략: "" };
           setData({
             results: res.results ?? [],
-            report: res.report ?? { 상세분석: "", 결과및전략: "" },
+            report,
             n_respondents: res.n_respondents ?? 0,
             sido: res.sido ?? "—",
           });
+          // 상세보고서가 아직 없으면 자동으로 상세분석 생성 트리거 + 폴링
+          // ("상세분석 결과 보기" 진입 = 상세보고서 생성 효과). 이미 있으면 즉시 done.
+          if (hasReportContent(report)) {
+            setDetailStatus("done");
+          } else {
+            setDetailStatus("running");
+            try {
+              await startDetail(jobId); // 이미 진행 중이면 백엔드가 그 상태를 그대로 반환
+            } catch {
+              /* 트리거 실패해도 폴링으로 상태를 따라간다 */
+            }
+            if (!cancelled) pollDetail();
+          }
         } else {
           setError(res.status === "error" ? "설문 실행 중 오류가 발생했습니다." : "결과를 불러오는 중입니다...");
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "결과를 불러올 수 없습니다.");
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    })();
+
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [jobId]);
 
@@ -223,23 +270,38 @@ function ResultsPageInner() {
               { kind: "design", label: "가설 및 설문 문항", sub: "PDF", fn: () => downloadDesignPdf(jobId) },
               { kind: "raw", label: "가상인구 Raw Data", sub: "CSV", fn: () => downloadRawCsv(jobId) },
               { kind: "report", label: "상세보고서", sub: "PDF", fn: () => downloadReportPdf(jobId) },
-            ].map((d) => (
-              <button
-                key={d.kind}
-                onClick={() => handleDownload(d.kind, d.fn)}
-                disabled={downloading !== null}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <Download size={16} className="text-indigo-500 shrink-0" />
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-slate-800 truncate">
-                    {downloading === d.kind ? "준비 중…" : d.label}
+            ].map((d) => {
+              // 상세보고서는 상세분석 생성이 끝나야 다운로드 가능
+              const gated = d.kind === "report" && detailStatus !== "done";
+              const generating = d.kind === "report" && detailStatus === "running";
+              return (
+                <button
+                  key={d.kind}
+                  onClick={() => handleDownload(d.kind, d.fn)}
+                  disabled={downloading !== null || gated}
+                  className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-4 py-3 text-left hover:border-indigo-300 hover:bg-indigo-50/40 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Download size={16} className="text-indigo-500 shrink-0" />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-slate-800 truncate">
+                      {downloading === d.kind ? "준비 중…" : generating ? "상세보고서 생성 중…" : d.label}
+                    </span>
+                    <span className="block text-[11px] text-slate-400">{d.sub}</span>
                   </span>
-                  <span className="block text-[11px] text-slate-400">{d.sub}</span>
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
+          {detailStatus === "running" && (
+            <p className="mt-2 text-xs text-indigo-500">
+              상세분석 보고서를 생성하고 있습니다. 1~2분 정도 소요되며, 완료되면 상세보고서를 내려받을 수 있습니다.
+            </p>
+          )}
+          {detailStatus === "error" && (
+            <p className="mt-2 text-xs text-red-600">
+              상세분석 보고서 생성에 실패했습니다. 잠시 후 다시 시도하거나 새로고침해 주세요.
+            </p>
+          )}
           {downloadError && <p className="mt-2 text-xs text-red-600">{downloadError}</p>}
         </div>
 
