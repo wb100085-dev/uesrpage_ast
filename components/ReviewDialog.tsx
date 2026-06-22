@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MessageSquare, X, Gift, Download, FileText, Database, FileEdit, Check, Loader2, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { MessageSquare, X, Gift, Download, FileText, Database, FileEdit, Check, Loader2, CheckCircle2, AlertCircle, ArrowRight, ArrowLeft } from "lucide-react";
 import {
   SURVEY_SERVICE_REVIEW,
   SURVEY_REPORT_QUALITY,
@@ -14,6 +14,8 @@ import {
   downloadReportPdf,
   downloadRawCsv,
   downloadDesignPdf,
+  startDetail,
+  getDetailStatus,
 } from "@/lib/survey-api";
 
 type Props = {
@@ -166,7 +168,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
   const headerByPart: Record<string, { sub: string; title: string; meta: string }> = {
     1: { sub: SURVEY_SERVICE_REVIEW.subtitle, title: SURVEY_SERVICE_REVIEW.title, meta: SURVEY_SERVICE_REVIEW.meta },
-    2: { sub: "다운로드", title: "무료 자료 다운로드", meta: "후기 작성 완료 · 상세보고서·원본자료·설계서를 받아보세요" },
+    2: { sub: "리워드", title: "설문 리워드", meta: "상세보고서·원본자료·설계서를 무료로 받아보세요" },
     3: { sub: SURVEY_REPORT_QUALITY.subtitle, title: SURVEY_REPORT_QUALITY.title, meta: SURVEY_REPORT_QUALITY.meta },
     done: { sub: "완료", title: "감사합니다", meta: "소중한 의견 감사합니다 · SocialTwin" },
   };
@@ -257,9 +259,15 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
           )}
           {!checking && part === 2 && (
             <>
-              <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
-                닫기
-              </button>
+              {alreadySubmitted ? (
+                <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+                  닫기
+                </button>
+              ) : (
+                <button onClick={() => { setError(null); setPart(1); }} className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+                  <ArrowLeft size={14} /> 이전
+                </button>
+              )}
               <button onClick={() => { setError(null); setPart(3); }} className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all">
                 보고서 품질 평가 <ArrowRight size={14} />
               </button>
@@ -267,8 +275,8 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
           )}
           {!checking && part === 3 && (
             <>
-              <button onClick={() => { setError(null); setPart("done"); }} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
-                건너뛰기
+              <button onClick={() => { setError(null); setPart(2); }} className="flex items-center justify-center gap-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
+                <ArrowLeft size={14} /> 이전
               </button>
               <button
                 onClick={() => submitPart(SURVEY_REPORT_QUALITY, single2, multi2, text2, "done")}
@@ -290,10 +298,11 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
   );
 }
 
-/* ── 파트 2: 다운로드 ── */
+/* ── 파트 2: 설문 리워드(자료 다운로드) ── */
 function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alreadySubmitted?: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
 
   async function run(kind: string, fn: () => Promise<void>) {
     if (!jobId) { setErr("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
@@ -302,22 +311,55 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
     finally { setBusy(null); }
   }
 
+  // 상세보고서 — 아직 생성 전이면 상세분석을 트리거하고 완료까지 폴링한 뒤 다운로드.
+  async function runReport() {
+    if (!jobId) { setErr("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
+    setErr(null); setBusy("report");
+    try {
+      let st = await getDetailStatus(jobId);
+      if (st.detail_status !== "done") {
+        setReportMsg("상세보고서를 생성하고 있습니다. 1~2분 정도 소요됩니다. 창을 닫지 말고 잠시만 기다려 주세요.");
+        if (st.detail_status !== "running") {
+          await startDetail(jobId); // 이미 진행 중이면 백엔드가 현재 상태를 그대로 반환
+        }
+        // 완료/오류까지 폴링 (최대 ~4분)
+        for (let i = 0; i < 80 && st.detail_status !== "done" && st.detail_status !== "error"; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          st = await getDetailStatus(jobId);
+        }
+      }
+      if (st.detail_status === "error") {
+        throw new Error(st.detail_error || "상세보고서 생성에 실패했습니다.");
+      }
+      if (st.detail_status !== "done") {
+        throw new Error("상세보고서 생성이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      setReportMsg("상세보고서 생성 완료 — 다운로드를 시작합니다.");
+      await downloadReportPdf(jobId);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "상세보고서 다운로드에 실패했습니다.");
+    } finally {
+      setBusy(null);
+      setReportMsg(null);
+    }
+  }
+
   const items = [
-    { kind: "report", label: "상세보고서", sub: "30p 내외 PDF", icon: FileText, fn: () => downloadReportPdf(jobId!) },
-    { kind: "raw", label: "원본자료 (Raw Data)", sub: "CSV / 엑셀", icon: Database, fn: () => downloadRawCsv(jobId!) },
-    { kind: "design", label: "설문 가설 및 설문 문항 설계서", sub: "PDF", icon: FileEdit, fn: () => downloadDesignPdf(jobId!) },
+    { kind: "report", label: "상세보고서", sub: "30p 내외 PDF · 클릭 시 생성(1~2분 소요)", icon: FileText, onClick: runReport },
+    { kind: "raw", label: "원본자료 (Raw Data)", sub: "CSV / 엑셀", icon: Database, onClick: () => run("raw", () => downloadRawCsv(jobId!)) },
+    { kind: "design", label: "설문 가설 및 설문 문항 설계서", sub: "PDF", icon: FileEdit, onClick: () => run("design", () => downloadDesignPdf(jobId!)) },
   ];
 
   return (
     <div>
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-4">
         <div className="flex items-center gap-1.5 text-amber-700 font-bold text-xs mb-1">
-          <Gift size={13} /> {alreadySubmitted ? "이미 체험후기를 작성하셨습니다" : "후기 작성 완료"}
+          <Gift size={13} /> {alreadySubmitted ? "이미 체험후기를 작성하셨습니다" : "설문 리워드"}
         </div>
         <p className="text-[12px] leading-relaxed text-slate-600">
           {alreadySubmitted
             ? "체험후기는 아이디당 1회 참여이며, 자료는 언제든 다시 받으실 수 있습니다."
-            : "아래 자료를 무료로 다운로드하실 수 있습니다. (상세보고서 생성 직후 받기를 권장)"}
+            : "설문 리워드를 통해 무료로 다운로드 하실 수 있습니다."}
         </p>
       </div>
       <div className="flex flex-col gap-2">
@@ -326,7 +368,7 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
           return (
             <button
               key={it.kind}
-              onClick={() => run(it.kind, it.fn)}
+              onClick={it.onClick}
               disabled={busy !== null}
               className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all text-left disabled:opacity-60"
             >
@@ -340,6 +382,12 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
           );
         })}
       </div>
+      {reportMsg && (
+        <div className="mt-3 flex items-start gap-2 text-[11px] text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+          <Loader2 size={13} className="flex-shrink-0 mt-0.5 animate-spin" />
+          <span>{reportMsg}</span>
+        </div>
+      )}
       {err && <p className="mt-3 text-[11px] text-rose-500">{err}</p>}
     </div>
   );
