@@ -24,7 +24,7 @@ type Props = {
   jobId?: string | null;
 };
 
-type Part = 1 | 2 | 3 | "done";
+type Part = 1 | 2 | 3 | "done" | "already";
 
 const OTHER = "기타";
 
@@ -56,7 +56,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
         if (cancelled) return;
         if (s.submitted && !s.exempt) {
           setAlreadySubmitted(true);
-          setPart(2);
+          setPart("already");
         } else {
           setAlreadySubmitted(false);
           setPart(1);
@@ -153,11 +153,11 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
       setPart(next);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "응답 저장에 실패했습니다.";
-      // 아이디당 1회 제한(409) — 이미 작성한 경우: 안내 후 다운로드 단계로
+      // 아이디당 1회 제한(409) — 이미 작성한 경우: 이벤트 참여 완료 안내 화면으로
       if (survey.key === "service_review" && (msg.includes("409") || msg.includes("already_submitted") || msg.includes("이미 체험후기"))) {
         setAlreadySubmitted(true);
-        setError("이미 체험후기를 작성하셨습니다. (아이디당 1회) 아래에서 자료를 다시 받으실 수 있습니다.");
-        setPart(2);
+        setError(null);
+        setPart("already");
       } else {
         setError(msg);
       }
@@ -170,6 +170,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
     1: { sub: SURVEY_SERVICE_REVIEW.subtitle, title: SURVEY_SERVICE_REVIEW.title, meta: SURVEY_SERVICE_REVIEW.meta },
     2: { sub: "리워드", title: "설문 리워드", meta: "상세보고서·원본자료·설계서를 무료로 받아보세요" },
     3: { sub: SURVEY_REPORT_QUALITY.subtitle, title: SURVEY_REPORT_QUALITY.title, meta: SURVEY_REPORT_QUALITY.meta },
+    already: { sub: "안내", title: "체험후기 이벤트", meta: "아이디당 1회 참여" },
     done: { sub: "완료", title: "감사합니다", meta: "소중한 의견 감사합니다 · SocialTwin" },
   };
   const h = headerByPart[String(part)];
@@ -198,8 +199,8 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
           </button>
         </div>
 
-        {/* 진행 표시 */}
-        {part !== "done" && (
+        {/* 진행 표시 (설문 단계에서만) */}
+        {(part === 1 || part === 2 || part === 3) && (
           <div className="px-6 pt-3 flex items-center gap-2">
             {[1, 2, 3].map((n) => (
               <div key={n} className={`h-1.5 flex-1 rounded-full ${Number(part) >= n ? "bg-amber-400" : "bg-slate-200"}`} />
@@ -225,6 +226,19 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
           {!checking && part === 3 && (
             <SurveyForm survey={SURVEY_REPORT_QUALITY} single={single2} setSingle={setSingle2} multi={multi2} setMulti={setMulti2} text={text2} setText={setText2} />
+          )}
+
+          {!checking && part === "already" && (
+            <div className="py-10 flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+                <Gift size={28} className="text-amber-500" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 mb-1">이미 이벤트에 참여하셨습니다</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                체험후기 이벤트는 <b className="text-slate-700">아이디당 1회</b> 참여 가능합니다.<br />
+                참여해 주셔서 감사합니다.
+              </p>
+            </div>
           )}
 
           {!checking && part === "done" && (
@@ -287,7 +301,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
               </button>
             </>
           )}
-          {part === "done" && (
+          {(part === "done" || part === "already") && (
             <button onClick={onClose} className="flex-1 py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-all">
               닫기
             </button>
