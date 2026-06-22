@@ -290,6 +290,11 @@ export function listReviewResponses(): Promise<{ responses: ReviewResponseRow[] 
   return apiFetch("/api/survey/review");
 }
 
+/** 현재 사용자의 체험후기(설문1) 작성 여부 — 아이디당 1회 제한 UX용 */
+export function getMyReviewStatus(): Promise<{ submitted: boolean; exempt: boolean; email: string | null }> {
+  return apiFetch("/api/survey/review/me");
+}
+
 /** (관리자) 리뷰 설문 응답 CSV 다운로드 */
 export async function downloadReviewCsv(): Promise<void> {
   saveBlob(await apiBlob(`/api/survey/review.csv`), `리뷰설문응답_${stamp()}.csv`);

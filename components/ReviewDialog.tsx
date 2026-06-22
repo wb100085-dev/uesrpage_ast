@@ -10,6 +10,7 @@ import {
 } from "@/lib/review-survey";
 import {
   submitReviewResponse,
+  getMyReviewStatus,
   downloadReportPdf,
   downloadRawCsv,
   downloadDesignPdf,
@@ -38,6 +39,31 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 아이디당 1회 제한 — 이미 작성했으면 설문1을 건너뛰고 다운로드(Part2)로 시작
+  const [checking, setChecking] = useState(true);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+
+  // 열릴 때마다 작성 여부 확인 (열기 직후 1회)
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setChecking(true);
+    getMyReviewStatus()
+      .then((s) => {
+        if (cancelled) return;
+        if (s.submitted && !s.exempt) {
+          setAlreadySubmitted(true);
+          setPart(2);
+        } else {
+          setAlreadySubmitted(false);
+          setPart(1);
+        }
+      })
+      .catch(() => { /* 상태 확인 실패 시 정상 진행(백엔드가 최종 강제) */ })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+  }, [open]);
 
   // ESC 닫기 + 스크롤 잠금
   useEffect(() => {
@@ -124,7 +150,15 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
       });
       setPart(next);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "응답 저장에 실패했습니다.");
+      const msg = err instanceof Error ? err.message : "응답 저장에 실패했습니다.";
+      // 아이디당 1회 제한(409) — 이미 작성한 경우: 안내 후 다운로드 단계로
+      if (survey.key === "service_review" && (msg.includes("409") || msg.includes("already_submitted") || msg.includes("이미 체험후기"))) {
+        setAlreadySubmitted(true);
+        setError("이미 체험후기를 작성하셨습니다. (아이디당 1회) 아래에서 자료를 다시 받으실 수 있습니다.");
+        setPart(2);
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -173,19 +207,25 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
         {/* 본문 (스크롤) */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {part === 1 && (
+          {checking && (
+            <div className="py-12 flex items-center justify-center text-slate-400 text-sm gap-2">
+              <Loader2 size={16} className="animate-spin" /> 확인 중…
+            </div>
+          )}
+
+          {!checking && part === 1 && (
             <SurveyForm survey={SURVEY_SERVICE_REVIEW} single={single1} setSingle={setSingle1} multi={multi1} setMulti={setMulti1} text={text1} setText={setText1} />
           )}
 
-          {part === 2 && (
-            <DownloadPart jobId={jobId ?? null} />
+          {!checking && part === 2 && (
+            <DownloadPart jobId={jobId ?? null} alreadySubmitted={alreadySubmitted} />
           )}
 
-          {part === 3 && (
+          {!checking && part === 3 && (
             <SurveyForm survey={SURVEY_REPORT_QUALITY} single={single2} setSingle={setSingle2} multi={multi2} setMulti={setMulti2} text={text2} setText={setText2} />
           )}
 
-          {part === "done" && (
+          {!checking && part === "done" && (
             <div className="py-10 flex flex-col items-center text-center">
               <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
                 <CheckCircle2 size={28} className="text-emerald-500" />
@@ -206,7 +246,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
         {/* 푸터 액션 */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center gap-2">
-          {part === 1 && (
+          {!checking && part === 1 && (
             <button
               onClick={() => submitPart(SURVEY_SERVICE_REVIEW, single1, multi1, text1, 2)}
               disabled={submitting}
@@ -215,7 +255,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
               {submitting ? <><Loader2 size={14} className="animate-spin" /> 제출 중…</> : <>후기 제출하고 자료 받기 <ArrowRight size={14} /></>}
             </button>
           )}
-          {part === 2 && (
+          {!checking && part === 2 && (
             <>
               <button onClick={onClose} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
                 닫기
@@ -225,7 +265,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
               </button>
             </>
           )}
-          {part === 3 && (
+          {!checking && part === 3 && (
             <>
               <button onClick={() => { setError(null); setPart("done"); }} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
                 건너뛰기
@@ -251,7 +291,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 }
 
 /* ── 파트 2: 다운로드 ── */
-function DownloadPart({ jobId }: { jobId: string | null }) {
+function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alreadySubmitted?: boolean }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -271,8 +311,14 @@ function DownloadPart({ jobId }: { jobId: string | null }) {
   return (
     <div>
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-4">
-        <div className="flex items-center gap-1.5 text-amber-700 font-bold text-xs mb-1"><Gift size={13} /> 후기 작성 완료</div>
-        <p className="text-[12px] leading-relaxed text-slate-600">아래 자료를 무료로 다운로드하실 수 있습니다. (상세보고서 생성 직후 받기를 권장)</p>
+        <div className="flex items-center gap-1.5 text-amber-700 font-bold text-xs mb-1">
+          <Gift size={13} /> {alreadySubmitted ? "이미 체험후기를 작성하셨습니다" : "후기 작성 완료"}
+        </div>
+        <p className="text-[12px] leading-relaxed text-slate-600">
+          {alreadySubmitted
+            ? "체험후기는 아이디당 1회 참여이며, 자료는 언제든 다시 받으실 수 있습니다."
+            : "아래 자료를 무료로 다운로드하실 수 있습니다. (상세보고서 생성 직후 받기를 권장)"}
+        </p>
       </div>
       <div className="flex flex-col gap-2">
         {items.map((it) => {
