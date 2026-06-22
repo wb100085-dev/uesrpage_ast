@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -11,8 +11,10 @@ import {
   TrendingUp, Database, ChevronRight, LogOut, Shield,
   FileText, MapPin, Layers, AlertCircle, CheckCircle2,
   TableProperties, ChevronsUpDown, ChevronUp, ChevronDown as ChevronDownIcon,
-  Download,
+  Download, ClipboardList,
 } from "lucide-react";
+import { listReviewResponses, downloadReviewCsv, type ReviewResponseRow } from "@/lib/survey-api";
+import { SURVEY_SERVICE_REVIEW, SURVEY_REPORT_QUALITY } from "@/lib/review-survey";
 
 /* ─── 타입 ─────────────────────────────────── */
 type UserRow = {
@@ -146,7 +148,12 @@ function AdminDashboardInner() {
   const [stats, setStats] = useState<Stats>(DUMMY_STATS);
   const [users, setUsers] = useState<UserRow[]>(DUMMY_USERS);
   const [logs, setLogs] = useState<AnalysisLog[]>(DUMMY_LOGS);
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "logs" | "sheet">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "logs" | "sheet" | "reviews">("overview");
+  const [reviews, setReviews] = useState<ReviewResponseRow[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+  const [reviewSurvey, setReviewSurvey] = useState<"service_review" | "report_quality">("service_review");
+  const [reviewCsvBusy, setReviewCsvBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
@@ -189,6 +196,24 @@ function AdminDashboardInner() {
     const id = setInterval(refresh, 30000);
     return () => clearInterval(id);
   }, [refresh]);
+
+  /* ── 리뷰 설문 응답 로드 (실제 백엔드) ── */
+  const loadReviews = useCallback(async () => {
+    setReviewsLoading(true);
+    setReviewsError(null);
+    try {
+      const { responses } = await listReviewResponses();
+      setReviews(responses ?? []);
+    } catch (err) {
+      setReviewsError(err instanceof Error ? err.message : "설문 응답을 불러오지 못했습니다.");
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "reviews") loadReviews();
+  }, [activeTab, loadReviews]);
 
   /* ── 탭 전환 시 검색 초기화 ── */
   function switchTab(tab: typeof activeTab) {
@@ -296,9 +321,9 @@ function AdminDashboardInner() {
 
         {/* 탭 */}
         <div className="flex gap-1 bg-white border border-slate-100 rounded-xl p-1 mb-6 w-fit shadow-sm">
-          {(["overview", "users", "logs", "sheet"] as const).map((tab) => {
-            const labels = { overview: "개요", users: "가입자", logs: "분석 로그", sheet: "분석 시트" };
-            const icons = { overview: TrendingUp, users: Users, logs: FileText, sheet: TableProperties };
+          {(["overview", "users", "logs", "sheet", "reviews"] as const).map((tab) => {
+            const labels = { overview: "개요", users: "가입자", logs: "분석 로그", sheet: "분석 시트", reviews: "설문결과" };
+            const icons = { overview: TrendingUp, users: Users, logs: FileText, sheet: TableProperties, reviews: ClipboardList };
             const Icon = icons[tab];
             return (
               <button
@@ -587,9 +612,152 @@ function AdminDashboardInner() {
           </div>
         )}
 
+        {/* ── 설문결과 탭 (리뷰 이벤트 설문 — 실제 백엔드) ── */}
+        {activeTab === "reviews" && (
+          <ReviewsTab
+            reviews={reviews}
+            loading={reviewsLoading}
+            error={reviewsError}
+            survey={reviewSurvey}
+            setSurvey={setReviewSurvey}
+            onRefresh={loadReviews}
+            csvBusy={reviewCsvBusy}
+            onCsv={async () => {
+              setReviewCsvBusy(true);
+              try { await downloadReviewCsv(); } catch (e) { setReviewsError(e instanceof Error ? e.message : "CSV 다운로드 실패"); }
+              finally { setReviewCsvBusy(false); }
+            }}
+            expandedRow={expandedRow}
+            setExpandedRow={setExpandedRow}
+          />
+        )}
+
         <p className="mt-4 text-center text-xs text-slate-400 flex items-center justify-center gap-1">
           <Clock size={10} /> 30초마다 자동 갱신
         </p>
+      </div>
+    </div>
+  );
+}
+
+/* ── 설문결과 탭 ── */
+function ReviewsTab({
+  reviews, loading, error, survey, setSurvey, onRefresh, csvBusy, onCsv, expandedRow, setExpandedRow,
+}: {
+  reviews: ReviewResponseRow[];
+  loading: boolean;
+  error: string | null;
+  survey: "service_review" | "report_quality";
+  setSurvey: (s: "service_review" | "report_quality") => void;
+  onRefresh: () => void;
+  csvBusy: boolean;
+  onCsv: () => void;
+  expandedRow: string | null;
+  setExpandedRow: (s: string | null) => void;
+}) {
+  const def = survey === "service_review" ? SURVEY_SERVICE_REVIEW : SURVEY_REPORT_QUALITY;
+  const filtered = reviews.filter((r) => r.survey_key === survey);
+  const counts = {
+    service_review: reviews.filter((r) => r.survey_key === "service_review").length,
+    report_quality: reviews.filter((r) => r.survey_key === "report_quality").length,
+  };
+
+  function fmt(ts: string) {
+    try { return new Date(ts).toLocaleString("ko-KR", { dateStyle: "short", timeStyle: "short" }); }
+    catch { return ts; }
+  }
+  function answerText(ans: Record<string, unknown>, id: string): string {
+    const v = ans?.[id];
+    if (Array.isArray(v)) return v.join(", ");
+    return v == null ? "" : String(v);
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex gap-1 bg-white border border-slate-100 rounded-lg p-1 shadow-sm">
+          {([["service_review", `설문1 · 서비스 후기 (${counts.service_review})`], ["report_quality", `설문2 · 보고서 품질 (${counts.report_quality})`]] as const).map(([k, label]) => (
+            <button key={k} onClick={() => { setSurvey(k); setExpandedRow(null); }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${survey === k ? "bg-indigo-600 text-white" : "text-slate-500 hover:bg-slate-50"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={onRefresh} disabled={loading} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-60">
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> 새로고침
+          </button>
+          <button onClick={onCsv} disabled={csvBusy} className="flex items-center gap-1.5 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg disabled:opacity-60">
+            <Download size={13} /> {csvBusy ? "준비 중…" : "전체 CSV 다운로드"}
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-4 flex items-start gap-2 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-sm text-rose-700">
+          <AlertCircle size={15} className="flex-shrink-0 mt-0.5" /> {error}
+        </div>
+      )}
+
+      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="py-16 text-center text-sm text-slate-400">불러오는 중…</div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={ClipboardList} label="아직 수집된 설문 응답이 없습니다" />
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-slate-500 text-xs">
+              <tr>
+                <th className="px-4 py-3 text-left w-10">#</th>
+                <th className="px-4 py-3 text-left">일시</th>
+                <th className="px-4 py-3 text-left">사용자</th>
+                <th className="px-4 py-3 text-left">Job ID</th>
+                <th className="px-4 py-3 text-right">상세</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r) => {
+                const rid = String(r.id);
+                const open = expandedRow === rid;
+                return (
+                  <Fragment key={rid}>
+                    <tr className="border-t border-slate-50 hover:bg-slate-50/60 cursor-pointer" onClick={() => setExpandedRow(open ? null : rid)}>
+                      <td className="px-4 py-3 text-slate-400 tabular-nums">{r.id}</td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{fmt(r.created_at)}</td>
+                      <td className="px-4 py-3 text-slate-700">{r.user_email || <span className="text-slate-300">비로그인</span>}</td>
+                      <td className="px-4 py-3 text-slate-400 font-mono text-xs truncate max-w-[160px]">{r.job_id || "—"}</td>
+                      <td className="px-4 py-3 text-right">
+                        <ChevronDownIcon size={15} className={`inline text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+                      </td>
+                    </tr>
+                    {open && (
+                      <tr className="bg-slate-50/60">
+                        <td colSpan={5} className="px-4 py-4">
+                          <div className="flex flex-col gap-3">
+                            {def.questions.map((q, i) => {
+                              const a = answerText(r.answers, q.id);
+                              const reason = answerText(r.answers, `${q.id}_reason`);
+                              return (
+                                <div key={q.id} className="grid grid-cols-[24px_1fr] gap-2">
+                                  <span className="text-[11px] font-bold text-indigo-500">Q{i + 1}</span>
+                                  <div>
+                                    <p className="text-xs text-slate-500 mb-0.5">{q.label}</p>
+                                    <p className="text-sm text-slate-800 font-medium whitespace-pre-wrap">{a || <span className="text-slate-300">무응답</span>}</p>
+                                    {reason && <p className="text-xs text-amber-600 mt-0.5">↳ 사유: {reason}</p>}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

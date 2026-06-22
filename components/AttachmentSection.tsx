@@ -70,10 +70,10 @@ export default function AttachmentSection({
     <div className="px-5 sm:px-8 py-6">
       <div className="flex items-center justify-between mb-3">
         <label className="text-sm font-semibold text-slate-700">
-          참고 이미지 첨부 <span className="text-slate-400 font-normal">(선택)</span>
+          참고 이미지 또는 설명 자료 첨부 <span className="text-slate-400 font-normal">(선택)</span>
         </label>
         <span className="text-[11px] text-slate-400">
-          {attachments.length}/{MAX}장 · 거래방식·산업·정의·목적과 함께 분석됩니다
+          참고 이미지나 설명자료를 첨부하시면 보다 더 정확한 답변 생성이 가능합니다.
         </span>
       </div>
 

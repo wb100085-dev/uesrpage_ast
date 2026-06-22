@@ -8,11 +8,13 @@ import {
   Clock, Check, Pencil, Upload, FileText,
   X, ChevronDown, BarChart2, Target, Lightbulb,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
-  LayoutDashboard, ImagePlus, PieChart, Search,
+  LayoutDashboard, ImagePlus, PieChart,
+  Download, Star,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import CheckoutDialog from "@/components/CheckoutDialog";
+import ReviewDialog from "@/components/ReviewDialog";
 import RequireAuth from "@/components/RequireAuth";
 import InfographicCard from "@/components/InfographicCard";
 import SocialTwinLoader from "@/components/SocialTwinLoader";
@@ -29,6 +31,7 @@ import {
   getSurveyStatus,
   getSurveyResults,
   getAppSettings,
+  downloadSummaryPdf,
   type SurveyDraftPatch,
   type InfographicSummary,
 } from "@/lib/survey-api";
@@ -93,7 +96,7 @@ const INDUSTRIES = [
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
 
 // 결제 플로우 허용 이메일(소문자). 프로덕션에서도 이 계정으로 로그인하면 상세보고서 결제 가능.
-const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr", "hys@omninode.kr"];
+const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr", "hys@omninode.kr", ""];
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_result"];
 const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "요약", "결과"];
@@ -155,12 +158,12 @@ const PURPOSE_QUESTIONS = [
   },
   {
     tag: "[핵심 지표]",
-    label: "4. [핵심 지표] 조사 결과에서 가장 먼저 확인하고 싶은 '한 가지 핵심 수치'는 무엇입니까?",
+    label: "4. [핵심 지표] 조사 결과에서 가장 먼저 확인하고 싶은 '핵심 수치'는 무엇입니까?",
     hint: "예) '제품을 사겠다고 답한 응답자 비율', '적정 가격이라 답한 가격대의 평균', '경쟁사 대비 만족도 점수'. 의사결정의 근거가 될 단 하나의 숫자/지표를 적어주세요.",
   },
   {
     tag: "[활용 계획]",
-    label: "5. [활용 계획] 조사 결과가 나온 뒤, 이 데이터를 어떤 '비즈니스 채널'에 활용하실 예정입니까?",
+    label: "5. [활용 계획] 조사 결과가 나온 뒤, 이 데이터를 어떤 '목적'으로 활용하실 예정입니까?",
     hint: "마케팅 캠페인 전략 수립, 투자 유치용 IR 자료, 제품 기능 개선 등 활용처에 따라 설문의 톤앤매너와 분석의 깊이를 조절하기 위함입니다.",
   },
 ];
@@ -190,7 +193,9 @@ function StepBar({
         </div>
       </div>
 
-      <div className="flex items-center justify-center">
+      <div className="flex justify-center">
+        <div className="inline-flex flex-col">
+        <div className="flex items-center">
         {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
         <div className="flex items-center">
           <Link
@@ -278,6 +283,13 @@ function StepBar({
             </div>
           );
         })}
+        </div>
+
+        {/* 프로세스 안내 — 대시보드 노드 기준 왼쪽 정렬 */}
+        <p className="mt-4 text-left text-[11px] sm:text-xs text-slate-400 break-keep">
+          하단의 임시저장 버튼을 클릭하시면 자동저장 되며, 저장 후에는 네비게이션으로 이동 가능합니다.
+        </p>
+        </div>
       </div>
     </div>
   );
@@ -389,6 +401,11 @@ function DesignPageInner() {
   const [contactOpen, setContactOpen] = useState(false);
   // 상세보고서 결제 다이얼로그
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // 체험후기 설문 다이얼로그
+  const [reviewOpen, setReviewOpen] = useState(false);
+  // 요약보고서 PDF 다운로드 상태
+  const [summaryDownloading, setSummaryDownloading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   // 결제(토스) 노출 여부 — 개발 환경에서만 결제 플로우, 배포(프로덕션)는 기존 문의(메일) 유지.
   // 토스 가맹점 심사·승인 완료 후 프로덕션에서도 켜려면 Vercel에 NEXT_PUBLIC_ENABLE_PAYMENTS=true.
   const envPaymentsEnabled =
@@ -450,6 +467,22 @@ function DesignPageInner() {
         let target: Step = "input";
         if (Array.isArray(design.questions) && design.questions.length > 0) target = "survey_review";
         else if (Array.isArray(design.hypotheses) && design.hypotheses.length > 0) target = "hyp_review";
+
+        // 완료된 분석이면 결과 요약을 불러와 결과(요약) 단계로 진입 (대시보드 "결과 보기")
+        if (design.job_id && design.status === "completed") {
+          setRunJobId(design.job_id);
+          try {
+            const res = await getSurveyResults(design.job_id);
+            if (!cancelled && res.infographic) {
+              setInfographic(res.infographic);
+              setRunMeta({ n: res.n_respondents ?? 0, sido: res.sido ?? "" });
+              target = "survey_result";
+            }
+          } catch {
+            // 결과 요약을 못 불러오면 검토 단계 유지
+          }
+        }
+        if (cancelled) return;
         setStep(target);
         setSubmitted(true);
       } catch (err) {
@@ -1230,7 +1263,8 @@ function DesignPageInner() {
                 </div>
                 {/* 업로드 */}
                 <div className="px-4 pb-4">
-                  <p className="text-xs font-semibold text-slate-500 mb-2">설문지 직접 업로드 <span className="font-normal text-slate-400">(선택)</span></p>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">설문지 직접 업로드 <span className="font-normal text-slate-400">(선택)</span></p>
+                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed">조사하고 싶은 설문지가 있는 경우에는 업로드하시면 자동으로 문항을 인식합니다.</p>
                   <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) setUploadedPdf(f.name); }} />
                   {uploadedPdf ? (
@@ -1617,26 +1651,71 @@ function DesignPageInner() {
                 </div>
               )}
 
-              {/* 상세분석 안내 + 문의 */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
+              {/* 상세분석 안내 + 액션 버튼 3종 */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
+                <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800">상세보고서는 유료서비스입니다.</p>
                   <p className="text-xs text-slate-400 mt-0.5">
                     상세분석에는 가상패널에게 질문하기, 가상인구 패널 인구통계 정보, 문항별 응답 분포, 상세분석 및 시사점 등을
                     <br />
                     포함한 상세분석 보고서와 Raw Data가 포함됩니다.
                     <br />
-                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼으로 {paymentsEnabled ? "결제해" : "문의해"} 주세요
+                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼을 이용해 주세요.
                   </p>
+                  {/* 리뷰 이벤트 안내 */}
+                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                    <p className="text-[12px] leading-relaxed text-slate-600">
+                      체험후기를 남겨주시면, <b className="text-slate-900">99,000원 상당의 상세보고서(30p 내외 PDF)와 원본자료(엑셀)</b>를 <br />
+                    무료로 제공(아이디 당 1회)해 드리는 이벤트 중입니다.
+                    </p>
+                    <p className="text-[12px] leading-relaxed text-slate-500 mt-1.5">
+                      50명 이상의 응답이 필요하신 경우는 별도 문의 부탁드립니다.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => (paymentsEnabled ? setCheckoutOpen(true) : setContactOpen(true))}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
-                >
-                  <Search size={15} />
-                  <span className="leading-tight">상세분석하기<br />({paymentsEnabled ? "결제하기" : "문의하기"})</span>
-                  <ArrowRight size={15} />
-                </button>
+
+                {/* 액션 버튼 3종 */}
+                <div className="flex flex-col gap-2 w-full sm:w-56 sm:flex-shrink-0">
+                  <button
+                    onClick={async () => {
+                      if (!runJobId) { setSummaryError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
+                      setSummaryError(null);
+                      setSummaryDownloading(true);
+                      try {
+                        await downloadSummaryPdf(runJobId);
+                      } catch (err) {
+                        setSummaryError(err instanceof Error ? err.message : "요약보고서 다운로드에 실패했습니다.");
+                      } finally {
+                        setSummaryDownloading(false);
+                      }
+                    }}
+                    disabled={summaryDownloading}
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {summaryDownloading
+                      ? <><RefreshCw size={15} className="animate-spin" /> 생성 중…</>
+                      : <><Download size={15} /> 요약보고서 다운로드</>}
+                  </button>
+                  {summaryError && (
+                    <p className="text-[11px] text-red-500 leading-snug">{summaryError}</p>
+                  )}
+                  <button
+                    onClick={() => setReviewOpen(true)}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 transition-all hover:shadow-lg hover:shadow-amber-200"
+                  >
+                    <Star size={15} className="flex-shrink-0" />
+                    <span className="leading-tight text-center">
+                      체험후기 남기기
+                      <span className="block text-[11px] font-medium text-amber-50">(99,000원 상당의 리워드 제공)</span>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setContactOpen(true)}
+                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 hover:border-slate-400 transition-all"
+                  >
+                    <MessageSquare size={15} /> 문의하기
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1651,10 +1730,12 @@ function DesignPageInner() {
         />
       )}
 
+      <ReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} jobId={runJobId ?? undefined} />
+
       <ContactDialog
         open={contactOpen}
         onClose={() => setContactOpen(false)}
-        title="상세분석 문의"
+        title="문의하기"
         subtitle="가상패널 질문하기·패널 인구통계·문항별 응답 분포·시사점 보고서·Raw Data가 포함된 상세분석을 받아보려면 담당자에게 문의해주세요."
         prefill={[
           runJobId ? `조사 Job ID: ${runJobId}` : null,

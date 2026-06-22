@@ -50,16 +50,28 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
   return (
     <header className={`sticky top-0 z-50 border-b ${borderCls} ${bgCls}`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/" className="flex items-center group">
-          <Image
-            src="/Socialtwin_o2.png"
-            alt="Socialtwin"
-            width={140}
-            height={40}
-            className="h-10 w-auto object-contain"
-          />
-        </Link>
+        {/* Logo — appMode(앱 내부 페이지)에서는 클릭 비활성 */}
+        {appMode ? (
+          <span className="flex items-center">
+            <Image
+              src="/Socialtwin_o2.png"
+              alt="Socialtwin"
+              width={140}
+              height={40}
+              className="h-10 w-auto object-contain select-none"
+            />
+          </span>
+        ) : (
+          <Link href="/" className="flex items-center group">
+            <Image
+              src="/Socialtwin_o2.png"
+              alt="Socialtwin"
+              width={140}
+              height={40}
+              className="h-10 w-auto object-contain"
+            />
+          </Link>
+        )}
 
         {/* Desktop nav */}
         {!appMode && (

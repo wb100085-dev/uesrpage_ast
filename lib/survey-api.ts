@@ -256,6 +256,45 @@ export async function downloadDesignPdf(jobId: string): Promise<void> {
   saveBlob(await apiBlob(`/api/survey/${jobId}/design.pdf`), `가설_설문문항_${stamp()}.pdf`);
 }
 
+/** 요약보고서 (설계서 + 조사결과 요약 PDF) */
+export async function downloadSummaryPdf(jobId: string): Promise<void> {
+  saveBlob(await apiBlob(`/api/survey/${jobId}/summary.pdf`), `요약보고서_${stamp()}.pdf`);
+}
+
+// ─── 리뷰 이벤트 설문 응답 ────────────────────────────────────
+export interface ReviewSubmitPayload {
+  survey_key: "service_review" | "report_quality";
+  job_id?: string | null;
+  answers: Record<string, unknown>;
+}
+
+/** 리뷰 설문 응답 저장 */
+export function submitReviewResponse(payload: ReviewSubmitPayload): Promise<{ ok: boolean; id?: number }> {
+  return apiFetch("/api/survey/review", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface ReviewResponseRow {
+  id: number;
+  created_at: string;
+  user_email?: string | null;
+  job_id?: string | null;
+  survey_key: string;
+  answers: Record<string, unknown>;
+}
+
+/** (관리자) 리뷰 설문 응답 전체 조회 */
+export function listReviewResponses(): Promise<{ responses: ReviewResponseRow[] }> {
+  return apiFetch("/api/survey/review");
+}
+
+/** (관리자) 리뷰 설문 응답 CSV 다운로드 */
+export async function downloadReviewCsv(): Promise<void> {
+  saveBlob(await apiBlob(`/api/survey/review.csv`), `리뷰설문응답_${stamp()}.csv`);
+}
+
 /** 가상인구 Raw Data (CSV) */
 export async function downloadRawCsv(jobId: string): Promise<void> {
   saveBlob(await apiBlob(`/api/survey/${jobId}/raw-csv`), `가상인구_RawData_${stamp()}.csv`);

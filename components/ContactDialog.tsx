@@ -73,6 +73,10 @@ export default function ContactDialog({
     const formData = new FormData();
     formData.append("_subject", `[Socialtwin 문의] ${affiliation} · ${nameTitle}`);
     formData.append("_replyto", email);
+    // 기본 수신자(Formspree 폼 설정 = hys@omninode.kr) 외 담당자는 참조(CC)로 발송.
+    // 기본 수신자와 중복 방지: CONTACT_EMAILS 중 첫 주소(기본 수신자)는 제외.
+    const ccList = CONTACT_EMAILS.slice(1).join(",");
+    if (ccList) formData.append("_cc", ccList);
     formData.append("소속", affiliation);
     formData.append("이름/직급", nameTitle);
     formData.append("회신 이메일", email);

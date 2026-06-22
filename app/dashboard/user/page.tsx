@@ -20,7 +20,7 @@ import {
   User, Users, ArrowRight, Zap, X,
   FileText, Target, Globe, ChevronDown, Save,
   Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
-  Info,
+  Info, LayoutDashboard,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
@@ -68,16 +68,17 @@ type HistoryItem = {
 
 /**
  * 히스토리 행 클릭 시 어디로 보낼지 결정.
- * - completed + job_id → /results/<job_id>  (결과 보기)
- * - running   + job_id → /survey/<job_id>   (진행 페이지)
- * - error + job_id     → /results/<job_id>  (결과 페이지가 에러 표시)
+ * - completed → /design?design=<id>  (결과 보기 = design 요약 결과 단계 + 작성 내용 복원)
+ * - running + job_id → /survey/<job_id>   (진행 페이지)
+ * - error + job_id   → /results/<job_id>  (결과 페이지가 에러 표시)
  * - 그 외 (가설/문항 단계 미완료, job_id 없음) → /design?design=<id> (이어쓰기)
  */
 function historyHref(item: HistoryItem): string {
   if (item.job_id) {
-    if (item.status === "done" || item.status === "error") return `/results/${item.job_id}`;
     if (item.status === "running") return `/survey/${item.job_id}`;
+    if (item.status === "error") return `/results/${item.job_id}`;
   }
+  // done(완료) 및 그 외 → design 페이지로: 작성 내용 복원 + 완료 시 요약 결과 단계로 진입
   return `/design?design=${item.id}`;
 }
 
@@ -313,7 +314,7 @@ function UserDashboardInner() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <Link href="/" className="flex-shrink-0"><Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-7 md:h-8 w-auto object-contain" /></Link>
+            <span className="flex-shrink-0"><Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-7 md:h-8 w-auto object-contain select-none" /></span>
             <div className="hidden md:block h-5 w-px bg-slate-200" />
             <div className="hidden md:flex items-center gap-1.5">
               <User size={14} className="text-slate-500" />
@@ -321,14 +322,13 @@ function UserDashboardInner() {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
-            <Link href="/design" className="flex items-center gap-1.5 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-500 px-2.5 md:px-3 py-1.5 rounded-lg transition-all">
-              <Sparkles size={12} />
-              <span className="hidden sm:inline">새 분석 시작</span>
-              <span className="sm:hidden">새 분석</span>
+            <Link href="/dashboard/user" className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-all">
+              <LayoutDashboard size={14} />
+              대시보드
             </Link>
-            <button onClick={handleLogout} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-red-600 px-2.5 md:px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all" aria-label="로그아웃">
-              <LogOut size={12} />
-              <span className="hidden sm:inline">로그아웃</span>
+            <button onClick={handleLogout} className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all" aria-label="로그아웃">
+              <LogOut size={14} />
+              로그아웃
             </button>
           </div>
         </div>
