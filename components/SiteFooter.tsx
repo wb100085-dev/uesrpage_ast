@@ -8,6 +8,20 @@ import ContactDialog from "@/components/ContactDialog";
 export default function SiteFooter() {
   const [contactOpen, setContactOpen] = useState(false);
 
+  // KB에스크로 이체 인증마크 — GET 폼을 팝업으로 제출
+  const openKBAuthMark = () => {
+    const params = new URLSearchParams({
+      page: "C021590",
+      cc: "b034066:b035526",
+      mHValue: "e75fd08917197b0f7e11dd1801e907c5",
+    });
+    window.open(
+      `https://okbfex.kbstar.com/quics?${params.toString()}`,
+      "KB_AUTHMARK",
+      "height=604,width=648,status=yes,toolbar=no,menubar=no,location=no"
+    );
+  };
+
   return (
     <>
       <footer className="border-t border-slate-100 bg-slate-50/60">
@@ -64,6 +78,22 @@ export default function SiteFooter() {
                   <dd>㈜토스페이먼츠</dd>
                 </div>
               </dl>
+              {/* KB에스크로 이체 인증마크 */}
+              <button
+                type="button"
+                onClick={openKBAuthMark}
+                className="mt-4 inline-block transition-opacity hover:opacity-80"
+                aria-label="KB에스크로 이체 인증마크 확인"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://img1.kbstar.com/img/escrow/escrowcmark.gif"
+                  alt="KB에스크로 이체 인증마크"
+                  width={107}
+                  height={32}
+                  className="h-8 w-auto"
+                />
+              </button>
             </div>
 
             {/* 고객지원 · 개인정보 보호책임자 */}
