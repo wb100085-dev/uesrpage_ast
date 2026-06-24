@@ -9,7 +9,7 @@ import {
   X, ChevronDown, BarChart2, Target, Lightbulb,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
   LayoutDashboard, ImagePlus, PieChart,
-  Download, Star,
+  Download, Star, CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
@@ -1651,7 +1651,42 @@ function DesignPageInner() {
                 </div>
               )}
 
-              {/* 상세분석 안내 + 액션 버튼 3종 */}
+              {/* 요약보고서 다운로드 — 고객 인터뷰(인포그래픽) 바로 아래 */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">요약보고서</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    위 조사 결과 요약을 PDF로 내려받을 수 있습니다.
+                  </p>
+                </div>
+                <div className="w-full sm:w-56 sm:flex-shrink-0">
+                  <button
+                    onClick={async () => {
+                      if (!runJobId) { setSummaryError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
+                      setSummaryError(null);
+                      setSummaryDownloading(true);
+                      try {
+                        await downloadSummaryPdf(runJobId);
+                      } catch (err) {
+                        setSummaryError(err instanceof Error ? err.message : "요약보고서 다운로드에 실패했습니다.");
+                      } finally {
+                        setSummaryDownloading(false);
+                      }
+                    }}
+                    disabled={summaryDownloading}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {summaryDownloading
+                      ? <><RefreshCw size={15} className="animate-spin" /> 생성 중…</>
+                      : <><Download size={15} /> 요약보고서 다운로드</>}
+                  </button>
+                  {summaryError && (
+                    <p className="text-[11px] text-red-500 leading-snug mt-1.5">{summaryError}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 상세분석 안내 + 액션 버튼 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-800">상세보고서는 유료서비스입니다.</p>
@@ -1674,31 +1709,8 @@ function DesignPageInner() {
                   </div>
                 </div>
 
-                {/* 액션 버튼 3종 */}
+                {/* 액션 버튼 — 체험후기 · 결제하기 · 문의하기 */}
                 <div className="flex flex-col gap-2 w-full sm:w-56 sm:flex-shrink-0">
-                  <button
-                    onClick={async () => {
-                      if (!runJobId) { setSummaryError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
-                      setSummaryError(null);
-                      setSummaryDownloading(true);
-                      try {
-                        await downloadSummaryPdf(runJobId);
-                      } catch (err) {
-                        setSummaryError(err instanceof Error ? err.message : "요약보고서 다운로드에 실패했습니다.");
-                      } finally {
-                        setSummaryDownloading(false);
-                      }
-                    }}
-                    disabled={summaryDownloading}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {summaryDownloading
-                      ? <><RefreshCw size={15} className="animate-spin" /> 생성 중…</>
-                      : <><Download size={15} /> 요약보고서 다운로드</>}
-                  </button>
-                  {summaryError && (
-                    <p className="text-[11px] text-red-500 leading-snug">{summaryError}</p>
-                  )}
                   <button
                     onClick={() => setReviewOpen(true)}
                     className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 transition-all hover:shadow-lg hover:shadow-amber-200"
@@ -1709,6 +1721,14 @@ function DesignPageInner() {
                       <span className="block text-[11px] font-medium text-amber-50">(99,000원 상당의 리워드 제공)</span>
                     </span>
                   </button>
+                  {paymentsEnabled && (
+                    <button
+                      onClick={() => setCheckoutOpen(true)}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                    >
+                      <CreditCard size={15} /> 결제하기
+                    </button>
+                  )}
                   <button
                     onClick={() => setContactOpen(true)}
                     className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 hover:border-slate-400 transition-all"

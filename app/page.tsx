@@ -269,12 +269,8 @@ function FeatureVisual5() {
           </div>
           <div className="relative flex-1 bg-white rounded-lg px-2 py-2 border border-indigo-200 text-center shadow-sm">
             <div className="text-[8px] text-indigo-500 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
-            <div className="text-[10px] text-slate-400 line-through tabular-nums leading-none">₩99,000</div>
-            <div className="flex items-center justify-center gap-1 mt-0.5">
-              <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">₩49,500</span>
-              <span className="inline-block bg-rose-500 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md shadow-sm leading-none">
-                50% OFF
-              </span>
+            <div className="flex items-center justify-center mt-0.5">
+              <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">₩99,000</span>
             </div>
           </div>
         </div>
