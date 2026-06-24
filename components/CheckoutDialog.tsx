@@ -13,7 +13,6 @@ import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
 
 const won = (n: number) => n.toLocaleString("ko-KR") + "원";
-const LIST_PRICE = 99000; // 정가 (표시용 — 실제 청구액은 서버가 확정)
 
 // 왼쪽 정보 패널에 표시할 상세보고서 포함 내역 (참고용 예시 보고서 구성 기준)
 const REPORT_FEATURES = [
@@ -94,7 +93,7 @@ export default function CheckoutDialog({
     }
   }
 
-  const amount = order?.amount ?? 49500;
+  const amount = order?.amount ?? 99000;
 
   return (
     <div
@@ -186,13 +185,7 @@ export default function CheckoutDialog({
           </ul>
 
           <div className="mt-auto pt-6">
-            <div className="flex items-baseline gap-2">
-              <span className="text-sm text-indigo-200 line-through">{won(LIST_PRICE)}</span>
-              <span className="text-xs font-semibold bg-rose-500 text-white px-1.5 py-0.5 rounded">
-                50% 할인
-              </span>
-            </div>
-            <p className="mt-1 text-3xl font-extrabold">{won(amount)}</p>
+            <p className="text-3xl font-extrabold">{won(amount)}</p>
           </div>
         </div>
 
