@@ -77,22 +77,6 @@ const TRADE_TYPES: { code: string; en: string; ko: string; desc: string; icon: s
   { code: "기타", en: "Others", ko: "그외 거래방식 혹은 해당없음", desc: "C2C·D2C·B2B2C 등", icon: "🧩" },
 ];
 
-const INDUSTRIES = [
-  "A. 농업, 임업 및 어업", "B. 광업", "C. 제조업",
-  "D. 전기, 가스, 증기 및 공기조절 공급업",
-  "E. 수도, 하수 및 폐기물 처리, 원료 재생업",
-  "F. 건설업", "G. 도매 및 소매업", "H. 운수 및 창고업",
-  "I. 숙박 및 음식점업", "J. 정보통신업", "K. 금융 및 보험업",
-  "L. 부동산업", "M. 전문, 과학 및 기술 서비스업",
-  "N. 사업시설 관리, 사업 지원 및 임대 서비스업",
-  "O. 공공행정, 국방 및 사회보장 행정", "P. 교육 서비스업",
-  "Q. 보건업 및 사회복지 서비스업",
-  "R. 예술, 스포츠 및 여가 관련 서비스업",
-  "S. 협회 및 단체, 수리 및 기타 개인 서비스업",
-  "T. 가구 내 고용활동 및 달리 분류되지 않은 자가소비 생산활동",
-  "U. 국제 및 외국기관",
-];
-
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
 
 // 결제 플로우 허용 이메일(소문자). 프로덕션에서도 이 계정으로 로그인하면 상세보고서 결제 가능.
@@ -348,7 +332,6 @@ function DesignPageInner() {
 
   // 입력
   const [tradeType, setTradeType] = useState("");
-  const [industry, setIndustry] = useState("");
   const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
   const [productAnswers, setProductAnswers] = useState(["", "", "", "", ""]);
   const [productFree, setProductFree] = useState("");
@@ -447,8 +430,7 @@ function DesignPageInner() {
         if (cancelled || !design) return;
         setDesignId(design.id);
         if (design.trade_type) setTradeType(design.trade_type);
-        if (design.industry) setIndustry(design.industry);
-        // definition은 [거래방식]/[산업 분류] 머리말이 붙어있을 수 있으므로 제거
+        // definition은 [거래방식] 머리말이 붙어있을 수 있으므로 제거
         const defText = (design.definition ?? "")
           .replace(/^\[거래방식\][^\n]*\n*/m, "")
           .replace(/^\[산업 분류\][^\n]*\n*/m, "")
@@ -510,7 +492,6 @@ function DesignPageInner() {
         // input_data 복원
         const d = (draft.input_data || {}) as Record<string, unknown>;
         if (typeof d.tradeType === "string") setTradeType(d.tradeType);
-        if (typeof d.industry === "string") setIndustry(d.industry);
         if (d.productMode === "structured" || d.productMode === "free") setProductMode(d.productMode);
         if (Array.isArray(d.productAnswers)) setProductAnswers((d.productAnswers as string[]).slice(0, 5).concat(["", "", "", "", ""]).slice(0, 5));
         if (typeof d.productFree === "string") setProductFree(d.productFree);
@@ -551,14 +532,13 @@ function DesignPageInner() {
     const titleSrc = (productFree.trim()
       || productAnswers.find((a) => a.trim())
       || tradeType
-      || industry
       || "(제목 없음)").trim();
     const title = titleSrc.slice(0, 30);
     const payload: SurveyDraftPatch = {
       title,
       step,
       input_data: {
-        tradeType, industry, productMode, productAnswers, productFree,
+        tradeType, productMode, productAnswers, productFree,
         purposeMode, purposeAnswers, purposeFree,
       },
       hypotheses: hypothesisTexts,
@@ -637,18 +617,17 @@ function DesignPageInner() {
   }
 
   /* ── Step 1→2: 가설 설계 API 호출 ── */
-  // 거래방식·산업을 정의 본문 앞에 명시해 AI가 컨텍스트로 활용 (가설·문항 생성 공용)
+  // 거래방식을 정의 본문 앞에 명시해 AI가 컨텍스트로 활용 (가설·문항 생성 공용)
   function buildDefinitionPayload() {
     const tradeFull = TRADE_TYPES.find((t) => t.code === tradeType);
     const tradeLine = tradeFull ? `[거래방식] ${tradeFull.code} (${tradeFull.en})` : "";
-    const industryLine = industry ? `[산업 분류] ${industry}` : "";
-    return [tradeLine, industryLine, productDef].filter(Boolean).join("\n\n");
+    return [tradeLine, productDef].filter(Boolean).join("\n\n");
   }
 
   /* ── Step 1→2: 가설만 생성 (문항은 만들지 않음 — AI 호출 절약 + 가설 수정 반영 가능) ── */
   async function handleDesign() {
     setSubmitted(true);
-    if (!tradeType || !industry || !productDef.trim() || !researchPurpose.trim()) return;
+    if (!tradeType || !productDef.trim() || !researchPurpose.trim()) return;
 
     setApiError("");
     setStep("hyp_designing");
@@ -663,7 +642,6 @@ function DesignPageInner() {
         definition: buildDefinitionPayload(),
         needs: researchPurpose,
         trade_type: tradeType,
-        industry,
         attachments: attachments.map((a) => ({
           data: a.dataUrl,
           mime: a.mime,
@@ -795,7 +773,6 @@ function DesignPageInner() {
     (q.type === "객관식" || q.type === "복수선택" || q.type === "순위형") && q.options?.length > 0;
 
   const errTradeType = submitted && !tradeType;
-  const errIndustry = submitted && !industry;
   const errProduct = submitted && !productDef.trim();
   const errPurpose = submitted && !researchPurpose.trim();
 
@@ -896,28 +873,6 @@ function DesignPageInner() {
                   })}
                 </div>
                 {errTradeType && <ErrorMsg msg="거래방식을 선택해주세요." />}
-              </div>
-
-              {/* 산업 분류 */}
-              <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
-                <FieldLabel required>
-                  산업 분류
-                  <span className="ml-1.5 text-slate-400 text-xs font-normal">(한국표준산업분류 11차 대분류)</span>
-                </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    className={`w-full appearance-none bg-slate-50 border rounded-xl px-4 py-3 pr-10 text-sm text-slate-700 outline-none focus:bg-white focus:ring-2 transition-all cursor-pointer ${
-                      errIndustry ? "border-red-300 focus:ring-red-400/20" : "border-slate-200 focus:border-indigo-400 focus:ring-indigo-400/20"
-                    }`}
-                  >
-                    <option value="">산업 분류를 선택하세요</option>
-                    {INDUSTRIES.map((ind) => <option key={ind} value={ind}>{ind}</option>)}
-                  </select>
-                  <ChevronDown size={15} className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                </div>
-                {errIndustry && <ErrorMsg msg="산업 분류를 선택해주세요." />}
               </div>
 
               {/* 제품 정의 */}
@@ -1451,7 +1406,6 @@ function DesignPageInner() {
               </button>
               <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
-                <p className="text-xs text-slate-400 mt-0.5">{industry || "산업 미지정"}</p>
               </div>
               <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
                 <Sparkles size={11} /> 설계 완료
@@ -1459,10 +1413,9 @@ function DesignPageInner() {
             </div>
 
             {/* KPI */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
               {[
                 { icon: <Target size={18} />, label: "거래방식", value: tradeType || "—", accent: "indigo" },
-                { icon: <Target size={18} />, label: "산업 분류", value: industry ? industry.split(".")[0] : "—", accent: "violet" },
                 { icon: <Lightbulb size={18} />, label: "선택 가설", value: `${selectedHypotheses.size}개`, accent: "sky" },
                 { icon: <FileText size={18} />, label: "설문 문항", value: `${surveyQuestions.length}개`, accent: "emerald" },
               ].map((k) => (
@@ -1494,10 +1447,6 @@ function DesignPageInner() {
                         ? `${tradeType} (${TRADE_TYPES.find((t) => t.code === tradeType)?.en ?? ""})`
                         : "미선택"}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-slate-400 mb-1">산업 분류</p>
-                    <p className="text-sm text-slate-700">{industry || "미선택"}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-[11px] font-semibold text-slate-400 mb-1">업로드 설문지</p>
@@ -1633,7 +1582,7 @@ function DesignPageInner() {
               <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 결과</h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : industry || ""}
+                  {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : ""}
                 </p>
               </div>
               <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
@@ -1761,7 +1710,6 @@ function DesignPageInner() {
           runJobId ? `조사 Job ID: ${runJobId}` : null,
           runMeta ? `조사 규모: ${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명` : null,
           `거래방식: ${tradeType || "미선택"}`,
-          `산업 분류: ${industry || "미선택"}`,
           `선택 가설 수: ${selectedHypotheses.size}개 / 총 ${hypothesisTexts.length}개`,
           `설문 문항 수: ${surveyQuestions.length}개`,
           uploadedPdf ? `업로드 설문지: ${uploadedPdf}` : null,

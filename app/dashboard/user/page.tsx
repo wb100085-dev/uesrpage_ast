@@ -18,28 +18,12 @@ import {
   LogOut, MapPin, Layers, Sparkles, Clock,
   CheckCircle2, AlertCircle, RefreshCw, Construction,
   User, Users, ArrowRight, Zap, X,
-  FileText, Target, Globe, ChevronDown, Save,
+  FileText, Target, ChevronDown, Save,
   Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
   Info, LayoutDashboard,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
-const INDUSTRIES = [
-  "A. 농업, 임업 및 어업", "B. 광업", "C. 제조업",
-  "D. 전기, 가스, 증기 및 공기조절 공급업",
-  "E. 수도, 하수 및 폐기물 처리, 원료 재생업",
-  "F. 건설업", "G. 도매 및 소매업", "H. 운수 및 창고업",
-  "I. 숙박 및 음식점업", "J. 정보통신업", "K. 금융 및 보험업",
-  "L. 부동산업", "M. 전문, 과학 및 기술 서비스업",
-  "N. 사업시설 관리, 사업 지원 및 임대 서비스업",
-  "O. 공공행정, 국방 및 사회보장 행정", "P. 교육 서비스업",
-  "Q. 보건업 및 사회복지 서비스업",
-  "R. 예술, 스포츠 및 여가 관련 서비스업",
-  "S. 협회 및 단체, 수리 및 기타 개인 서비스업",
-  "T. 가구 내 고용활동 및 달리 분류되지 않은 자가소비 생산활동",
-  "U. 국제 및 외국기관",
-];
-
 const SIDO_LIST = [
   { name: "전국", code: "00" }, { name: "서울특별시", code: "11" },
   { name: "부산광역시", code: "21" }, { name: "대구광역시", code: "22" },
@@ -59,7 +43,7 @@ type AnalysisTab = "home" | "history" | "drafts" | "settings";
 type HistoryItem = {
   id: string;
   job_id?: string | null;
-  industry: string;
+  title: string;
   sido: string;
   sample_size: number;
   status: "done" | "running" | "error";
@@ -83,7 +67,6 @@ function historyHref(item: HistoryItem): string {
 }
 
 type AnalysisSettings = {
-  industry: string;
   definition: string;
   needs: string;
   target: string;
@@ -153,7 +136,11 @@ function UserDashboardInner() {
         const mapped: HistoryItem[] = (res.designs ?? []).map((d) => ({
           id: String(d.id),
           job_id: d.job_id ?? null,
-          industry: d.industry ?? "-",
+          title: (d.definition ?? "")
+            .replace(/^\[거래방식\][^\n]*\n*/m, "")
+            .replace(/^\[산업 분류\][^\n]*\n*/m, "")
+            .replace(/^\n+/, "")
+            .slice(0, 40) || "제목 없는 조사",
           sido: d.sido ?? "-",
           sample_size: d.sample_size ?? 0,
           status: mapStatus(d.status),
@@ -301,7 +288,7 @@ function UserDashboardInner() {
 
   /* 설정 (잠금 탭 — 미리보기용 state) */
   const [settings, setSettings] = useState<AnalysisSettings>({
-    industry: INDUSTRIES[0], definition: "", needs: "", target: "",
+    definition: "", needs: "", target: "",
     sido: "서울특별시", sampleSize: DEFAULT_SAMPLE_SIZE,
   });
   const [saved, setSaved] = useState(false);
@@ -539,7 +526,7 @@ function UserDashboardInner() {
                             className="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors group"
                           >
                             <div className="min-w-0">
-                              <p className="text-sm text-slate-800 font-medium truncate group-hover:text-indigo-700">{item.industry}</p>
+                              <p className="text-sm text-slate-800 font-medium truncate group-hover:text-indigo-700">{item.title}</p>
                               <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
                                 <span className="flex items-center gap-1"><MapPin size={9} />{item.sido}</span>
                                 <span className="flex items-center gap-1"><Users size={9} />{item.sample_size}명</span>
@@ -599,7 +586,7 @@ function UserDashboardInner() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-indigo-700">{item.industry}</p>
+                                <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-indigo-700">{item.title}</p>
                                 <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
                                   <span className="flex items-center gap-1"><MapPin size={10} />{item.sido}</span>
                                   <span className="flex items-center gap-1"><Users size={10} />{item.sample_size}명</span>
@@ -698,19 +685,6 @@ function UserDashboardInner() {
                   <div className="space-y-6 select-none pointer-events-none" style={{ filter: "blur(4px)", opacity: 0.45 }}>
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                       <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Globe size={15} className="text-indigo-600" /></div>
-                        <div><p className="text-sm font-semibold text-slate-800">산업 분류</p><p className="text-xs text-slate-500 mt-0.5">한국표준산업분류 11차 대분류 기준으로 분석 산업을 선택하세요.</p></div>
-                      </div>
-                      <div className="relative">
-                        <select value={settings.industry} onChange={e => updateSettings({ industry: e.target.value })}
-                          className="w-full appearance-none pl-4 pr-10 py-3 text-sm border border-slate-200 rounded-xl bg-slate-50 text-slate-800">
-                          {INDUSTRIES.map(i => <option key={i}>{i}</option>)}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                      <div className="flex items-start gap-3 mb-4">
                         <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Target size={15} className="text-indigo-600" /></div>
                         <div><p className="text-sm font-semibold text-slate-800">타겟 설정</p><p className="text-xs text-slate-500 mt-0.5">분석하고자 하는 타겟 고객을 구체적으로 설명하세요. (선택)</p></div>
                       </div>
@@ -759,7 +733,7 @@ function UserDashboardInner() {
                       </div>
                       <h3 className="text-base font-bold text-slate-900 mb-2">상세 설정은 현재 구현 중입니다</h3>
                       <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                        산업 분류, 타겟 설정, 제품 정의, 조사 니즈,<br />
+                        타겟 설정, 제품 정의, 조사 니즈,<br />
                         지역·가상인구 수를 미리 저장해 두는 기능을<br />
                         준비하고 있어요. 곧 만나보실 수 있습니다.
                       </p>

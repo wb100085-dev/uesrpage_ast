@@ -136,7 +136,6 @@ export async function generateHypotheses(body: {
   definition: string;
   needs: string;
   trade_type?: string;
-  industry?: string;
   attachments?: { data: string; mime?: string; description?: string }[];
 }): Promise<{ hypotheses: string[]; attachment_analysis?: string; design_id?: number | null }> {
   const model = await getEffectiveModel();
@@ -324,7 +323,6 @@ export interface DesignHistoryItem {
   // 백엔드 status: "hypotheses" | "questions" | "running" | "completed" | "error"
   status: string;
   trade_type?: string | null;
-  industry?: string | null;
   definition?: string | null;
   needs?: string | null;
   hypotheses?: string[] | null;

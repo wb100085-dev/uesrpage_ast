@@ -29,7 +29,6 @@ type UserRow = {
 type AnalysisLog = {
   id: string;
   user_email: string;
-  industry: string;
   definition: string;
   needs: string;
   target: string;
@@ -115,9 +114,9 @@ function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; s
 
 /* ─── CSV 다운로드 ──────────────────────────── */
 function downloadCSV(logs: AnalysisLog[]) {
-  const headers = ["#", "사용자", "산업분류", "제품정의", "조사니즈", "타겟", "지역", "표본수", "가설1", "가설2", "가설3", "상태", "일시"];
+  const headers = ["#", "사용자", "제품정의", "조사니즈", "타겟", "지역", "표본수", "가설1", "가설2", "가설3", "상태", "일시"];
   const rows = logs.map((l, i) => [
-    i + 1, l.user_email, l.industry, l.definition, l.needs, l.target,
+    i + 1, l.user_email, l.definition, l.needs, l.target,
     l.sido, l.sample_size, l.hypothesis_1, l.hypothesis_2, l.hypothesis_3,
     l.status, fmtDate(l.created_at),
   ]);
@@ -236,7 +235,6 @@ function AdminDashboardInner() {
   const filteredLogs = useMemo(() =>
     logs.filter(l =>
       l.user_email.includes(search) ||
-      l.industry.includes(search) ||
       l.sido.includes(search)
     ), [logs, search]);
 
@@ -245,7 +243,6 @@ function AdminDashboardInner() {
     const filtered = logs.filter(l =>
       !q ||
       l.user_email.toLowerCase().includes(q) ||
-      l.industry.toLowerCase().includes(q) ||
       l.sido.toLowerCase().includes(q) ||
       l.target.toLowerCase().includes(q) ||
       l.definition.toLowerCase().includes(q) ||
@@ -264,7 +261,6 @@ function AdminDashboardInner() {
   /* ── 시트 컬럼 정의 ── */
   const SHEET_COLS: { key: SortKey; label: string; width: string; align?: string }[] = [
     { key: "user_email",    label: "사용자",      width: "min-w-[160px]" },
-    { key: "industry",      label: "산업 분류",   width: "min-w-[200px]" },
     { key: "target",        label: "타겟",         width: "min-w-[140px]" },
     { key: "definition",    label: "제품/서비스 정의", width: "min-w-[260px]" },
     { key: "needs",         label: "조사 니즈",   width: "min-w-[260px]" },
@@ -446,7 +442,7 @@ function AdminDashboardInner() {
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3">
               <div className="relative flex-1 max-w-xs">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="이메일, 산업, 지역 검색..."
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="이메일, 지역 검색..."
                   className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all" />
               </div>
               <span className="text-xs text-slate-400">{filteredLogs.length}건</span>
@@ -457,7 +453,6 @@ function AdminDashboardInner() {
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 text-xs font-semibold">
                       <th className="px-5 py-3 text-left">사용자</th>
-                      <th className="px-5 py-3 text-left">산업 분류</th>
                       <th className="px-5 py-3 text-left">지역</th>
                       <th className="px-5 py-3 text-right">표본 수</th>
                       <th className="px-5 py-3 text-center">상태</th>
@@ -468,7 +463,6 @@ function AdminDashboardInner() {
                     {filteredLogs.map(l => (
                       <tr key={l.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-5 py-3 font-medium text-slate-800">{l.user_email}</td>
-                        <td className="px-5 py-3 text-slate-600 max-w-[160px] truncate">{l.industry}</td>
                         <td className="px-5 py-3 text-slate-600">{l.sido}</td>
                         <td className="px-5 py-3 text-right font-semibold text-slate-800">{l.sample_size}명</td>
                         <td className="px-5 py-3 text-center"><StatusBadge status={l.status} /></td>
@@ -555,8 +549,6 @@ function AdminDashboardInner() {
                             </td>
                             {/* 사용자 */}
                             <td className="border-r border-slate-100 px-3 py-2 font-medium text-slate-800 whitespace-nowrap">{row.user_email}</td>
-                            {/* 산업 */}
-                            <td className="border-r border-slate-100 px-3 py-2 text-slate-600 max-w-[200px] truncate">{row.industry}</td>
                             {/* 타겟 */}
                             <td className="border-r border-slate-100 px-3 py-2 text-slate-600 max-w-[140px] truncate">{row.target || <span className="text-slate-300">—</span>}</td>
                             {/* 제품 정의 */}
