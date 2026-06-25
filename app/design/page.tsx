@@ -17,6 +17,7 @@ import CheckoutDialog from "@/components/CheckoutDialog";
 import ReviewDialog from "@/components/ReviewDialog";
 import RequireAuth from "@/components/RequireAuth";
 import InfographicCard from "@/components/InfographicCard";
+import TechCopyCard from "@/components/TechCopyCard";
 import SocialTwinLoader from "@/components/SocialTwinLoader";
 import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
 import { getAccessToken, getCachedUser } from "@/lib/auth-api";
@@ -83,6 +84,11 @@ const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커�
 const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr", "hys@omninode.kr", ""];
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_running", "survey_result"];
+// 단계별 기술 카피(참고용/SocialTwin_단계별_기술카피_최종.md) 매핑 — design 8단계
+const STEP_TO_NUM: Record<Step, number> = {
+  input: 1, hyp_designing: 2, hyp_review: 3, survey_designing: 4,
+  survey_review: 5, result: 6, survey_running: 7, survey_result: 8,
+};
 const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "최종 검토", "설문 진행", "결과"];
 const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, BarChart2, Users, PieChart];
 
@@ -596,9 +602,11 @@ function DesignPageInner() {
     setStep(s);
   }
 
-  function startAnimation(labels: string[], onDone: () => void) {
+  // minDurationMs: API가 너무 빨리 끝나도 로딩 화면(기술 설명)을 최소 이 시간만큼 노출
+  function startAnimation(labels: string[], onDone: () => void, minDurationMs = 0) {
     setProgress(0);
     setProgressLabel(labels[0]);
+    const startedAt = Date.now();
     let p = 0; let li = 0;
     timerRef.current = setInterval(() => {
       p += Math.random() * 6 + 2;
@@ -608,10 +616,14 @@ function DesignPageInner() {
       setProgress(Math.min(p, 95));
     }, 200);
 
+    // 최소 노출 시간을 채울 때까지 대기(그 동안 막대는 95%까지 계속 진행)
     return () => {
-      stopTimer();
-      setProgress(100);
-      setTimeout(onDone, 400);
+      const wait = Math.max(0, minDurationMs - (Date.now() - startedAt));
+      setTimeout(() => {
+        stopTimer();
+        setProgress(100);
+        setTimeout(onDone, 400);
+      }, wait);
     };
   }
 
@@ -633,7 +645,8 @@ function DesignPageInner() {
 
     const finish = startAnimation(
       ["입력 내용 분석 중...", "시장 컨텍스트 파악 중...", "가설 도출 중...", "검토 중..."],
-      () => setStep("hyp_review")
+      () => setStep("hyp_review"),
+      5000
     );
 
     try {
@@ -670,7 +683,8 @@ function DesignPageInner() {
     setStep("survey_designing");
     const finish = startAnimation(
       ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "최종 검토 중..."],
-      () => setStep("survey_review")
+      () => setStep("survey_review"),
+      5000
     );
     try {
       const data = await generateQuestions({
@@ -805,22 +819,91 @@ function DesignPageInner() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar appMode />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10">
         <StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} />
+
+        {/* ── 단계 제목 — 전체 폭(2분할 위에 노출) ── */}
+        {step === "input" && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+              <Sparkles size={12} /> AI 시장조사 설계
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">어떤 시장조사가 필요하신가요?</h1>
+            <p className="text-sm sm:text-base text-slate-500">입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.</p>
+          </div>
+        )}
+        {(step === "hyp_designing" || step === "survey_designing" || step === "survey_running") && (
+          <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
+            <ArrowLeft size={15} /> 이전으로
+          </button>
+        )}
+        {step === "hyp_review" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
+            <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+              <ArrowLeft size={15} /> 이전으로
+            </button>
+            <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 가설 검토</h2>
+              <p className="text-xs text-slate-400 mt-0.5">조사에 사용할 가설을 선택하고 필요시 수정하세요</p>
+            </div>
+            <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-100">
+              <Lightbulb size={12} /> 가설 {hypothesisTexts.length}개 생성
+            </div>
+          </div>
+        )}
+        {step === "survey_review" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
+            <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+              <ArrowLeft size={15} /> 이전으로
+            </button>
+            <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 설문 검토</h2>
+              <p className="text-xs text-slate-400 mt-0.5">문항을 확인하고 필요시 수정하세요</p>
+            </div>
+            <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
+              <ListChecks size={12} /> {surveyQuestions.length}문항 생성
+            </div>
+          </div>
+        )}
+        {step === "result" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+              <ArrowLeft size={15} /> 이전으로
+            </button>
+            <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
+            </div>
+            <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
+              <Sparkles size={11} /> 설계 완료
+            </div>
+          </div>
+        )}
+        {step === "survey_result" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
+              <ArrowLeft size={15} /> 이전으로
+            </button>
+            <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 결과</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : ""}
+              </p>
+            </div>
+            <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
+              <PieChart size={11} /> 조사 완료
+            </div>
+          </div>
+        )}
+
+        {/* 2분할 — 좌: 작업/표시 화면, 우: 단계별 기술 설명 패널 */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6 lg:gap-8 items-start">
+          <div className="min-w-0">
 
         {/* ══════════════════════════════════════════
             1. 질문 입력
         ══════════════════════════════════════════ */}
         {step === "input" && (
           <div>
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-                <Sparkles size={12} /> AI 시장조사 설계
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">어떤 시장조사가 필요하신가요?</h1>
-              <p className="text-sm sm:text-base text-slate-500">입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.</p>
-            </div>
-
             {apiError && (
               <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
                 <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
@@ -1037,9 +1120,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "hyp_designing" && (
           <div>
-            <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
-              <ArrowLeft size={15} /> 이전으로
-            </button>
             <SocialTwinLoader
               screen="hypothesis"
               title="작성한 정보를 바탕으로 가설을 설계 중입니다"
@@ -1055,19 +1135,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "hyp_review" && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
-              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-                <ArrowLeft size={15} /> 이전으로
-              </button>
-              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 가설 검토</h2>
-                <p className="text-xs text-slate-400 mt-0.5">조사에 사용할 가설을 선택하고 필요시 수정하세요</p>
-              </div>
-              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-100">
-                <Lightbulb size={12} /> 가설 {hypothesisTexts.length}개 생성
-              </div>
-            </div>
-
             <div className="flex flex-col gap-3 mb-6">
               {hypothesisTexts.map((hyp, i) => {
                 const isSelected = selectedHypotheses.has(i);
@@ -1166,9 +1233,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_designing" && (
           <div>
-            <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
-              <ArrowLeft size={15} /> 이전으로
-            </button>
             <SocialTwinLoader
               screen="generate"
               title="가설을 바탕으로 설문을 생성 중입니다"
@@ -1184,19 +1248,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_review" && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
-              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-                <ArrowLeft size={15} /> 이전으로
-              </button>
-              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 설문 검토</h2>
-                <p className="text-xs text-slate-400 mt-0.5">문항을 확인하고 필요시 수정하세요</p>
-              </div>
-              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
-                <ListChecks size={12} /> {surveyQuestions.length}문항 생성
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
               {/* 왼쪽: 선택된 가설 요약 */}
               <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:sticky lg:top-20">
@@ -1399,18 +1450,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "result" && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-                <ArrowLeft size={15} /> 이전으로
-              </button>
-              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
-              </div>
-              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
-                <Sparkles size={11} /> 설계 완료
-              </div>
-            </div>
-
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
               {[
@@ -1555,9 +1594,6 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_running" && (
           <div>
-            <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
-              <ArrowLeft size={15} /> 이전으로
-            </button>
             <SocialTwinLoader
               screen="survey"
               title="가상인구 대상 조사를 실행 중입니다"
@@ -1574,22 +1610,31 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_result" && (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-                <ArrowLeft size={15} /> 이전으로
-              </button>
-              <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 결과</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : ""}
-                </p>
-              </div>
-              <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
-                <PieChart size={11} /> 조사 완료
-              </div>
-            </div>
-
             <div className="flex flex-col gap-5">
+              {/* 설문 개요 — 제품/서비스 정의 + 조사 목적·니즈 */}
+              {(productDef.trim() || researchPurpose.trim()) && (
+                <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+                    <FileText size={15} className="text-indigo-500" />
+                    <h3 className="text-sm font-semibold text-slate-800">설문 개요</h3>
+                  </div>
+                  <div className="p-5 flex flex-col gap-4">
+                    {productDef.trim() && (
+                      <div>
+                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">제품/서비스</p>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{productDef.trim()}</p>
+                      </div>
+                    )}
+                    {researchPurpose.trim() && (
+                      <div className={productDef.trim() ? "border-t border-slate-100 pt-4" : ""}>
+                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">조사 목적·니즈</p>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{researchPurpose.trim()}</p>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
               {/* 인포그래픽 요약 — 1슬라이드 핵심 카드 */}
               {infographic ? (
                 <InfographicCard info={infographic} />
@@ -1688,6 +1733,13 @@ function DesignPageInner() {
             </div>
           </div>
         )}
+
+          </div>
+          {/* 우측 — 단계별 기술 설명 패널 (데스크톱: 스티키) */}
+          <aside className="lg:sticky lg:top-20 self-start">
+            <TechCopyCard step={STEP_TO_NUM[step]} />
+          </aside>
+        </div>
       </div>
 
       {paymentsEnabled && checkoutOpen && (

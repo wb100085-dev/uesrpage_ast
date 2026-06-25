@@ -13,7 +13,6 @@ import {
  * 이식해 핵심 지표를 한눈에 보여주고, 이하 섹션은 흰색 rounded-2xl 카드로 정돈.
  */
 
-const KPI_COLORS = ["bg-indigo-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500", "bg-sky-500", "bg-rose-500", "bg-fuchsia-500", "bg-teal-500"];
 const KPI_ICONS = [TrendingUp, BarChart2, Activity, PieChart];
 
 /* 섹션 카드 — 설계 단계(app/design)의 section 패턴과 동일 */
@@ -52,7 +51,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
       <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 sm:px-6 py-5 text-white">
           <div className="flex items-center gap-1.5 text-indigo-100 text-[11px] font-semibold uppercase tracking-wider">
-            <FileBarChart size={13} /> 결과 요약 개요
+            <FileBarChart size={13} /> 분석 결과 요약
           </div>
           {info.headline && (
             <h2 className="text-xl sm:text-2xl font-bold mt-1.5 leading-snug">{info.headline}</h2>
@@ -74,8 +73,8 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
                       <p className="text-xl font-bold text-slate-900 truncate" title={c.value}>{c.value}</p>
                       {c.sub && <p className="text-[11px] text-slate-400 mt-1 truncate">{c.sub}</p>}
                     </div>
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${KPI_COLORS[i % KPI_COLORS.length]}`}>
-                      <Icon size={16} className="text-white" />
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-100">
+                      <Icon size={16} className="text-slate-400" />
                     </div>
                   </div>
                 </div>
