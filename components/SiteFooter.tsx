@@ -58,27 +58,27 @@ export default function SiteFooter() {
               <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">사업자 정보</div>
               <dl className="space-y-1.5 text-slate-500 leading-relaxed">
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">상호</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">상호</dt>
                   <dd>주식회사 옴니노드 (Omninode Co., Ltd.)</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">대표자</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">대표자</dt>
                   <dd>황영순</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">사업자등록번호</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">사업자등록번호</dt>
                   <dd>366-86-04216</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">통신판매업 신고번호</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">통신판매업 신고번호</dt>
                   <dd>제2026-대구북구-0639호</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">사업장 소재지</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">사업장 소재지</dt>
                   <dd className="break-keep">대구광역시 북구 호암로 51, 4층 AX창업오피스</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-28">결제대행사</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">결제대행사</dt>
                   <dd>㈜토스페이먼츠</dd>
                 </div>
               </dl>
