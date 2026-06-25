@@ -310,35 +310,38 @@ function FeatureVisualTime() {
 }
 
 function FeatureVisualTrust() {
-  const grades = [
-    { n: "9", label: "안정", num: "text-emerald-600", dot: "bg-emerald-500" },
-    { n: "2", label: "주의", num: "text-amber-600", dot: "bg-amber-500" },
-    { n: "1", label: "재검증", num: "text-rose-600", dot: "bg-rose-500" },
+  const metrics = [
+    { label: "분포정합성", value: 94.5, sub: "MAE 5.5%p", num: "text-emerald-600", bar: "bg-emerald-500" },
+    { label: "순위정합성", value: 89.5, sub: "Spearman ρ 0.895", num: "text-teal-600", bar: "bg-teal-500" },
   ];
   return (
     <div className="relative h-48 bg-emerald-50 overflow-hidden border-b border-emerald-100">
       <div className="absolute inset-0 p-4 flex flex-col justify-center gap-2.5">
-        {/* 타이틀 — 문항별 신뢰등급 검증 */}
+        {/* 타이틀 — 실제 인간 응답 대비 검증 */}
         <div className="flex items-center justify-center gap-1.5">
           <Shield size={12} className="text-emerald-500" />
-          <span className="text-[11px] font-semibold text-emerald-700">문항별 신뢰등급 검증</span>
+          <span className="text-[11px] font-semibold text-emerald-700">실제 인간 응답 대비 검증</span>
         </div>
-        {/* 등급 요약 카드 — 안정/주의/재검증 */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-3 max-w-[280px] mx-auto w-full">
-          <div className="grid grid-cols-3 gap-2">
-            {grades.map((g) => (
-              <div key={g.label} className="flex flex-col items-center gap-1">
-                <span className={`text-2xl font-extrabold tabular-nums leading-none ${g.num}`}>{g.n}</span>
-                <span className="flex items-center gap-1 text-[9px] text-slate-500">
-                  <span className={`w-1.5 h-1.5 rounded-full ${g.dot}`} /> {g.label}
+        {/* 정합성 지표 카드 — 분포/순위 */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2.5 max-w-[280px] mx-auto w-full flex flex-col gap-2">
+          {metrics.map((m) => (
+            <div key={m.label}>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-[10px] font-medium text-slate-500">{m.label}</span>
+                <span className="flex items-baseline gap-1">
+                  <span className={`text-base font-extrabold tabular-nums leading-none ${m.num}`}>{m.value}%</span>
+                  <span className="text-[8px] text-slate-400">{m.sub}</span>
                 </span>
               </div>
-            ))}
-          </div>
+              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${m.value}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
         {/* 캡션 */}
         <div className="text-center flex items-center justify-center gap-1.5">
-          <span className="text-emerald-600 text-[10px] font-medium">반복·변형 재실행으로 결과 일관성 교차검증</span>
+          <span className="text-emerald-600 text-[10px] font-medium">가상패널 응답을 실제 조사집단과 교차검증</span>
         </div>
       </div>
     </div>
@@ -499,7 +502,7 @@ const features = [
   },
   {
     title: "6. 검증된 신뢰도",
-    desc: "같은 설문을 반복·문항 변형으로 재실행해 결과의 일관성을 교차검증하고, 문항마다 신뢰등급을 부여합니다. 흔들림이 큰 문항은 자동으로 표시해 산출물의 품질을 보증합니다.",
+    desc: "생성된 가상인구의 응답을 실제 인간 응답 대비 검증합니다. 분포정합성 94.5%, 순위정합성 89.5%.",
     visual: <FeatureVisualTrust />,
   },
 ];
