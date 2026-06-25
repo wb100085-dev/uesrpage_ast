@@ -49,26 +49,64 @@ function Bar({ label, pct, maxPct, gradient }: { label: string; pct: number; max
 }
 
 function QuestionCard({ result }: { result: SurveyResult }) {
+  const isOpen = result.유형.includes("주관");
   const maxPct = Math.max(...result.분포.map((d) => d["비율(%)"]), 1);
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-      <div className="text-xs text-indigo-500 font-semibold mb-1">Q{result.문항번호}. {result.제목}</div>
-      <div className="text-sm text-slate-700 mb-4">{result.질문}</div>
-      <div className="space-y-2.5">
-        {result.분포.slice(0, 6).map((d, i) => (
-          <Bar
-            key={d.선택지}
-            label={d.선택지}
-            pct={d["비율(%)"]}
-            maxPct={maxPct}
-            gradient={COLORS[i % COLORS.length]}
-          />
-        ))}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="text-xs text-indigo-500 font-semibold">Q{result.문항번호}. {result.제목}</div>
+        {isOpen && (
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">
+            <MessageCircle size={10} /> 주관식
+          </span>
+        )}
       </div>
-      {result.평균점수 && (
-        <div className="mt-3 text-xs text-slate-400">
-          평균 점수: <span className="font-semibold text-slate-600">{result.평균점수.toFixed(2)}</span>
-        </div>
+      <div className="text-sm text-slate-700 mb-4">{result.질문}</div>
+
+      {isOpen ? (
+        result.분포.length > 0 ? (
+          /* 주관식 — 대표 응답·키워드를 카드 크기에 맞게 리스트로 표시 */
+          <div className="space-y-2">
+            {result.분포.slice(0, 5).map((d, i) => (
+              <div key={i} className="flex items-start gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-white border border-slate-200 text-[10px] font-bold text-slate-400 flex items-center justify-center mt-0.5">{i + 1}</span>
+                <p className="flex-1 min-w-0 text-sm text-slate-700 leading-relaxed">{d.선택지}</p>
+                {d["비율(%)"] > 0 && (
+                  <span className="shrink-0 text-[11px] font-semibold text-slate-400 tabular-nums mt-0.5">{d["비율(%)"]}%</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* 주관식인데 집계 분포가 없을 때 — 빈 카드 대신 안내로 채움 */
+          <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 px-4 py-7 text-center">
+            <MessageCircle size={22} className="mx-auto mb-2.5 text-slate-300" />
+            <p className="text-xs text-slate-500 leading-relaxed">
+              자유 서술형 응답이라 선택지 분포로 집계되지 않습니다.<br />
+              원문과 요약은 <span className="font-semibold text-slate-600">상세보고서(PDF)</span>와
+              우측 <span className="font-semibold text-slate-600">‘가상인구 패널에게 질문’</span>에서 확인하세요.
+            </p>
+          </div>
+        )
+      ) : (
+        <>
+          <div className="space-y-2.5">
+            {result.분포.slice(0, 6).map((d, i) => (
+              <Bar
+                key={d.선택지}
+                label={d.선택지}
+                pct={d["비율(%)"]}
+                maxPct={maxPct}
+                gradient={COLORS[i % COLORS.length]}
+              />
+            ))}
+          </div>
+          {result.평균점수 && (
+            <div className="mt-3 text-xs text-slate-400">
+              평균 점수: <span className="font-semibold text-slate-600">{result.평균점수.toFixed(2)}</span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -86,7 +124,6 @@ function ResultsPageInner() {
   const params = useParams();
   const jobId = params.id as string;
 
-  const [tab, setTab] = useState<"overview" | "chat">("overview");
   const [data, setData] = useState<{ results: SurveyResult[]; report: SurveyReport; n_respondents: number; sido: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,7 +269,7 @@ function ResultsPageInner() {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto w-full px-5 sm:px-6 py-8 sm:py-10">
+      <div className="max-w-7xl mx-auto w-full px-5 sm:px-6 py-8 sm:py-10">
 
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-8 animate-fade-up">
@@ -323,27 +360,15 @@ function ResultsPageInner() {
           ))}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit mb-6 animate-fade-up-2 shadow-sm">
-          {(["overview", "chat"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                tab === t ? "bg-slate-900 text-white shadow-sm" : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {t === "overview"
-                ? <span className="flex items-center gap-1.5"><BarChart2 size={13} />문항별 결과</span>
-                : <span className="flex items-center gap-1.5"><MessageCircle size={13} />가상인구 패널에게 질문</span>
-              }
-            </button>
-          ))}
-        </div>
+        {/* 문항별 결과 제목 — 전체 폭(2분할 위) */}
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 mb-4 animate-fade-up-2">
+          <BarChart2 size={15} className="text-indigo-500" /> 문항별 결과
+        </h2>
 
-        {/* Overview */}
-        {tab === "overview" && (
-          <div className="space-y-5 animate-scale-in">
+        {/* 본문 2분할 — 좌: 문항 카드 / 우: 가상인구 패널 질문 (분할비율 동일) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6 lg:gap-8 items-start animate-fade-up-2">
+          {/* 좌 — 문항 카드 */}
+          <div className="min-w-0 space-y-5">
             <div className="grid md:grid-cols-2 gap-5">
               {data.results.map((r) => (
                 <QuestionCard key={r.문항번호} result={r} />
@@ -371,18 +396,16 @@ function ResultsPageInner() {
               </div>
             )}
           </div>
-        )}
 
-        {/* 가상인구 패널에게 질문 (챗) */}
-        {tab === "chat" && (
-          <div className="animate-scale-in">
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[26rem]">
+          {/* 우 — 가상인구 패널에게 질문 (스티키) */}
+          <aside className="lg:sticky lg:top-20 self-start">
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[32rem] lg:h-[calc(100vh-7rem)]">
               <div className="px-5 py-4 border-b border-slate-100">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
                 </h3>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  이 조사에 응답한 가상인구 패널 결과를 바탕으로 AI가 답합니다.
+                  이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 할 수 있습니다.
                 </p>
               </div>
 
@@ -393,7 +416,7 @@ function ResultsPageInner() {
                     <MessageCircle size={28} className="mx-auto mb-3 text-slate-300" />
                     궁금한 점을 물어보세요.
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                      {["가장 중요한 시사점은?", "어떤 세그먼트를 먼저 공략해야 하나요?", "가격 저항은 어느 정도인가요?"].map((ex) => (
+                      {["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"].map((ex) => (
                         <button
                           key={ex}
                           onClick={() => setChatInput(ex)}
@@ -460,8 +483,8 @@ function ResultsPageInner() {
                 </form>
               </div>
             </div>
-          </div>
-        )}
+          </aside>
+        </div>
       </div>
     </div>
   );

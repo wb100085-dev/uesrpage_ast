@@ -8,15 +8,31 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { X, ShieldCheck, Loader2, Check, CreditCard, Landmark, Wallet } from "lucide-react";
+import { X, ShieldCheck, Loader2, Check, CreditCard, Landmark, Wallet, MessageCircle, AlertTriangle } from "lucide-react";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
 
 const won = (n: number) => n.toLocaleString("ko-KR") + "원";
 
+// 토스 클라이언트 키 접두사로 결제 모드 판별:
+// test_ck_/test_gck_ → 테스트(실제 청구 없음), live_ck_/live_gck_ → 실결제(실제 카드 청구)
+function keyMode(clientKey?: string): "test" | "live" | "unknown" {
+  if (!clientKey) return "unknown";
+  if (clientKey.startsWith("test_")) return "test";
+  if (clientKey.startsWith("live_")) return "live";
+  return "unknown";
+}
+
+// 키 모드 배지 노출 조건 — 개발 환경은 항상, 프로덕션은 NEXT_PUBLIC_PAYMENTS_DEBUG=true 일 때만.
+// (라이브 키 여부를 운영에서 확인하려면 Vercel 환경변수로 잠시 켰다가 끄면 됨)
+const SHOW_KEY_DEBUG =
+  process.env.NODE_ENV !== "production" ||
+  process.env.NEXT_PUBLIC_PAYMENTS_DEBUG === "true";
+
 // 왼쪽 정보 패널에 표시할 상세보고서 포함 내역 (참고용 예시 보고서 구성 기준)
 const REPORT_FEATURES = [
   "핵심 지표(KPI)·가설 검증 요약",
+  "가상인구 패널에게 질문하기 (AI 추가 질의)",
   "가상인구 패널 인구통계 정보",
   "문항별 응답 분포 (전 문항)",
   "시장반응·세그먼트·가격·전략 심층 분석",
@@ -134,42 +150,54 @@ export default function CheckoutDialog({
             가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요.
           </p>
 
-          {/* 실제 보고서 페이지 미리보기 */}
+          {/* 실제 보고서 페이지 미리보기 — 3장 한 줄 배치 */}
           <div className="mt-5">
-            <div className="relative">
-              <div className="absolute -inset-1 translate-x-1.5 translate-y-1.5 rotate-2 rounded-xl bg-white/15" />
-              <div className="relative rounded-xl overflow-hidden ring-1 ring-white/40 shadow-xl bg-white">
-                <Image
-                  src="/checkout/report-summary.png"
-                  alt="상세보고서 '조사결과 요약' 페이지 예시"
-                  width={460}
-                  height={650}
-                  className="w-full h-44 object-cover object-top"
-                />
-              </div>
-            </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <div className="rounded-lg overflow-hidden ring-1 ring-white/30 bg-white">
-                <Image
-                  src="/checkout/report-cover.png"
-                  alt="보고서 표지 예시"
-                  width={300}
-                  height={420}
-                  className="w-full h-16 object-cover object-top"
-                />
-              </div>
-              <div className="rounded-lg overflow-hidden ring-1 ring-white/30 bg-white">
-                <Image
-                  src="/checkout/report-detail.png"
-                  alt="문항별 응답 분포 예시"
-                  width={300}
-                  height={420}
-                  className="w-full h-16 object-cover object-top"
-                />
-              </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { src: "/checkout/report-summary.png", alt: "상세보고서 '조사결과 요약' 페이지 예시" },
+                { src: "/checkout/report-cover.png", alt: "보고서 표지 예시" },
+                { src: "/checkout/report-detail.png", alt: "문항별 응답 분포 예시" },
+              ].map((img) => (
+                <div key={img.src} className="rounded-lg overflow-hidden ring-1 ring-white/40 shadow-lg bg-white">
+                  <Image
+                    src={img.src}
+                    alt={img.alt}
+                    width={300}
+                    height={420}
+                    className="w-full h-28 object-cover object-top"
+                  />
+                </div>
+              ))}
             </div>
             <p className="mt-2 text-[11px] text-indigo-200 text-center">
               ▲ 실제 상세보고서 예시 (요약·표지·문항별 분포)
+            </p>
+          </div>
+
+          {/* 가상인구 패널에게 질문 — 미리보기(스크린샷) */}
+          <div className="mt-5 rounded-xl bg-white/10 ring-1 ring-white/20 p-3.5">
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold">
+              <MessageCircle size={14} /> 가상인구 패널에게 질문
+            </div>
+            <p className="mt-1 text-[11px] text-indigo-100 leading-relaxed">
+              결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을
+              던지고 응답을 받아볼 수 있습니다.
+            </p>
+            {/* 챗 화면 미리보기 */}
+            <div className="mt-2.5 rounded-lg bg-white p-2.5 shadow-inner space-y-1.5">
+              <div className="flex justify-end">
+                <span className="max-w-[85%] rounded-lg rounded-br-sm bg-indigo-600 text-white text-[10px] px-2.5 py-1.5 leading-snug">
+                  이 제품을 선택한 이유가 무엇인가요?
+                </span>
+              </div>
+              <div className="flex justify-start">
+                <span className="max-w-[88%] rounded-lg rounded-bl-sm bg-slate-100 text-slate-700 text-[10px] px-2.5 py-1.5 leading-snug">
+                  기존 방식이 번거로웠는데, 이 기능이면 시간을 아낄 수 있을 것 같아 관심이 갔어요.
+                </span>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-indigo-200 text-center">
+              ▲ 설문에 참여한 가상패널에게 직접 질문하는 예시
             </p>
           </div>
 
@@ -195,6 +223,28 @@ export default function CheckoutDialog({
           <p className="mt-0.5 text-xs text-slate-500">
             선택 후 결제하기를 누르면 토스 결제창이 열립니다.
           </p>
+
+          {/* 키 모드 디버그 배지 — 현재 백엔드가 내려준 client_key 가 test/live 인지 표시 */}
+          {SHOW_KEY_DEBUG && order && (() => {
+            const mode = keyMode(order.client_key);
+            const cls =
+              mode === "live" ? "border-red-200 bg-red-50 text-red-700"
+              : mode === "test" ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-amber-200 bg-amber-50 text-amber-700";
+            const label =
+              mode === "live" ? "LIVE 키 — 실제 카드가 청구됩니다"
+              : mode === "test" ? "TEST 키 — 실제 청구 없음(테스트 결제)"
+              : "키 모드 확인 불가";
+            return (
+              <div className={`mt-3 rounded-lg border px-3 py-2 text-[11px] font-semibold flex items-center gap-2 ${cls}`}>
+                {mode === "live" ? <AlertTriangle size={13} className="shrink-0" /> : <ShieldCheck size={13} className="shrink-0" />}
+                <span className="min-w-0">
+                  {label}
+                  <span className="ml-1.5 font-mono font-normal text-[10px] opacity-70 break-all">{order.client_key.slice(0, 12)}…</span>
+                </span>
+              </div>
+            );
+          })()}
 
           <div className="mt-4 relative min-h-[180px]">
             {loading ? (
