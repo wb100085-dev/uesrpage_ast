@@ -122,7 +122,7 @@ export default function SiteFooter() {
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-20">운영시간</dt>
-                  <dd>평일 10:00 – 18:00 (주말·공휴일 휴무)</dd>
+                  <dd>평일 10:00 – 17:00 (점심 12:00 – 13:30, 주말·공휴일 휴무)</dd>
                 </div>
                 <div className="pt-2 mt-2 border-t border-slate-200/70">
                   <div className="text-[11px] font-semibold text-slate-600 mb-1">개인정보 보호책임자</div>
