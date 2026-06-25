@@ -70,6 +70,10 @@ export default function SiteFooter() {
                   <dd>366-86-04216</dd>
                 </div>
                 <div className="flex gap-2">
+                  <dt className="text-slate-400 flex-shrink-0 w-28">통신판매업 신고번호</dt>
+                  <dd>제2026-대구북구-0639호</dd>
+                </div>
+                <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-28">사업장 소재지</dt>
                   <dd className="break-keep">대구광역시 북구 호암로 51, 4층 AX창업오피스</dd>
                 </div>
