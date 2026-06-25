@@ -1,140 +1,186 @@
 "use client";
 
 import type { InfographicSummary } from "@/lib/survey-api";
+import {
+  FileBarChart, FlaskConical, Lightbulb, Rocket, Users,
+  AlertTriangle, Target, Quote, TrendingUp, BarChart2,
+  Activity, PieChart, CheckCircle2,
+} from "lucide-react";
 
 /**
- * 조사 결과 1슬라이드 인포그래픽 요약.
- * 관리자 프론트엔드(admin_Frontend) Survey.tsx 의 InfographicCard 를 이식 —
- * brand 계열 색상만 사용자 페이지 톤(indigo)으로 맞춤.
+ * 조사 결과 요약 — 사용자 페이지 설계 단계와 동일한 디자인 언어로 리디자인.
+ * 상단 '개요(Overview)'는 관리자 대시보드 StatCard 스타일(컬러 아이콘 타일 + 큰 수치)을
+ * 이식해 핵심 지표를 한눈에 보여주고, 이하 섹션은 흰색 rounded-2xl 카드로 정돈.
  */
+
+const KPI_COLORS = ["bg-indigo-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500", "bg-sky-500", "bg-rose-500", "bg-fuchsia-500", "bg-teal-500"];
+const KPI_ICONS = [TrendingUp, BarChart2, Activity, PieChart];
+
+/* 섹션 카드 — 설계 단계(app/design)의 section 패턴과 동일 */
+function Section({
+  icon: Icon,
+  iconColor,
+  title,
+  children,
+}: {
+  icon: React.ElementType;
+  iconColor: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+        <Icon size={15} className={iconColor} />
+        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
 export default function InfographicCard({ info }: { info: InfographicSummary }) {
   const verdictBadge = (v: string) => {
-    if (v.includes("채택")) return "bg-emerald-100 text-emerald-700 border-emerald-200";
-    if (v.includes("기각")) return "bg-rose-100 text-rose-700 border-rose-200";
-    return "bg-amber-100 text-amber-700 border-amber-200";
+    if (v.includes("채택")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (v.includes("기각")) return "bg-rose-50 text-rose-700 border-rose-200";
+    return "bg-amber-50 text-amber-700 border-amber-200";
   };
+
   return (
-    <div className="rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-fuchsia-50 p-5 sm:p-6 shadow-lg shadow-indigo-100">
-      {info.headline && (
-        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 text-center leading-snug">
-          {info.headline}
-        </h2>
-      )}
-      {info.subheadline && (
-        <p className="text-sm text-slate-600 mb-4 text-center mt-1">{info.subheadline}</p>
-      )}
-
-      {/* KPI 카드 — 기본 8개 */}
-      {info.kpi_cards && info.kpi_cards.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {info.kpi_cards.map((c, i) => (
-            <div key={i} className="bg-white rounded-xl p-3 border border-slate-200 text-center">
-              <div className="text-[10px] uppercase tracking-wide text-slate-500">{c.label}</div>
-              <div className="text-xl font-bold text-indigo-700 mt-1 truncate" title={c.value}>{c.value}</div>
-              {c.sub && <div className="text-[10px] text-slate-400 mt-0.5">{c.sub}</div>}
-            </div>
-          ))}
+    <div className="flex flex-col gap-5">
+      {/* ── 개요(Overview) — 리포트 헤더 + KPI 타일 (관리자 대시보드 이식) ── */}
+      <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 sm:px-6 py-5 text-white">
+          <div className="flex items-center gap-1.5 text-indigo-100 text-[11px] font-semibold uppercase tracking-wider">
+            <FileBarChart size={13} /> 결과 요약 개요
+          </div>
+          {info.headline && (
+            <h2 className="text-xl sm:text-2xl font-bold mt-1.5 leading-snug">{info.headline}</h2>
+          )}
+          {info.subheadline && (
+            <p className="text-sm text-indigo-100 mt-1.5 leading-relaxed">{info.subheadline}</p>
+          )}
         </div>
-      )}
 
-      {/* 가설 검증 — 가설별 채택/기각/혼합 */}
+        {info.kpi_cards && info.kpi_cards.length > 0 && (
+          <div className="p-5 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {info.kpi_cards.map((c, i) => {
+              const Icon = KPI_ICONS[i % KPI_ICONS.length];
+              return (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium text-slate-500 mb-1 truncate" title={c.label}>{c.label}</p>
+                      <p className="text-xl font-bold text-slate-900 truncate" title={c.value}>{c.value}</p>
+                      {c.sub && <p className="text-[11px] text-slate-400 mt-1 truncate">{c.sub}</p>}
+                    </div>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${KPI_COLORS[i % KPI_COLORS.length]}`}>
+                      <Icon size={16} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── 가설 검증 ── */}
       {info.hypothesis_validation && info.hypothesis_validation.length > 0 && (
-        <div className="mb-6">
-          <h4 className="font-bold text-sm text-slate-700 mb-2 flex items-center gap-1">🧪 가설 검증</h4>
-          <div className="space-y-2">
+        <Section icon={FlaskConical} iconColor="text-indigo-500" title="가설 검증">
+          <div className="space-y-2.5">
             {info.hypothesis_validation.map((h, i) => (
-              <div key={i} className="bg-white rounded-lg p-3 border border-slate-200">
-                <div className="flex items-start gap-2">
+              <div key={i} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-start gap-2.5">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full border font-bold whitespace-nowrap ${verdictBadge(h.verdict)}`}>
                     H{i + 1} {h.verdict}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-slate-900">{h.hypothesis}</div>
-                    <div className="text-xs text-slate-600 mt-0.5">근거: {h.evidence}</div>
+                    <div className="text-xs text-slate-500 mt-1">근거: {h.evidence}</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        </Section>
+      )}
+
+      {/* ── 핵심 발견 + 다음 액션 — 2열 ── */}
+      {((info.key_findings && info.key_findings.length > 0) || (info.next_actions && info.next_actions.length > 0)) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {info.key_findings && info.key_findings.length > 0 && (
+            <Section icon={Lightbulb} iconColor="text-emerald-500" title="핵심 발견">
+              <ul className="space-y-2">
+                {info.key_findings.map((f, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                    <span className="leading-relaxed">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+          {info.next_actions && info.next_actions.length > 0 && (
+            <Section icon={Rocket} iconColor="text-fuchsia-500" title="다음 액션">
+              <ul className="space-y-2">
+                {info.next_actions.map((a, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
+                    <CheckCircle2 size={16} className="text-fuchsia-500 flex-shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{a}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
         </div>
       )}
 
-      {/* 핵심 발견 + 다음 액션 — 2열 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {info.key_findings && info.key_findings.length > 0 && (
-          <div>
-            <h4 className="font-bold text-sm text-emerald-700 mb-2 flex items-center gap-1">💡 핵심 발견</h4>
-            <ul className="space-y-1.5">
-              {info.key_findings.map((f, i) => (
-                <li key={i} className="text-sm text-slate-700 flex items-start gap-2 bg-white rounded p-2 border border-emerald-100">
-                  <span className="text-emerald-600 font-bold shrink-0">{i + 1}.</span>
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {info.next_actions && info.next_actions.length > 0 && (
-          <div>
-            <h4 className="font-bold text-sm text-fuchsia-700 mb-2 flex items-center gap-1">🚀 다음 액션</h4>
-            <ul className="space-y-1.5">
-              {info.next_actions.map((a, i) => (
-                <li key={i} className="text-sm text-slate-700 flex items-start gap-2 bg-white rounded p-2 border border-fuchsia-100">
-                  <span className="text-fuchsia-600 font-bold shrink-0">▶</span>
-                  <span>{a}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* 타깃 세그먼트 */}
+      {/* ── 타깃 세그먼트 ── */}
       {info.target_segments && info.target_segments.length > 0 && (
-        <div className="mb-6">
-          <h4 className="font-bold text-sm text-purple-700 mb-2 flex items-center gap-1">👥 타깃 세그먼트</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <Section icon={Users} iconColor="text-purple-500" title="타깃 세그먼트">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {info.target_segments.map((s, i) => (
-              <div key={i} className="bg-white rounded-lg p-3 border border-purple-100">
-                <div className="text-xs font-bold text-purple-700 mb-1">{s.segment}</div>
-                <div className="text-xs text-slate-700">{s.insight}</div>
+              <div key={i} className="rounded-xl border border-slate-200 p-3.5">
+                <div className="text-xs font-bold text-purple-700 mb-1.5">{s.segment}</div>
+                <div className="text-xs text-slate-600 leading-relaxed">{s.insight}</div>
               </div>
             ))}
           </div>
+        </Section>
+      )}
+
+      {/* ── 리스크 + 기회 — 2열 ── */}
+      {((info.risks && info.risks.length > 0) || (info.opportunities && info.opportunities.length > 0)) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {info.risks && info.risks.length > 0 && (
+            <Section icon={AlertTriangle} iconColor="text-rose-500" title="리스크">
+              <ul className="space-y-2">
+                {info.risks.map((r, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">!</span>
+                    <span className="leading-relaxed">{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+          {info.opportunities && info.opportunities.length > 0 && (
+            <Section icon={Target} iconColor="text-blue-500" title="기회 영역">
+              <ul className="space-y-2">
+                {info.opportunities.map((o, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">+</span>
+                    <span className="leading-relaxed">{o}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
         </div>
       )}
 
-      {/* 리스크 + 기회 — 2열 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {info.risks && info.risks.length > 0 && (
-          <div>
-            <h4 className="font-bold text-sm text-rose-700 mb-2 flex items-center gap-1">⚠️ 리스크</h4>
-            <ul className="space-y-1.5">
-              {info.risks.map((r, i) => (
-                <li key={i} className="text-sm text-slate-700 flex items-start gap-2 bg-white rounded p-2 border border-rose-100">
-                  <span className="text-rose-600 font-bold shrink-0">!</span>
-                  <span>{r}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {info.opportunities && info.opportunities.length > 0 && (
-          <div>
-            <h4 className="font-bold text-sm text-blue-700 mb-2 flex items-center gap-1">🎯 기회 영역</h4>
-            <ul className="space-y-1.5">
-              {info.opportunities.map((o, i) => (
-                <li key={i} className="text-sm text-slate-700 flex items-start gap-2 bg-white rounded p-2 border border-blue-100">
-                  <span className="text-blue-600 font-bold shrink-0">+</span>
-                  <span>{o}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* 고객 인터뷰 인용 (key_quotes 3개 우선, 없으면 단일 key_quote 폴백) */}
+      {/* ── 고객 인터뷰 ── */}
       {(() => {
         const quotes = (info.key_quotes && info.key_quotes.length
           ? info.key_quotes
@@ -142,17 +188,16 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
         ).filter((q) => q && q.text).slice(0, 3);
         if (!quotes.length) return null;
         return (
-          <div>
-            <div className="text-xs font-bold text-amber-700 mb-2">💬 고객 인터뷰</div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <Section icon={Quote} iconColor="text-amber-500" title="고객 인터뷰">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {quotes.map((q, i) => (
-                <div key={i} className="bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-amber-400 rounded-r-lg p-3">
+                <div key={i} className="border-l-2 border-amber-300 bg-slate-50 rounded-r-xl p-3.5">
                   <blockquote className="text-sm text-slate-800 italic leading-relaxed">&ldquo;{q.text}&rdquo;</blockquote>
-                  {q.source && <div className="text-[11px] text-amber-600 mt-1 text-right">— {q.source}</div>}
+                  {q.source && <div className="text-[11px] text-amber-600 mt-2 text-right font-medium">— {q.source}</div>}
                 </div>
               ))}
             </div>
-          </div>
+          </Section>
         );
       })()}
     </div>
