@@ -67,15 +67,13 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
     return () => { cancelled = true; };
   }, [open]);
 
-  // ESC 닫기 + 스크롤 잠금
+  // 스크롤 잠금 — 설문 작성 중 실수로 닫히지 않도록 ESC·바깥 클릭으로는 닫지 않음(상단 X 버튼으로만 닫기)
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
-  }, [open, onClose]);
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
 
   if (!open) return null;
 
@@ -177,7 +175,8 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
+      {/* 바깥 클릭으로는 닫지 않음 — 작성 중 실수 방지(상단 X 버튼으로만 닫기) */}
+      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
 
       <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl shadow-black/30 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400" />
@@ -194,7 +193,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">{h.meta}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1 -mr-1 flex-shrink-0" aria-label="닫기">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 -mr-1 flex-shrink-0 transition-colors" aria-label="닫기" title="닫기">
             <X size={18} />
           </button>
         </div>

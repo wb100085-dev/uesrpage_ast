@@ -396,11 +396,9 @@ function DesignPageInner() {
   // 요약보고서 PDF 다운로드 상태
   const [summaryDownloading, setSummaryDownloading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  // 결제(토스) 노출 여부 — 개발 환경에서만 결제 플로우, 배포(프로덕션)는 기존 문의(메일) 유지.
-  // 토스 가맹점 심사·승인 완료 후 프로덕션에서도 켜려면 Vercel에 NEXT_PUBLIC_ENABLE_PAYMENTS=true.
-  const envPaymentsEnabled =
-    process.env.NEXT_PUBLIC_ENABLE_PAYMENTS === "true" ||
-    process.env.NODE_ENV !== "production";
+  // 결제(토스) 전체 공개 — 관리자 외 모든 방문자에게 결제 플로우 노출.
+  // (이전엔 프로덕션에서 NEXT_PUBLIC_ENABLE_PAYMENTS=true 또는 허용 이메일에만 노출)
+  const envPaymentsEnabled = true;
   // 결제 허용 이메일(allowlist) — 프로덕션에서도 이 계정으로 로그인하면 결제 플로우 노출.
   // localStorage(캐시 사용자)는 마운트 후 effect에서 읽어 SSR 하이드레이션 미스매치를 피한다.
   const [paymentsAllowlisted, setPaymentsAllowlisted] = useState(false);
