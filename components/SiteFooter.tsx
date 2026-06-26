@@ -74,8 +74,12 @@ export default function SiteFooter() {
                   <dd>제2026-대구북구-0639호</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-slate-400 flex-shrink-0 w-32">사업장 소재지</dt>
+                  <dt className="text-slate-400 flex-shrink-0 w-32">본사 소재지</dt>
                   <dd className="break-keep">대구광역시 북구 호암로 51, 4층 AX창업오피스</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-slate-400 flex-shrink-0 w-32">연구소 소재지</dt>
+                  <dd className="break-keep">대구광역시 남구 명덕로 104 동서문화관 410호</dd>
                 </div>
                 <div className="flex gap-2">
                   <dt className="text-slate-400 flex-shrink-0 w-32">결제대행사</dt>
