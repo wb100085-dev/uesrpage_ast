@@ -14,7 +14,8 @@ type Props = {
 
 export default function CtaLink({
   className,
-  loginHref = "/login",
+  // 비로그인 무료체험: 로그인 화면을 거치지 않고 곧장 설계 페이지로 진입.
+  loginHref = "/design",
   dashboardHref = "/dashboard/user",
   children,
 }: Props) {

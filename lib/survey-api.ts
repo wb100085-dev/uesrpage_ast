@@ -341,6 +341,18 @@ export function getMyDesign(id: number): Promise<{ design: DesignFull }> {
   return apiFetch(`/api/survey/my-designs/${id}`);
 }
 
+/**
+ * 비로그인으로 만든 설계기록(user_email NULL)을 현재 로그인 사용자에게 귀속.
+ * 체험후기→회원가입 흐름에서 가입 직후 호출. 멱등(already)·충돌(conflict) 모두
+ * 백엔드가 처리하므로 실패해도 흐름을 막지 않도록 호출부에서 try/catch 권장.
+ */
+export function claimDesign(id: number): Promise<{ ok: boolean; result: string; error?: string }> {
+  return apiFetch(`/api/survey/my-designs/${id}/claim`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 // ─── 설문 설계 임시저장 (drafts) ─────────────────────────────
 
 export interface SurveyDraft {

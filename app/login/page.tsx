@@ -23,6 +23,7 @@ import {
   getAccessToken,
   getRefreshToken,
 } from "@/lib/auth-api";
+import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
 
 // 슈퍼유저/스태프가 사용자 프론트에서 로그인하면 관리자 콘솔로 자동 핸드오프.
 // URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
@@ -123,8 +124,11 @@ function LoginInner() {
     } catch {
       // 사용자 정보 조회 실패 시 일반 사용자 흐름으로 폴백
     }
+    // 우선순위: 명시적 next → 보류 중인 체험후기(이메일 인증으로 next가 유실된 경우) → 대시보드
     const next = getSafeNext();
-    router.push(next ?? "/dashboard/user");
+    if (next) { router.push(next); return; }
+    if (hasPendingReview()) { router.push(PENDING_REVIEW_NEXT); return; }
+    router.push("/dashboard/user");
   }
 
   function startSocialLogin(provider: "google" | "kakao" | "naver") {

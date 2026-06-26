@@ -967,10 +967,15 @@ export default function LandingPage() {
             {/* 오른쪽 — 텍스트 + CTA (결제창 상세보고서 설명 반영) */}
             <Reveal delay={120}>
               <div className="lg:pl-4">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-5 leading-tight">
-                  지금 바로<br />
-                  시작해보세요
-                </h2>
+                <div className="mb-5 flex items-end justify-between gap-4">
+                  <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 tracking-tight leading-tight">
+                    지금 바로<br />
+                    시작해보세요
+                  </h2>
+                  <CtaLink className="btn-primary shrink-0 text-base px-8 py-4">
+                    무료 체험하기 <ArrowRight size={18} />
+                  </CtaLink>
+                </div>
                 <div className="mb-7 rounded-2xl border border-amber-300/60 bg-amber-50 p-4">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
                     <Gift size={12} /> 리뷰 이벤트 · ~7.31까지

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Sparkles, ArrowRight, ArrowLeft, MessageSquare,
   Clock, Check, Pencil, Upload, FileText,
@@ -15,7 +15,6 @@ import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
 import CheckoutDialog from "@/components/CheckoutDialog";
 import ReviewDialog from "@/components/ReviewDialog";
-import RequireAuth from "@/components/RequireAuth";
 import InfographicCard from "@/components/InfographicCard";
 import TechCopyCard from "@/components/TechCopyCard";
 import { trackEvent } from "@/lib/analytics";
@@ -34,9 +33,16 @@ import {
   getSurveyResults,
   getAppSettings,
   downloadSummaryPdf,
+  claimDesign,
   type SurveyDraftPatch,
   type InfographicSummary,
 } from "@/lib/survey-api";
+import {
+  savePendingReview,
+  getPendingReview,
+  clearPendingReview,
+  PENDING_REVIEW_NEXT,
+} from "@/lib/pending-review";
 
 /* ─────────────────────────────────────────
    타입
@@ -80,9 +86,6 @@ const TRADE_TYPES: { code: string; en: string; ko: string; desc: string; icon: s
 ];
 
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
-
-// 결제 플로우 허용 이메일(소문자). 프로덕션에서도 이 계정으로 로그인하면 상세보고서 결제 가능.
-const PAYMENTS_ALLOWLIST = ["cwb@omninode.kr", "hys@omninode.kr", ""];
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_running", "survey_result"];
 // 단계별 기술 카피(참고용/SocialTwin_단계별_기술카피_최종.md) 매핑 — design 8단계
@@ -166,10 +169,14 @@ function StepBar({
   step,
   onJump,
   isStepAvailable,
+  isLoggedIn,
+  onDashboardBlocked,
 }: {
   step: Step;
   onJump: (s: Step) => void;
   isStepAvailable: (s: Step) => boolean;
+  isLoggedIn: boolean;
+  onDashboardBlocked: () => void;
 }) {
   const idx = STEPS.indexOf(step);
   const activeLabel = STEP_LABELS[idx];
@@ -186,18 +193,33 @@ function StepBar({
       <div className="flex justify-center">
         <div className="inline-flex flex-col">
         <div className="flex items-center justify-center">
-        {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
+        {/* 대시보드(외부 이동) — 로그인 시에만 접근 가능. 비로그인은 안내 후 차단 */}
         <div className="flex items-center">
-          <Link
-            href="/dashboard/user"
-            className="flex flex-col items-center gap-1.5 group cursor-pointer"
-            title="내 대시보드로 이동"
-          >
-            <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
-              <LayoutDashboard className="text-indigo-500 w-3 h-3 sm:w-3.5 sm:h-3.5" />
-            </div>
-            <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/dashboard/user"
+              className="flex flex-col items-center gap-1.5 group cursor-pointer"
+              title="내 대시보드로 이동"
+            >
+              <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
+                <LayoutDashboard className="text-indigo-500 w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </div>
+              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={onDashboardBlocked}
+              className="flex flex-col items-center gap-1.5 group cursor-pointer"
+              title="대시보드는 로그인 후 이용할 수 있습니다"
+              aria-label="대시보드 (로그인 필요)"
+            >
+              <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-slate-300 ring-2 ring-slate-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:border-slate-400">
+                <LayoutDashboard className="text-slate-400 w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              </div>
+              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-400 group-hover:underline underline-offset-4">대시보드</span>
+            </button>
+          )}
           <div className="w-2.5 sm:w-12 h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full bg-slate-200" />
         </div>
 
@@ -320,20 +342,23 @@ function ErrorMsg({ msg }: { msg: string }) {
 /* ─────────────────────────────────────────
    메인 페이지
 ───────────────────────────────────────── */
+// 비로그인도 전체 흐름(질문입력→결과)을 진행할 수 있도록 인증 가드를 제거한다.
+// 설계 이력은 백엔드가 익명(user_email NULL)으로도 기록하며, 체험후기 단계에서
+// 로그인하면 그 익명 기록에 가입 이메일을 연결한다(claimDesign).
 export default function DesignPage() {
   return (
-    <RequireAuth>
-      <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-        <DesignPageInner />
-      </Suspense>
-    </RequireAuth>
+    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+      <DesignPageInner />
+    </Suspense>
   );
 }
 
 function DesignPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const draftIdFromUrl = searchParams.get("draft");
   const designIdFromUrl = searchParams.get("design");
+  const reviewIntent = searchParams.get("review") === "1";
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -397,17 +422,28 @@ function DesignPageInner() {
   // 요약보고서 PDF 다운로드 상태
   const [summaryDownloading, setSummaryDownloading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  // 결제(토스) 전체 공개 — 관리자 외 모든 방문자에게 결제 플로우 노출.
-  // (이전엔 프로덕션에서 NEXT_PUBLIC_ENABLE_PAYMENTS=true 또는 허용 이메일에만 노출)
-  const envPaymentsEnabled = true;
-  // 결제 허용 이메일(allowlist) — 프로덕션에서도 이 계정으로 로그인하면 결제 플로우 노출.
-  // localStorage(캐시 사용자)는 마운트 후 effect에서 읽어 SSR 하이드레이션 미스매치를 피한다.
-  const [paymentsAllowlisted, setPaymentsAllowlisted] = useState(false);
+  // 결제하기 버튼은 슈퍼유저/스태프 계정에만 노출. 일반 로그인·비로그인은 모두 숨김
+  // (체험후기 또는 별도 문의로 안내). localStorage(캐시 사용자)는 마운트 후 effect에서
+  // 읽어 SSR 하이드레이션 미스매치를 피한다.
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  // 로그인 여부 — 체험후기 버튼 동작·안내문 노출에 사용.
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
-    const email = getCachedUser()?.email?.trim().toLowerCase();
-    setPaymentsAllowlisted(PAYMENTS_ALLOWLIST.includes(email ?? ""));
+    const u = getCachedUser();
+    setPaymentsEnabled(Boolean(u?.is_superuser || u?.is_staff));
+    setIsLoggedIn(Boolean(getAccessToken() && u));
   }, []);
-  const paymentsEnabled = envPaymentsEnabled || paymentsAllowlisted;
+  // 비로그인 사용자가 대시보드 노드를 누르면 안내 토스트를 띄우고 이동은 막는다.
+  const [dashboardNotice, setDashboardNotice] = useState(false);
+  const dashboardNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function handleDashboardBlocked() {
+    setDashboardNotice(true);
+    if (dashboardNoticeTimer.current) clearTimeout(dashboardNoticeTimer.current);
+    dashboardNoticeTimer.current = setTimeout(() => setDashboardNotice(false), 3200);
+  }
+  useEffect(() => () => {
+    if (dashboardNoticeTimer.current) clearTimeout(dashboardNoticeTimer.current);
+  }, []);
 
   // ── 조사 실행 (8단계 결과) ──
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -565,6 +601,35 @@ function DesignPageInner() {
       setSaving(false);
     }
   }
+
+  /* ── 체험후기 버튼 ── */
+  // 로그인: 바로 후기 설문 오픈. 비로그인: 진행 컨텍스트(job_id·design_id)를
+  // 보관하고 로그인으로 보낸 뒤, 로그인 완료 시 ?review=1 로 돌아와 자동 복원.
+  function handleReviewClick() {
+    trackEvent("체험후기_클릭");
+    if (isLoggedIn) {
+      setReviewOpen(true);
+      return;
+    }
+    savePendingReview({ jobId: runJobId, designId });
+    router.push(`/login?next=${encodeURIComponent(PENDING_REVIEW_NEXT)}`);
+  }
+
+  /* ── 로그인 후 체험후기 복원 (?review=1) ── */
+  // 비로그인 때 보관한 컨텍스트로: ① 익명 설계기록에 가입 이메일 연결(claim)
+  // ② 후기 설문 자동 오픈. 로그인 상태에서만 동작.
+  useEffect(() => {
+    if (!reviewIntent) return;
+    if (!(getAccessToken() && getCachedUser())) return;
+    const pending = getPendingReview();
+    if (pending?.designId) {
+      claimDesign(pending.designId).catch(() => { /* 실패해도 흐름 계속 */ });
+    }
+    if (pending?.jobId) setRunJobId(pending.jobId);
+    clearPendingReview();
+    setReviewOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewIntent]);
 
   /* ── 헬퍼 ── */
   function stopTimer() {
@@ -820,8 +885,22 @@ function DesignPageInner() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar appMode />
+
+      {/* 비로그인 대시보드 접근 차단 안내 토스트 */}
+      {dashboardNotice && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4">
+          <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg shadow-amber-100/60">
+            <AlertCircle size={16} className="shrink-0 text-amber-500" />
+            <p className="text-sm text-slate-700">
+              대시보드는 <span className="font-semibold text-slate-900">로그인이 필요합니다.</span>
+              <span className="hidden sm:inline text-slate-500"> 로그인 후 이용해 주세요.</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10">
-        <StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} />
+        <StepBar step={step} onJump={jumpToStep} isStepAvailable={isStepAvailable} isLoggedIn={isLoggedIn} onDashboardBlocked={handleDashboardBlocked} />
 
         {/* ── 단계 제목 — 전체 폭(2분할 위에 노출) ── */}
         {step === "input" && (
@@ -1697,16 +1776,26 @@ function DesignPageInner() {
                       체험후기를 남겨주시면, <b className="text-slate-900">99,000원 상당의 상세보고서(30p 내외 PDF)와 원본자료(엑셀)</b>를 <br />
                     무료로 제공(아이디 당 1회)해 드리는 이벤트 중입니다.
                     </p>
-                    <p className="text-[12px] leading-relaxed text-slate-500 mt-1.5">
-                      50명 이상의 응답이 필요하신 경우는 별도 문의 부탁드립니다.
-                    </p>
+                    {/* 50명 이상 안내 + 문의 메일(우측, 축소) — 랜딩페이지와 동일 배치 */}
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-[12px] leading-relaxed text-slate-500">
+                        50명 이상 응답이 필요한 경우는 별도 문의 부탁드립니다.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setContactOpen(true)}
+                        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
+                      >
+                        <MessageSquare size={14} /> 문의하기
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* 액션 버튼 — 체험후기 · 결제하기 · 문의하기 */}
+                {/* 액션 버튼 — 체험후기 · 결제하기(슈퍼유저/스태프만) */}
                 <div className="flex flex-col gap-2 w-full sm:w-56 sm:flex-shrink-0">
                   <button
-                    onClick={() => { trackEvent("체험후기_클릭"); setReviewOpen(true); }}
+                    onClick={handleReviewClick}
                     className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 transition-all hover:shadow-lg hover:shadow-amber-200"
                   >
                     <Star size={15} className="flex-shrink-0" />
@@ -1715,6 +1804,12 @@ function DesignPageInner() {
                       <span className="block text-[11px] font-medium text-amber-50">(99,000원 상당의 리워드 제공)</span>
                     </span>
                   </button>
+                  {!isLoggedIn && (
+                    <p className="text-[11px] leading-snug text-slate-400 text-center">
+                      체험후기 이벤트 참여는 <span className="font-medium text-slate-500">로그인(회원가입) 후</span> 가능합니다.
+                      <br />체험후기 남기기를 누르면 로그인 화면으로 이동합니다.
+                    </p>
+                  )}
                   {paymentsEnabled && (
                     <button
                       onClick={() => { trackEvent("결제하기_클릭"); setCheckoutOpen(true); }}
@@ -1723,12 +1818,6 @@ function DesignPageInner() {
                       <CreditCard size={15} /> 결제하기
                     </button>
                   )}
-                  <button
-                    onClick={() => setContactOpen(true)}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 hover:border-slate-400 transition-all"
-                  >
-                    <MessageSquare size={15} /> 문의하기
-                  </button>
                 </div>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Sparkles } from "lucide-react";
 import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
+import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
 
 /**
  * 소셜 로그인 콜백 페이지.
@@ -71,7 +72,8 @@ function AuthCallbackInner() {
       } catch {
         // 무시 — 토큰만 있어도 대시보드는 동작
       }
-      router.replace("/dashboard/user");
+      // 비로그인 때 체험후기를 누른 사용자라면 후기 설문으로 복원, 아니면 대시보드.
+      router.replace(hasPendingReview() ? PENDING_REVIEW_NEXT : "/dashboard/user");
     })();
   }, [params, router]);
 

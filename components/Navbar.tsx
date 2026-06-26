@@ -150,7 +150,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 로그인
               </Link>
               <Link
-                href="/login"
+                href="/design"
                 className="text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
                 무료 체험하기
@@ -222,7 +222,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
             </>
           ) : (
             <Link
-              href="/login"
+              href="/design"
               onClick={() => setOpen(false)}
               className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
             >
