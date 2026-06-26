@@ -33,7 +33,7 @@ export default function CtaLink({
     <Link
       href={isUser ? dashboardHref : loginHref}
       className={className}
-      onClick={() => trackEvent("cta_start", { logged_in: isUser })}
+      onClick={() => trackEvent("무료체험_클릭", { 로그인여부: isUser ? "로그인" : "비로그인" })}
     >
       {children}
     </Link>

@@ -1706,7 +1706,7 @@ function DesignPageInner() {
                 {/* 액션 버튼 — 체험후기 · 결제하기 · 문의하기 */}
                 <div className="flex flex-col gap-2 w-full sm:w-56 sm:flex-shrink-0">
                   <button
-                    onClick={() => { trackEvent("review_open"); setReviewOpen(true); }}
+                    onClick={() => { trackEvent("체험후기_클릭"); setReviewOpen(true); }}
                     className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 transition-all hover:shadow-lg hover:shadow-amber-200"
                   >
                     <Star size={15} className="flex-shrink-0" />
@@ -1717,7 +1717,7 @@ function DesignPageInner() {
                   </button>
                   {paymentsEnabled && (
                     <button
-                      onClick={() => { trackEvent("checkout_click"); setCheckoutOpen(true); }}
+                      onClick={() => { trackEvent("결제하기_클릭"); setCheckoutOpen(true); }}
                       className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                     >
                       <CreditCard size={15} /> 결제하기

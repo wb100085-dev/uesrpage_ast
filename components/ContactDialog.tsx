@@ -38,7 +38,7 @@ export default function ContactDialog({
 
   // 문의 다이얼로그 열림 추적(모든 '문의하기' 버튼 공통)
   useEffect(() => {
-    if (open) trackEvent("contact_open");
+    if (open) trackEvent("문의하기_클릭");
   }, [open]);
 
   // ESC 닫기
