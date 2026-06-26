@@ -184,7 +184,7 @@ function StepBar({
 
       <div className="flex justify-center">
         <div className="inline-flex flex-col">
-        <div className="flex items-center">
+        <div className="flex items-center justify-center">
         {/* 대시보드(외부 이동) — 항상 클릭 가능 */}
         <div className="flex items-center">
           <Link
@@ -206,6 +206,8 @@ function StepBar({
           const active = i === idx;
           const targetStep = STEPS[i];
           const canJump = !active && isStepAvailable(targetStep);
+          // 모바일에선 자동/로딩 단계(가설 설계·설문 생성·설문 진행)를 숨겨 5단계만 노출
+          const mobileHidden = targetStep === "hyp_designing" || targetStep === "survey_designing" || targetStep === "survey_running";
 
           // 색/링 결정
           let circleCls = "";
@@ -244,7 +246,7 @@ function StepBar({
           );
 
           return (
-            <div key={label} className="flex items-center">
+            <div key={label} className={`${mobileHidden ? "hidden sm:flex" : "flex"} items-center`}>
               {canJump ? (
                 <button
                   type="button"
@@ -947,9 +949,9 @@ function DesignPageInner() {
                         )}
                         <span className="text-3xl mb-1.5 leading-none" aria-hidden>{t.icon}</span>
                         <span className="text-sm font-bold text-slate-800">{t.code}</span>
-                        <span className="text-[10px] text-slate-400 leading-tight mb-1.5">{t.en}</span>
-                        <span className="text-[11px] font-semibold text-slate-600">{t.ko}</span>
-                        <span className="text-[11px] text-slate-400 leading-snug mt-0.5">{t.desc}</span>
+                        <span className="hidden sm:block text-[10px] text-slate-400 leading-tight mb-1.5">{t.en}</span>
+                        <span className="text-[11px] font-semibold text-slate-600 mt-1 sm:mt-0">{t.ko}</span>
+                        <span className="hidden sm:block text-[11px] text-slate-400 leading-snug mt-0.5">{t.desc}</span>
                       </button>
                     );
                   })}
