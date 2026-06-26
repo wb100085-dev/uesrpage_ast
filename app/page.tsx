@@ -686,7 +686,7 @@ export default function LandingPage() {
                 neu: React.ReactNode;
               }> = [
                 { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 500명 설문조사 결과 보고서" },
-                { label: "비용", old: "건당 100만원 이상", neu: "95% 이상 절감" },
+                { label: "비용", old: "건당 100만원 이상", neu: "95% 이상 절감(99,000원)" },
                 { label: "시간", old: "2주 이상", neu: "1시간 이내" },
                 { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
                 { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
