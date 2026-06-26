@@ -10,7 +10,6 @@ import Reveal from "@/components/Reveal";
 import CtaLink from "@/components/CtaLink";
 import SiteFooter from "@/components/SiteFooter";
 import StartCtaButtons from "@/components/StartCtaButtons";
-import PromoPopup from "@/components/PromoPopup";
 
 /* ─────────────────────────────────────────
    Hero — floating app mockup
@@ -513,7 +512,6 @@ const features = [
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
-      <PromoPopup />
       <Navbar dark />
 
       {/* ── Hero ── */}

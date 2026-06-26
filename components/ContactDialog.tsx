@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Mail, X, Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 const CONTACT_EMAILS = ["hys@omninode.kr", "cwb@omninode.kr"];
 const CONTACT_EMAIL_DISPLAY = CONTACT_EMAILS.join(", ");
@@ -34,6 +35,11 @@ export default function ContactDialog({
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // 문의 다이얼로그 열림 추적(모든 '문의하기' 버튼 공통)
+  useEffect(() => {
+    if (open) trackEvent("contact_open");
+  }, [open]);
 
   // ESC 닫기
   useEffect(() => {

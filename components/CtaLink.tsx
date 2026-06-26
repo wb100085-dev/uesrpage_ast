@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAccessToken, getCachedUser } from "@/lib/auth-api";
+import { trackEvent } from "@/lib/analytics";
 
 type Props = {
   className?: string;
@@ -29,7 +30,11 @@ export default function CtaLink({
   }, []);
 
   return (
-    <Link href={isUser ? dashboardHref : loginHref} className={className}>
+    <Link
+      href={isUser ? dashboardHref : loginHref}
+      className={className}
+      onClick={() => trackEvent("cta_start", { logged_in: isUser })}
+    >
       {children}
     </Link>
   );
