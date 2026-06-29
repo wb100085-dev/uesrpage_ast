@@ -85,6 +85,7 @@ export function SurveyForm({
             <span className="text-indigo-500">Q{n}.</span> {q.label}
             {!q.optional && <span className="text-rose-400 ml-1">*</span>}
             {q.optional && <span className="text-slate-300 text-xs font-normal ml-1">(선택)</span>}
+            {q.type === "multi" && <span className="text-indigo-500 text-xs font-semibold ml-1">(복수 선택 가능)</span>}
           </p>
           <QuestionField q={q} single={single} setSingle={setSingle} multi={multi} setMulti={setMulti} text={text} setText={setText} />
         </div>
