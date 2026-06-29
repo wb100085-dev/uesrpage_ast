@@ -265,6 +265,13 @@ export interface ReviewSubmitPayload {
   survey_key: "service_review" | "report_quality";
   job_id?: string | null;
   answers: Record<string, unknown>;
+  /**
+   * 제출 출처. 공개 설문 링크(/feedback)에서 온 응답은 "public_link".
+   * 백엔드는 이 값이 "public_link"일 때 로그인 요구·아이디당 1회 제한을 건너뛰고
+   * 비로그인 저장을 허용해야 합니다(user_email NULL 가능). 기존 체험후기
+   * 다이얼로그는 이 필드를 보내지 않으므로 로그인 필수 동작이 그대로 유지됩니다.
+   */
+  source?: "public_link";
 }
 
 /** 리뷰 설문 응답 저장 */
