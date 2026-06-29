@@ -430,7 +430,10 @@ function DesignPageInner() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
     const u = getCachedUser();
-    setPaymentsEnabled(Boolean(u?.is_superuser || u?.is_staff));
+    // 결제버튼 노출: 슈퍼유저/스태프 + 테스트 계정 화이트리스트(권한 없이 결제 흐름 테스트용).
+    const PAYMENTS_TEST_EMAILS = ["test@tosspayments.co"];
+    const email = (u?.email || "").trim().toLowerCase();
+    setPaymentsEnabled(Boolean(u?.is_superuser || u?.is_staff || PAYMENTS_TEST_EMAILS.includes(email)));
     setIsLoggedIn(Boolean(getAccessToken() && u));
   }, []);
   // 비로그인 사용자가 대시보드 노드를 누르면 안내 토스트를 띄우고 이동은 막는다.
