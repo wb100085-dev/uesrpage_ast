@@ -1735,6 +1735,7 @@ function DesignPageInner() {
                 <div className="w-full sm:w-56 sm:flex-shrink-0">
                   <button
                     onClick={async () => {
+                      trackEvent("요약보고서_다운로드");
                       if (!runJobId) { setSummaryError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
                       setSummaryError(null);
                       setSummaryDownloading(true);

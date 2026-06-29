@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Check, Loader2, X } from "lucide-react";
 import { confirmPayment, type ConfirmResponse } from "@/lib/payments-api";
+import { trackEvent } from "@/lib/analytics";
 
 const won = (n: number) => n.toLocaleString("ko-KR") + "원";
 
@@ -31,6 +32,8 @@ function SuccessInner() {
       .then((r) => {
         setResult(r);
         setConfirmState("ok");
+        // 결제 최종 승인 완료 — 실제 결제까지 도달한 건수/금액 추적
+        trackEvent("결제완료", { 금액: r.amount, 상품: r.order_name ?? "" });
       })
       .catch((e) => {
         setConfirmError(e instanceof Error ? e.message : "결제 승인에 실패했습니다.");
