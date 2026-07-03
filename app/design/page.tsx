@@ -339,6 +339,64 @@ function ErrorMsg({ msg }: { msg: string }) {
   );
 }
 
+// 각 주제(제품/서비스, 시장조사 목적)에 요구하는 최소 작성 글자수.
+const MIN_CHARS = 300;
+
+// 글자 수는 충분하나 의미 없는 입력(문자 도배·같은 단어 반복·같은 구절 반복
+// 붙여넣기·완성되지 않은 자모/기호 나열 등)을 걸러낸다.
+// 문제가 있으면 사유 문구를, 정상이면 null을 반환한다.
+function contentIssue(text: string): string | null {
+  const raw = text.trim();
+  const compact = raw.replace(/\s+/g, "");
+  const len = compact.length;
+  if (len < 30) return null; // 짧은 입력은 글자 수 검증이 담당
+
+  // 1) 동일 문자 장기 반복: ㅁㅁㅁㅁ…, aaaaaaaaa, ……
+  if (/(.)\1{9,}/u.test(raw)) return "같은 문자를 여러 번 반복해서 입력하신 것 같습니다.";
+
+  // 2) 문자 다양성 부족: 소수의 문자로만 채워 넣음
+  const uniqChars = new Set(compact).size;
+  if (uniqChars / len < 0.12) return "같은 문자를 반복하거나 붙여넣어 채우신 것 같습니다.";
+
+  // 3) 같은 구절 반복 붙여넣기: 이중 문자열 기법으로 최소 반복 주기 탐지
+  if ((compact + compact).indexOf(compact, 1) < compact.length) {
+    return "같은 내용을 반복해서 붙여넣으신 것 같습니다.";
+  }
+
+  // 4) 단어 반복: 동일 단어가 과도하게 반복되거나 연속됨
+  const words = raw.split(/\s+/).filter((w) => w.length > 0);
+  if (words.length >= 8) {
+    const uniqWords = new Set(words).size;
+    if (uniqWords / words.length < 0.3) return "같은 단어를 반복해서 입력하신 것 같습니다.";
+    let run = 1;
+    let maxRun = 1;
+    for (let i = 1; i < words.length; i++) {
+      run = words[i] === words[i - 1] ? run + 1 : 1;
+      if (run > maxRun) maxRun = run;
+    }
+    if (maxRun >= 6) return "같은 단어를 연속해서 입력하신 것 같습니다.";
+  }
+
+  // 5) 의미를 알기 어려운 글자·기호 나열 (예: ㅁㄴㅇㄹ, ㅋㅋㅋ, !!!!, 특수문자 도배)
+  const meaningful = (raw.match(/[가-힣a-zA-Z0-9]/g) || []).length; // 완성형 한글·영문·숫자
+  const jamo = (raw.match(/[ㄱ-ㅣ]/g) || []).length; // 홑자음·홑모음 ㄱ-ㅣ
+  if (meaningful / len < 0.55) return "의미를 알기 어려운 글자·기호가 많습니다.";
+  if (jamo / len > 0.3) return "완성되지 않은 자음·모음이 많습니다.";
+
+  return null;
+}
+
+// 주제별 입력 상태를 하나의 안내 문구로 변환한다. 정상이면 null.
+function fieldErrorMsg(topic: string, len: number, text: string): string | null {
+  if (len < MIN_CHARS) {
+    if (len === 0) return `${topic}을(를) 입력해주세요.`;
+    return `글자 수가 부족합니다. 설문의 정확성을 높이기 위해 자세한 작성을 부탁드립니다. (현재 ${len}자 / 최소 ${MIN_CHARS}자)`;
+  }
+  const issue = contentIssue(text);
+  if (issue) return `${issue} 설문의 정확성을 높이기 위해 의미 있는 내용으로 수정 부탁드립니다.`;
+  return null;
+}
+
 /* ─────────────────────────────────────────
    메인 페이지
 ───────────────────────────────────────── */
@@ -394,6 +452,35 @@ function DesignPageInner() {
     : purposeMode === "free"
     ? purposeFree
     : "";
+
+  // 검증용 실제 작성 글자수 (태그·구분자 제외).
+  // 질문형은 각 주제의 질문 답변 합계, 자유형은 서술 본문 길이로 계산한다.
+  const productLen = productMode === "structured"
+    ? productAnswers.reduce((sum, a) => sum + a.trim().length, 0)
+    : productMode === "free"
+    ? productFree.trim().length
+    : 0;
+  const purposeLen = purposeMode === "structured"
+    ? purposeAnswers.reduce((sum, a) => sum + a.trim().length, 0)
+    : purposeMode === "free"
+    ? purposeFree.trim().length
+    : 0;
+
+  // 내용 품질 검증용 순수 텍스트 (질문형은 답변만 공백으로 결합).
+  const productText = productMode === "structured"
+    ? productAnswers.join(" ")
+    : productMode === "free"
+    ? productFree
+    : "";
+  const purposeText = purposeMode === "structured"
+    ? purposeAnswers.join(" ")
+    : purposeMode === "free"
+    ? purposeFree
+    : "";
+
+  // 주제별 안내 문구 (미작성·글자수 부족·의미 없는 내용 모두 포함). 정상이면 null.
+  const productErr = fieldErrorMsg("제품/서비스 정의", productLen, productText);
+  const purposeErr = fieldErrorMsg("시장조사 목적", purposeLen, purposeText);
 
   // 단계
   const [step, setStep] = useState<Step>("input");
@@ -707,7 +794,7 @@ function DesignPageInner() {
   /* ── Step 1→2: 가설만 생성 (문항은 만들지 않음 — AI 호출 절약 + 가설 수정 반영 가능) ── */
   async function handleDesign() {
     setSubmitted(true);
-    if (!tradeType || !productDef.trim() || !researchPurpose.trim()) return;
+    if (!tradeType || productErr || purposeErr) return;
 
     setApiError("");
     setStep("hyp_designing");
@@ -855,8 +942,8 @@ function DesignPageInner() {
     (q.type === "객관식" || q.type === "복수선택" || q.type === "순위형") && q.options?.length > 0;
 
   const errTradeType = submitted && !tradeType;
-  const errProduct = submitted && !productDef.trim();
-  const errPurpose = submitted && !researchPurpose.trim();
+  const errProduct = submitted && Boolean(productErr);
+  const errPurpose = submitted && Boolean(purposeErr);
 
   // 임시저장 블록 — 각 step 콘텐츠 하단에 공통 배치 (로그인 + 요약·실행·결과 단계 제외)
   const saveDraftBlock =
@@ -1073,7 +1160,7 @@ function DesignPageInner() {
                   </div>
                 ) : productMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 됩니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</p>
                     {PRODUCT_QUESTIONS.map((q, i) => (
                       <div key={i}>
                         <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
@@ -1089,6 +1176,9 @@ function DesignPageInner() {
                         />
                       </div>
                     ))}
+                    <div className="flex justify-end">
+                      <CharCount len={productLen} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1108,7 +1198,7 @@ function DesignPageInner() {
                     </div>
                   </div>
                 )}
-                {errProduct && <ErrorMsg msg="제품/서비스 정의를 입력해주세요." />}
+                {errProduct && productErr && <ErrorMsg msg={productErr} />}
               </div>
 
               {/* 시장조사 목적 */}
@@ -1144,7 +1234,7 @@ function DesignPageInner() {
                   </div>
                 ) : purposeMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 됩니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</p>
                     {PURPOSE_QUESTIONS.map((q, i) => (
                       <div key={i}>
                         <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
@@ -1160,6 +1250,9 @@ function DesignPageInner() {
                         />
                       </div>
                     ))}
+                    <div className="flex justify-end">
+                      <CharCount len={purposeLen} />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
@@ -1179,7 +1272,7 @@ function DesignPageInner() {
                     </div>
                   </div>
                 )}
-                {errPurpose && <ErrorMsg msg="시장조사 목적을 입력해주세요." />}
+                {errPurpose && purposeErr && <ErrorMsg msg={purposeErr} />}
               </div>
 
               {/* 참고 이미지 첨부(선택) — 시장조사 목적 바로 아래 */}
