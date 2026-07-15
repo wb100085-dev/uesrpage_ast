@@ -546,7 +546,7 @@ export default function LandingPage() {
               <div className="animate-fade-up-4 mb-12">
                 <div className="mb-5 max-w-md rounded-2xl glass border border-amber-400/30 p-4">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-300">
-                    <Gift size={12} /> 리뷰 이벤트 · ~7.31까지
+                    <Gift size={12} /> 리뷰 이벤트 · ~8.31까지
                   </span>
                   <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
                     체험 후기를 남겨주세요.{" "}
@@ -978,7 +978,7 @@ export default function LandingPage() {
                 </div>
                 <div className="mb-7 rounded-2xl border border-amber-300/60 bg-amber-50 p-4">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                    <Gift size={12} /> 리뷰 이벤트 · ~7.31까지
+                    <Gift size={12} /> 리뷰 이벤트 · ~8.31까지
                   </span>
                   <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
                     체험 후기를 남겨주세요.{" "}

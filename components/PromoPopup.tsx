@@ -83,7 +83,7 @@ export default function PromoPopup() {
           <Link href={PROMO_HREF} onClick={close} className="block">
             <Image
               src="/promo/socialtwin-ad.png"
-              alt="SocialTwin — AI가 설문을 설계하고 가상인구가 답하는 AI 고객조사. 후기 작성 시 99,000원 상당 상세보고서 무료 제공 (~7.31)"
+              alt="SocialTwin — AI가 설문을 설계하고 가상인구가 답하는 AI 고객조사. 후기 작성 시 99,000원 상당 상세보고서 무료 제공 (~8.31)"
               width={2160}
               height={2700}
               priority
