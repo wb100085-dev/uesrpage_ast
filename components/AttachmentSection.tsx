@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, FileText, X } from "lucide-react";
 
-/** 참고 이미지 첨부(선택) — 업로드/붙여넣기/드래그&드롭 + 이미지별 간단 설명.
+/** 참고 자료 첨부(선택) — 이미지/PDF 업로드/붙여넣기/드래그&드롭 + 자료별 간단 설명.
  *  dataUrl 은 base64 data:URL. 가설 설계 시 백엔드(GPT 비전)가 분석에 활용. */
 export type SurveyAttachment = {
   id: string;
@@ -35,11 +35,13 @@ export default function AttachmentSection({
   const [notice, setNotice] = useState<string | null>(null);
 
   async function addFiles(files: File[]) {
-    const imgs = files.filter((f) => f.type.startsWith("image/"));
-    if (imgs.length === 0) return;
+    const accepted = files.filter(
+      (f) => f.type.startsWith("image/") || f.type === "application/pdf",
+    );
+    if (accepted.length === 0) return;
     const added: SurveyAttachment[] = [];
     let skipped = 0;
-    for (const f of imgs) {
+    for (const f of accepted) {
       if (f.size > MAX_BYTES) {
         skipped++;
         continue;
@@ -60,7 +62,7 @@ export default function AttachmentSection({
     setAttachments((prev) => {
       const room = Math.max(0, MAX - prev.length);
       if (added.length > room) setNotice(`최대 ${MAX}장까지만 첨부됩니다.`);
-      else if (skipped > 0) setNotice(`${skipped}개 파일은 건너뜀(이미지 아님 또는 6MB 초과).`);
+      else if (skipped > 0) setNotice(`${skipped}개 파일은 건너뜀(이미지/PDF 아님 또는 6MB 초과).`);
       else setNotice(null);
       return [...prev, ...added.slice(0, room)];
     });
@@ -101,7 +103,7 @@ export default function AttachmentSection({
           파일 업로드
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -120,12 +122,19 @@ export default function AttachmentSection({
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {attachments.map((a) => (
             <div key={a.id} className="flex gap-3 border border-slate-200 rounded-xl p-2.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={a.dataUrl}
-                alt={a.name}
-                className="w-20 h-20 object-cover rounded-lg border border-slate-200 flex-shrink-0"
-              />
+              {a.mime === "application/pdf" ? (
+                <div className="w-20 h-20 rounded-lg border border-slate-200 bg-slate-50 flex flex-col items-center justify-center gap-1 flex-shrink-0">
+                  <FileText size={22} className="text-red-400" />
+                  <span className="text-[10px] font-semibold text-slate-400">PDF</span>
+                </div>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={a.dataUrl}
+                  alt={a.name}
+                  className="w-20 h-20 object-cover rounded-lg border border-slate-200 flex-shrink-0"
+                />
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className="text-[11px] text-slate-400 truncate" title={a.name}>
@@ -148,7 +157,7 @@ export default function AttachmentSection({
                     )
                   }
                   rows={2}
-                  placeholder="이 이미지에 대한 간단한 설명 (예: 경쟁사 패키지, 매장 진열, UI 시안 …)"
+                  placeholder="이 자료에 대한 간단한 설명 (예: 경쟁사 패키지, 매장 진열, 제품 소개서 …)"
                   className="block w-full px-2.5 py-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg resize-none outline-none focus:bg-white focus:border-indigo-400 transition-all"
                 />
               </div>
