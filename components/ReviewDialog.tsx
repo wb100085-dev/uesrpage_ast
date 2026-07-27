@@ -8,6 +8,7 @@ import {
   type ReviewSurvey,
 } from "@/lib/review-survey";
 import { SurveyForm, buildAnswers, validate } from "@/components/ReviewSurveyForm";
+import { trackEvent } from "@/lib/analytics";
 import {
   submitReviewResponse,
   getMyReviewStatus,
@@ -225,8 +226,9 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
                   <ArrowLeft size={14} /> 이전
                 </button>
               )}
-              <button onClick={() => { setError(null); setPart(3); }} className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all">
-                보고서 품질 평가 <ArrowRight size={14} />
+              <button onClick={() => { setError(null); setPart(3); }} className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all">
+                <span className="flex items-center gap-1.5">보고서 품질 평가 <ArrowRight size={14} /></span>
+                <span className="text-[10px] font-normal text-indigo-200 leading-snug">다운로드 받으신 상세보고서 등을 확인하신 후 응답부탁드립니다.</span>
               </button>
             </>
           )}
@@ -292,6 +294,7 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
         throw new Error("상세보고서 생성이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.");
       }
       setReportMsg("상세보고서 생성 완료 — 다운로드를 시작합니다.");
+      trackEvent("상세보고서_다운로드", { 경로: "리워드" });
       await downloadReportPdf(jobId);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "상세보고서 다운로드에 실패했습니다.");

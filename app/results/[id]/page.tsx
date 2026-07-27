@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
+import { trackEvent } from "@/lib/analytics";
 import {
   getSurveyResults,
   startDetail,
@@ -306,7 +307,7 @@ function ResultsPageInner() {
             {[
               { kind: "design", label: "가설 및 설문 문항", sub: "PDF", fn: () => downloadDesignPdf(jobId) },
               { kind: "raw", label: "가상인구 Raw Data", sub: "CSV", fn: () => downloadRawCsv(jobId) },
-              { kind: "report", label: "상세보고서", sub: "PDF", fn: () => downloadReportPdf(jobId) },
+              { kind: "report", label: "상세보고서", sub: "PDF", fn: () => { trackEvent("상세보고서_다운로드", { 경로: "결과페이지" }); return downloadReportPdf(jobId); } },
             ].map((d) => {
               // 상세보고서는 상세분석 생성이 끝나야 다운로드 가능
               const gated = d.kind === "report" && detailStatus !== "done";
