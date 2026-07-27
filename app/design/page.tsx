@@ -32,6 +32,7 @@ import {
   getSurveyStatus,
   getSurveyResults,
   getAppSettings,
+  getReportExempt,
   downloadSummaryPdf,
   claimDesign,
   type SurveyDraftPatch,
@@ -514,6 +515,8 @@ function DesignPageInner() {
   // (체험후기 또는 별도 문의로 안내). localStorage(캐시 사용자)는 마운트 후 effect에서
   // 읽어 SSR 하이드레이션 미스매치를 피한다.
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  // 상세보고서 무료 제공(결제 생략) 대상 여부 — 관리자 전역 설정의 이메일 목록 기준
+  const [reportExempt, setReportExempt] = useState(false);
   // 로그인 여부 — 체험후기 버튼 동작·안내문 노출에 사용.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
@@ -522,7 +525,9 @@ function DesignPageInner() {
     const PAYMENTS_TEST_EMAILS = ["test@tosspayments.co"];
     const email = (u?.email || "").trim().toLowerCase();
     setPaymentsEnabled(Boolean(u?.is_superuser || u?.is_staff || PAYMENTS_TEST_EMAILS.includes(email)));
-    setIsLoggedIn(Boolean(getAccessToken() && u));
+    const logged = Boolean(getAccessToken() && u);
+    setIsLoggedIn(logged);
+    if (logged) getReportExempt().then(setReportExempt).catch(() => {});
   }, []);
   // 비로그인 사용자가 대시보드 노드를 누르면 안내 토스트를 띄우고 이동은 막는다.
   const [dashboardNotice, setDashboardNotice] = useState(false);
@@ -2106,7 +2111,19 @@ function DesignPageInner() {
                       <br />체험후기 남기기를 누르면 로그인 화면으로 이동합니다.
                     </p>
                   )}
-                  {paymentsEnabled && (
+                  {reportExempt && runJobId && (
+                    <button
+                      onClick={() => { trackEvent("상세보고서_무료열람"); router.push(`/results/${runJobId}`); }}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                    >
+                      <Download size={15} />
+                      <span className="leading-tight text-center">
+                        상세보고서 보기
+                        <span className="block text-[11px] font-medium text-indigo-200">결제 없이 이용 가능한 계정입니다</span>
+                      </span>
+                    </button>
+                  )}
+                  {!reportExempt && paymentsEnabled && (
                     <button
                       onClick={() => { trackEvent("결제하기_클릭"); setCheckoutOpen(true); }}
                       className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"

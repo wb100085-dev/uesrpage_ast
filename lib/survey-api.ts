@@ -125,6 +125,19 @@ export function getAppSettings(): Promise<AppSettings> {
   return _settingsPromise;
 }
 
+/**
+ * 로그인 사용자가 상세보고서 무료 제공(결제 생략) 대상인지 확인.
+ * 관리자 콘솔의 전역 설정 → '상세보고서 무료 제공 이메일' 목록 기준. 실패·비로그인 시 false.
+ */
+export async function getReportExempt(): Promise<boolean> {
+  try {
+    const r = await apiFetch<{ exempt: boolean }>("/api/settings/report-exempt");
+    return Boolean(r?.exempt);
+  } catch {
+    return false;
+  }
+}
+
 /** 관리자가 지정한 기본 AI 모델 (실패 시 DEFAULT_AI_MODEL). */
 export async function getEffectiveModel(): Promise<string> {
   const s = await getAppSettings();
