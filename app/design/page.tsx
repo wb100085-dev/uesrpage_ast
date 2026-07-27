@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import {
   Sparkles, ArrowRight, ArrowLeft, MessageSquare,
   Clock, Check, Pencil, Upload, FileText,
-  X, ChevronDown, BarChart2, Target, Lightbulb,
+  X, BarChart2, Target, Lightbulb, Trash2, Plus,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
   LayoutDashboard, ImagePlus, PieChart,
   Download, Star, CreditCard,
@@ -423,6 +423,7 @@ function DesignPageInner() {
 
   // 입력
   const [tradeType, setTradeType] = useState("");
+  const tradeTypeRef = useRef<HTMLDivElement>(null); // 미선택 검증 실패 시 스크롤 이동용
   const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
   const [productAnswers, setProductAnswers] = useState(["", "", "", "", ""]);
   const [productFree, setProductFree] = useState("");
@@ -496,7 +497,6 @@ function DesignPageInner() {
   // 설문
   const [surveyQuestions, setSurveyQuestions] = useState<ApiQuestion[]>([]);
   const [editingQIdx, setEditingQIdx] = useState<number | null>(null);
-  const [expandedQIdx, setExpandedQIdx] = useState<Set<number>>(new Set());
   const [qDraft, setQDraft] = useState<Partial<ApiQuestion>>({});
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
 
@@ -794,7 +794,13 @@ function DesignPageInner() {
   /* ── Step 1→2: 가설만 생성 (문항은 만들지 않음 — AI 호출 절약 + 가설 수정 반영 가능) ── */
   async function handleDesign() {
     setSubmitted(true);
-    if (!tradeType || productErr || purposeErr) return;
+    if (!tradeType || productErr || purposeErr) {
+      // 거래방식 미선택 — 에러 안내가 화면 위쪽에 있어 안 보이므로 해당 섹션으로 스크롤
+      if (!tradeType) {
+        tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
 
     setApiError("");
     setStep("hyp_designing");
@@ -929,17 +935,24 @@ function DesignPageInner() {
     }
   }
 
-  /* ── 객관식 토글 ── */
-  function toggleExpand(i: number) {
-    setExpandedQIdx((prev) => {
-      const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
-      return next;
-    });
-  }
-
   const hasOptions = (q: ApiQuestion) =>
     (q.type === "객관식" || q.type === "복수선택" || q.type === "순위형") && q.options?.length > 0;
+
+  const isOptionType = (t: string | undefined) =>
+    t === "객관식" || t === "복수선택" || t === "순위형";
+
+  /* ── 문항 추가/삭제 ── */
+  function addQuestion() {
+    const blank: ApiQuestion = { type: "객관식", title: "", question: "", options: ["", ""] };
+    setSurveyQuestions((prev) => [...prev, blank]);
+    setQDraft({ ...blank, options: [...blank.options] });
+    setEditingQIdx(surveyQuestions.length); // 새 문항을 바로 편집 모드로
+  }
+
+  function deleteQuestion(i: number) {
+    setSurveyQuestions((prev) => prev.filter((_, si) => si !== i));
+    setEditingQIdx((cur) => (cur === null || cur === i ? null : cur > i ? cur - 1 : cur));
+  }
 
   const errTradeType = submitted && !tradeType;
   const errProduct = submitted && Boolean(productErr);
@@ -1086,7 +1099,7 @@ function DesignPageInner() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               {/* 거래방식 */}
-              <div className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
+              <div ref={tradeTypeRef} className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
                 <FieldLabel required>
                   거래방식
                   <span className="ml-1.5 text-slate-400 text-xs font-normal">(주된 거래 대상 — 하나를 선택하세요)</span>
@@ -1424,9 +1437,9 @@ function DesignPageInner() {
         ══════════════════════════════════════════ */}
         {step === "survey_review" && (
           <div>
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
-              {/* 왼쪽: 선택된 가설 요약 */}
-              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden lg:sticky lg:top-20">
+            <div className="flex flex-col gap-5">
+              {/* 위쪽: 선택된 가설 요약 */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-gradient-to-r from-violet-50/60 to-white">
                   <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
                     <Lightbulb size={13} className="text-violet-600" />
@@ -1434,7 +1447,7 @@ function DesignPageInner() {
                   <h3 className="text-sm font-semibold text-slate-800">선택된 가설</h3>
                   <span className="ml-auto text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{selectedHypotheses.size}개</span>
                 </div>
-                <div className="p-4 flex flex-col gap-2.5">
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   {[...selectedHypotheses].sort().map((i) => (
                     <div key={i} className="flex items-start gap-2.5 p-3 bg-violet-50/60 rounded-xl border border-violet-100">
                       <span className="text-[10px] font-bold text-violet-500 bg-violet-100 px-1.5 py-0.5 rounded mt-0.5 flex-shrink-0">H{i + 1}</span>
@@ -1467,11 +1480,10 @@ function DesignPageInner() {
                 </div>
               </div>
 
-              {/* 오른쪽: 설문 문항 */}
-              <div className="lg:col-span-3 flex flex-col gap-3">
+              {/* 아래쪽: 설문 문항 — 보기까지 전부 펼쳐서 표시 */}
+              <div className="flex flex-col gap-3">
                 {surveyQuestions.map((q, i) => {
                   const isEditingQ = editingQIdx === i;
-                  const isExpanded = expandedQIdx.has(i);
                   const canExpand = hasOptions(q);
 
                   return (
@@ -1530,31 +1542,28 @@ function DesignPageInner() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {canExpand && (
-                            <button
-                              onClick={() => toggleExpand(i)}
-                              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                                isExpanded ? "bg-indigo-50 text-indigo-500" : "text-slate-300 hover:text-indigo-500 hover:bg-indigo-50"
-                              }`}
-                              title="보기 항목"
-                            >
-                              <ChevronDown size={14} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                            </button>
-                          )}
                           <button
                             onClick={() => {
                               if (isEditingQ) { setEditingQIdx(null); }
-                              else { setQDraft({ title: q.title, question: q.question, type: q.type }); setEditingQIdx(i); }
+                              else { setQDraft({ title: q.title, question: q.question, type: q.type, options: [...(q.options ?? [])] }); setEditingQIdx(i); }
                             }}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
+                            title={isEditingQ ? "편집 취소" : "문항 수정"}
                           >
                             {isEditingQ ? <X size={13} /> : <Pencil size={13} />}
+                          </button>
+                          <button
+                            onClick={() => deleteQuestion(i)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                            title="문항 삭제"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </div>
 
-                      {/* 객관식 보기 항목 */}
-                      {isExpanded && canExpand && (
+                      {/* 객관식 보기 항목 — 항상 펼쳐서 표시 (편집 중에는 편집 폼에서 수정) */}
+                      {!isEditingQ && canExpand && (
                         <div className="px-5 pb-4 border-t border-slate-50">
                           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-3 mb-2">보기 항목</p>
                           <div className="flex flex-col gap-1.5">
@@ -1586,18 +1595,69 @@ function DesignPageInner() {
                             value={qDraft.question ?? ""}
                             onChange={(e) => setQDraft((d) => ({ ...d, question: e.target.value }))}
                           />
-                          <div className="flex items-center gap-2">
-                            <select
-                              value={qDraft.type ?? ""}
-                              onChange={(e) => setQDraft((d) => ({ ...d, type: e.target.value }))}
-                              className="flex-1 appearance-none bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none"
-                            >
-                              {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                            </select>
+                          <select
+                            value={qDraft.type ?? ""}
+                            onChange={(e) => {
+                              const t = e.target.value;
+                              setQDraft((d) => ({
+                                ...d,
+                                type: t,
+                                // 보기형 유형으로 바꿨는데 보기가 없으면 빈 보기 2개 시드
+                                options: isOptionType(t) && !(d.options?.length) ? ["", ""] : d.options,
+                              }));
+                            }}
+                            className="w-full appearance-none bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none"
+                          >
+                            {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          {/* 보기 편집 — 객관식·복수선택·순위형 */}
+                          {isOptionType(qDraft.type) && (
+                            <div className="flex flex-col gap-1.5">
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">보기 항목</p>
+                              {(qDraft.options ?? []).map((opt, oi) => (
+                                <div key={oi} className="flex items-center gap-1.5">
+                                  <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 text-[10px] font-bold text-slate-400 flex items-center justify-center flex-shrink-0">
+                                    {oi + 1}
+                                  </span>
+                                  <input
+                                    className="flex-1 px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
+                                    placeholder={`보기 ${oi + 1}`}
+                                    value={opt}
+                                    onChange={(e) => setQDraft((d) => ({
+                                      ...d,
+                                      options: (d.options ?? []).map((o, j) => (j === oi ? e.target.value : o)),
+                                    }))}
+                                  />
+                                  <button
+                                    onClick={() => setQDraft((d) => ({
+                                      ...d,
+                                      options: (d.options ?? []).filter((_, j) => j !== oi),
+                                    }))}
+                                    className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"
+                                    title="보기 삭제"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => setQDraft((d) => ({ ...d, options: [...(d.options ?? []), ""] }))}
+                                className="self-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-indigo-200 text-[11px] text-indigo-500 hover:bg-indigo-50 transition-colors"
+                              >
+                                <Plus size={12} /> 보기 추가
+                              </button>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-end gap-2">
                             <button onClick={() => setEditingQIdx(null)} className="px-3 py-2 text-xs text-slate-500 hover:bg-slate-100 rounded-lg border border-slate-200 bg-white">취소</button>
                             <button
                               onClick={() => {
-                                setSurveyQuestions((prev) => prev.map((sq, si) => si === i ? { ...sq, ...qDraft } as ApiQuestion : sq));
+                                const opts = isOptionType(qDraft.type)
+                                  ? (qDraft.options ?? []).map((o) => o.trim()).filter(Boolean)
+                                  : [];
+                                setSurveyQuestions((prev) => prev.map((sq, si) =>
+                                  si === i ? ({ ...sq, ...qDraft, options: opts } as ApiQuestion) : sq
+                                ));
                                 setEditingQIdx(null);
                               }}
                               className="px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
@@ -1608,6 +1668,13 @@ function DesignPageInner() {
                     </div>
                   );
                 })}
+
+                <button
+                  onClick={addQuestion}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-500 text-sm font-medium hover:bg-indigo-50/60 hover:border-indigo-300 transition-all"
+                >
+                  <Plus size={15} /> 문항 추가
+                </button>
 
                 <button
                   onClick={() => setStep("result")}
