@@ -498,6 +498,7 @@ function DesignPageInner() {
   const [surveyQuestions, setSurveyQuestions] = useState<ApiQuestion[]>([]);
   const [editingQIdx, setEditingQIdx] = useState<number | null>(null);
   const [qDraft, setQDraft] = useState<Partial<ApiQuestion>>({});
+  const [editAllMode, setEditAllMode] = useState(false); // 전체 문항 일괄 수정 모드
   const [uploadedPdf, setUploadedPdf] = useState<string | null>(null);
 
   // 문의 다이얼로그
@@ -941,17 +942,45 @@ function DesignPageInner() {
   const isOptionType = (t: string | undefined) =>
     t === "객관식" || t === "복수선택" || t === "순위형";
 
-  /* ── 문항 추가/삭제 ── */
+  /* ── 문항 추가/삭제/일괄수정 ── */
+  const blankQuestion = (): ApiQuestion => ({ type: "객관식", title: "", question: "", options: ["", ""] });
+
   function addQuestion() {
-    const blank: ApiQuestion = { type: "객관식", title: "", question: "", options: ["", ""] };
+    const blank = blankQuestion();
     setSurveyQuestions((prev) => [...prev, blank]);
-    setQDraft({ ...blank, options: [...blank.options] });
-    setEditingQIdx(surveyQuestions.length); // 새 문항을 바로 편집 모드로
+    if (!editAllMode) {
+      setQDraft({ ...blank, options: [...blank.options] });
+      setEditingQIdx(surveyQuestions.length); // 새 문항을 바로 편집 모드로
+    }
+  }
+
+  /** i번 문항 바로 아래에 새 문항 삽입 */
+  function insertQuestion(i: number) {
+    const blank = blankQuestion();
+    setSurveyQuestions((prev) => [...prev.slice(0, i + 1), blank, ...prev.slice(i + 1)]);
+    if (!editAllMode) {
+      setQDraft({ ...blank, options: [...blank.options] });
+      setEditingQIdx(i + 1);
+    }
   }
 
   function deleteQuestion(i: number) {
     setSurveyQuestions((prev) => prev.filter((_, si) => si !== i));
     setEditingQIdx((cur) => (cur === null || cur === i ? null : cur > i ? cur - 1 : cur));
+  }
+
+  /** 일괄 수정 모드에서 문항 하나를 직접 갱신 */
+  function updateQ(i: number, patch: Partial<ApiQuestion>) {
+    setSurveyQuestions((prev) => prev.map((q, si) => (si === i ? ({ ...q, ...patch } as ApiQuestion) : q)));
+  }
+
+  /** 일괄 수정 종료 — 빈 보기 정리 후 모드 해제 */
+  function finishEditAll() {
+    setSurveyQuestions((prev) => prev.map((q) => ({
+      ...q,
+      options: isOptionType(q.type) ? (q.options ?? []).map((o) => o.trim()).filter(Boolean) : [],
+    })));
+    setEditAllMode(false);
   }
 
   const errTradeType = submitted && !tradeType;
@@ -1455,8 +1484,11 @@ function DesignPageInner() {
                     </div>
                   ))}
                 </div>
-                {/* 업로드 */}
-                <div className="px-4 pb-4">
+              </div>
+
+              {/* 2분할: 왼쪽 설문지 직접 업로드 / 오른쪽 설문지 수정 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                   <p className="text-xs font-semibold text-slate-500 mb-1">설문지 직접 업로드 <span className="font-normal text-slate-400">(선택)</span></p>
                   <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed">조사하고 싶은 설문지가 있는 경우에는 업로드하시면 자동으로 문항을 인식합니다.</p>
                   <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden"
@@ -1478,16 +1510,104 @@ function DesignPageInner() {
                     </button>
                   )}
                 </div>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col">
+                  <p className="text-xs font-semibold text-slate-500 mb-1">설문지 수정</p>
+                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed flex-1">아래 전체 설문 문항을 한 화면에서 한꺼번에 수정할 수 있습니다. 수정이 끝나면 수정 완료를 누르세요.</p>
+                  <button
+                    onClick={() => {
+                      if (editAllMode) { finishEditAll(); }
+                      else { setEditingQIdx(null); setEditAllMode(true); }
+                    }}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                      editAllMode
+                        ? "bg-emerald-500 text-white hover:bg-emerald-400"
+                        : "border-2 border-dashed border-indigo-200 text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/40"
+                    }`}
+                  >
+                    {editAllMode ? <><Check size={13} /> 수정 완료</> : <><Pencil size={13} /> 설문지 수정 (전체 문항 한번에)</>}
+                  </button>
+                </div>
               </div>
 
               {/* 아래쪽: 설문 문항 — 보기까지 전부 펼쳐서 표시 */}
               <div className="flex flex-col gap-3">
                 {surveyQuestions.map((q, i) => {
-                  const isEditingQ = editingQIdx === i;
+                  const isEditingQ = !editAllMode && editingQIdx === i;
                   const canExpand = hasOptions(q);
 
                   return (
-                    <div key={i} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${
+                    <div key={i} className="flex flex-col gap-2">
+                    {editAllMode ? (
+                      /* 일괄 수정 카드 — 전체 문항을 한 화면에서 바로 수정 */
+                      <div className="bg-white rounded-2xl border border-indigo-200 shadow-sm px-5 py-4 flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-white text-[11px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm">
+                            {i + 1}
+                          </div>
+                          <select
+                            value={q.type}
+                            onChange={(e) => {
+                              const t = e.target.value;
+                              updateQ(i, { type: t, options: isOptionType(t) && !(q.options?.length) ? ["", ""] : q.options });
+                            }}
+                            className="flex-1 appearance-none bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none"
+                          >
+                            {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                          <button
+                            onClick={() => deleteQuestion(i)}
+                            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                            title="문항 삭제"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                        <input
+                          className="w-full px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
+                          placeholder="제목"
+                          value={q.title}
+                          onChange={(e) => updateQ(i, { title: e.target.value })}
+                        />
+                        <textarea
+                          className="w-full h-16 px-3 py-2.5 text-sm bg-white border border-indigo-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 leading-relaxed"
+                          placeholder="질문 내용"
+                          value={q.question}
+                          onChange={(e) => updateQ(i, { question: e.target.value })}
+                        />
+                        {isOptionType(q.type) && (
+                          <div className="flex flex-col gap-1.5">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">보기 항목</p>
+                            {(q.options ?? []).map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 text-[10px] font-bold text-slate-400 flex items-center justify-center flex-shrink-0">
+                                  {oi + 1}
+                                </span>
+                                <input
+                                  className="flex-1 px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
+                                  placeholder={`보기 ${oi + 1}`}
+                                  value={opt}
+                                  onChange={(e) => updateQ(i, { options: (q.options ?? []).map((o, j) => (j === oi ? e.target.value : o)) })}
+                                />
+                                <button
+                                  onClick={() => updateQ(i, { options: (q.options ?? []).filter((_, j) => j !== oi) })}
+                                  className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"
+                                  title="보기 삭제"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => updateQ(i, { options: [...(q.options ?? []), ""] })}
+                              className="self-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-indigo-200 text-[11px] text-indigo-500 hover:bg-indigo-50 transition-colors"
+                            >
+                              <Plus size={12} /> 보기 추가
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${
                       isEditingQ ? "border-indigo-200" : "border-slate-200 hover:border-slate-300"
                     }`}>
                       {/* 문항 헤더 */}
@@ -1666,18 +1786,29 @@ function DesignPageInner() {
                         </div>
                       )}
                     </div>
+                    )}
+                    {/* 이 문항 바로 아래에 새 문항 삽입 */}
+                    <button
+                      onClick={() => insertQuestion(i)}
+                      className="self-center inline-flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-slate-200 text-[11px] text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all"
+                    >
+                      <Plus size={11} /> 문항 추가
+                    </button>
+                    </div>
                   );
                 })}
 
-                <button
-                  onClick={addQuestion}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-500 text-sm font-medium hover:bg-indigo-50/60 hover:border-indigo-300 transition-all"
-                >
-                  <Plus size={15} /> 문항 추가
-                </button>
+                {surveyQuestions.length === 0 && (
+                  <button
+                    onClick={addQuestion}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-500 text-sm font-medium hover:bg-indigo-50/60 hover:border-indigo-300 transition-all"
+                  >
+                    <Plus size={15} /> 문항 추가
+                  </button>
+                )}
 
                 <button
-                  onClick={() => setStep("result")}
+                  onClick={() => { if (editAllMode) finishEditAll(); setStep("result"); }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] mt-2"
                 >
                   요약 보기 <ArrowRight size={15} />
