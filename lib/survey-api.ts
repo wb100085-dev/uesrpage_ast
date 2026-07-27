@@ -169,6 +169,8 @@ export async function runSurvey(body: {
   definition?: string;
   needs?: string;
   design_id?: number | null;
+  /** 거래방식 — B2B/B2G면 백엔드가 패널에서 비경제활동·미성년(10대 이하)을 하드 제외 */
+  trade_type?: string;
 }): Promise<RunResponse> {
   const s = await getAppSettings();
   return apiFetch("/api/survey/run", {

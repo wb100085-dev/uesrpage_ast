@@ -888,6 +888,7 @@ function DesignPageInner() {
         definition: buildDefinitionPayload(),
         needs: researchPurpose,
         design_id: designId,
+        trade_type: tradeType,
       });
       setRunJobId(job_id);
 
