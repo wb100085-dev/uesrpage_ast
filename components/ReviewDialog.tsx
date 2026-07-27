@@ -228,7 +228,7 @@ export default function ReviewDialog({ open, onClose, jobId }: Props) {
               )}
               <button onClick={() => { setError(null); setPart(3); }} className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all">
                 <span className="flex items-center gap-1.5">보고서 품질 평가 <ArrowRight size={14} /></span>
-                <span className="text-[10px] font-normal text-indigo-200 leading-snug">다운로드 받으신 상세보고서 등을 확인하신 후 응답부탁드립니다.</span>
+                <span className="text-[10px] font-normal text-indigo-200 leading-snug text-center">다운로드 받으신 상세보고서 등을 확인하신 후<br />응답 부탁드립니다.</span>
               </button>
             </>
           )}
