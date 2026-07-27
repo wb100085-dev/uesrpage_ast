@@ -15,8 +15,8 @@ import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
 const PRODUCT = {
   key: "detailed_report",
   name: "상세보고서",
-  amount: 49500,
-  desc: "정가 99,000원 → 50% 할인",
+  amount: 99000,
+  desc: "AI 가상패널 설문 상세분석 보고서",
   features: [
     "가상패널에게 질문하기",
     "가상인구 패널 인구통계 정보",
