@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * 무료 열람 링크 진입 페이지 — /free-report?pass=<token>
+ * 무료 쿠폰(열람 링크) 진입 페이지 — /free-report?pass=<token>
  *
  * 로그인 요구 없이 곧바로 조사 설계(제품정의) 페이지로 보낸다.
  * 토큰은 localStorage 에 보관했다가 로그인된 시점에 design 페이지가 자동 리딤한다.
@@ -28,7 +28,7 @@ function FreeReportInner() {
     if (ranRef.current) return;
     ranRef.current = true;
     if (!token) {
-      setErrMsg("링크가 올바르지 않습니다. (토큰 누락)");
+      setErrMsg("쿠폰 링크가 올바르지 않습니다. (토큰 누락)");
       return;
     }
     trackEvent("무료열람링크_진입");
@@ -45,7 +45,7 @@ function FreeReportInner() {
             router.replace("/design");
           }
         })
-        .catch((e) => setErrMsg(e instanceof Error ? e.message : "링크 확인에 실패했습니다."));
+        .catch((e) => setErrMsg(e instanceof Error ? e.message : "쿠폰 확인에 실패했습니다."));
       return;
     }
     // 비로그인 — 토큰을 보관하고 곧장 설계 페이지로 (로그인 시점에 자동 리딤)
@@ -67,7 +67,7 @@ function FreeReportInner() {
               <div className="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={30} className="text-rose-500" />
               </div>
-              <h1 className="text-base font-bold text-slate-900 mb-2">링크를 사용할 수 없습니다</h1>
+              <h1 className="text-base font-bold text-slate-900 mb-2">쿠폰을 사용할 수 없습니다</h1>
               <p className="text-xs text-rose-500 leading-relaxed mb-6">{errMsg}</p>
               <Link
                 href="/design"

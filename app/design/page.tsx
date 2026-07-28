@@ -2162,7 +2162,7 @@ function DesignPageInner() {
                       <Download size={15} />
                       <span className="leading-tight text-center">
                         상세보고서 무료로 받기
-                        <span className="block text-[11px] font-medium text-indigo-200">무료 링크 적용 중 — 로그인 후 바로 열람됩니다</span>
+                        <span className="block text-[11px] font-medium text-indigo-200">무료 쿠폰 적용 중 — 로그인 후 바로 열람됩니다</span>
                       </span>
                     </button>
                   )}
