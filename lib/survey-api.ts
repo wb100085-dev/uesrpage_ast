@@ -126,8 +126,19 @@ export function getAppSettings(): Promise<AppSettings> {
 }
 
 /**
+ * 무료 열람 링크(토큰) 리딤 — 성공 시 현재 로그인 계정에 결제 생략 권한이 부여된다.
+ * 실패 시 백엔드 에러 메시지(만료/소진/무효)를 그대로 throw.
+ */
+export function redeemReportToken(token: string): Promise<{ ok: boolean; exempt: boolean; note?: string }> {
+  return apiFetch("/api/report-token/redeem", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+/**
  * 로그인 사용자가 상세보고서 무료 제공(결제 생략) 대상인지 확인.
- * 관리자 콘솔의 전역 설정 → '상세보고서 무료 제공 이메일' 목록 기준. 실패·비로그인 시 false.
+ * 관리자 콘솔의 전역 설정 → 이메일 목록 또는 무료 열람 링크 리딤 기준. 실패·비로그인 시 false.
  */
 export async function getReportExempt(): Promise<boolean> {
   try {
