@@ -33,6 +33,7 @@ import {
   getSurveyResults,
   getAppSettings,
   getReportExempt,
+  redeemPendingReportToken,
   downloadSummaryPdf,
   claimDesign,
   type SurveyDraftPatch,
@@ -527,7 +528,13 @@ function DesignPageInner() {
     setPaymentsEnabled(Boolean(u?.is_superuser || u?.is_staff || PAYMENTS_TEST_EMAILS.includes(email)));
     const logged = Boolean(getAccessToken() && u);
     setIsLoggedIn(logged);
-    if (logged) getReportExempt().then(setReportExempt).catch(() => {});
+    if (logged) {
+      // 무료 열람 링크로 진입해 보관된 토큰이 있으면 먼저 리딤 → 그 결과 포함해 면제 확인
+      redeemPendingReportToken()
+        .then((redeemed) => (redeemed ? true : getReportExempt()))
+        .then(setReportExempt)
+        .catch(() => {});
+    }
   }, []);
   // 비로그인 사용자가 대시보드 노드를 누르면 안내 토스트를 띄우고 이동은 막는다.
   const [dashboardNotice, setDashboardNotice] = useState(false);

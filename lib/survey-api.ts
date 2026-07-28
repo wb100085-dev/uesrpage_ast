@@ -136,6 +136,36 @@ export function redeemReportToken(token: string): Promise<{ ok: boolean; exempt:
   });
 }
 
+/** 비로그인 상태로 무료 열람 링크에 진입했을 때 토큰을 보관하는 localStorage 키. */
+export const FREE_REPORT_PASS_KEY = "vpg.free_report.pass";
+
+/**
+ * 보관 중인 무료 열람 토큰이 있으면 리딤 시도 (로그인 이후 호출).
+ * 성공/이미사용 → 토큰 제거 후 true. 만료·소진·무효 → 토큰 제거 후 false.
+ * 네트워크 오류 → 토큰 유지(다음 기회에 재시도) false.
+ */
+export async function redeemPendingReportToken(): Promise<boolean> {
+  let token = "";
+  try {
+    token = localStorage.getItem(FREE_REPORT_PASS_KEY) || "";
+  } catch {
+    return false;
+  }
+  if (!token) return false;
+  try {
+    const r = await redeemReportToken(token);
+    localStorage.removeItem(FREE_REPORT_PASS_KEY);
+    return Boolean(r?.exempt);
+  } catch (e) {
+    // 4xx(만료/소진/무효)는 재시도 무의미 → 제거. 그 외(네트워크)는 유지.
+    const msg = e instanceof Error ? e.message : "";
+    if (/API 오류 4\d\d/.test(msg)) {
+      try { localStorage.removeItem(FREE_REPORT_PASS_KEY); } catch { /* noop */ }
+    }
+    return false;
+  }
+}
+
 /**
  * 로그인 사용자가 상세보고서 무료 제공(결제 생략) 대상인지 확인.
  * 관리자 콘솔의 전역 설정 → 이메일 목록 또는 무료 열람 링크 리딤 기준. 실패·비로그인 시 false.
