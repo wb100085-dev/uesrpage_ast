@@ -33,6 +33,7 @@ import {
   getSurveyResults,
   getAppSettings,
   getReportExempt,
+  claimReportJob,
   redeemPendingReportToken,
   downloadSummaryPdf,
   claimDesign,
@@ -552,6 +553,14 @@ function DesignPageInner() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [designId, setDesignId] = useState<number | null>(null); // 백엔드 survey_designs 연결용
   const [runJobId, setRunJobId] = useState<string | null>(null);
+  // 조사 잡이 확정되면 '그 설문에 대해' 무료인지 재판정 — 계정당 설문 1건 링크는
+  // 이미 다른 설문에 썼으면 여기서 false 가 되어 버튼이 숨는다.
+  useEffect(() => {
+    if (isLoggedIn && runJobId) {
+      getReportExempt(runJobId).then(setReportExempt).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoggedIn, runJobId]);
   const [runError, setRunError] = useState("");
   const [infographic, setInfographic] = useState<InfographicSummary | null>(null);
   const [runMeta, setRunMeta] = useState<{ n: number; sido: string } | null>(null);
@@ -2120,7 +2129,11 @@ function DesignPageInner() {
                   )}
                   {reportExempt && runJobId && (
                     <button
-                      onClick={() => { trackEvent("상세보고서_무료열람"); router.push(`/results/${runJobId}`); }}
+                      onClick={() => {
+                        trackEvent("상세보고서_무료열람");
+                        claimReportJob(runJobId).catch(() => {}); // 계정당 1건 링크 → 이 설문에 확정
+                        router.push(`/results/${runJobId}`);
+                      }}
                       className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                     >
                       <Download size={15} />

@@ -168,15 +168,28 @@ export async function redeemPendingReportToken(): Promise<boolean> {
 
 /**
  * 로그인 사용자가 상세보고서 무료 제공(결제 생략) 대상인지 확인.
- * 관리자 콘솔의 전역 설정 → 이메일 목록 또는 무료 열람 링크 리딤 기준. 실패·비로그인 시 false.
+ * jobId 를 주면 '그 설문에 대해' 무료인지 판정 (계정당 설문 1건 링크는 다른 설문에
+ * 이미 썼으면 false). 실패·비로그인 시 false.
  */
-export async function getReportExempt(): Promise<boolean> {
+export async function getReportExempt(jobId?: string): Promise<boolean> {
   try {
-    const r = await apiFetch<{ exempt: boolean }>("/api/settings/report-exempt");
+    const qs = jobId ? `?job_id=${encodeURIComponent(jobId)}` : "";
+    const r = await apiFetch<{ exempt: boolean }>(`/api/settings/report-exempt${qs}`);
     return Boolean(r?.exempt);
   } catch {
     return false;
   }
+}
+
+/**
+ * 계정당 설문 1건 무료 권한을 이 설문(jobId)에 확정(claim) — 상세보고서 열람 직전 호출.
+ * 무제한 권한이면 no-op 성공. 남은 무료 건이 없으면 throw.
+ */
+export function claimReportJob(jobId: string): Promise<{ ok: boolean; scope: string }> {
+  return apiFetch("/api/report-token/claim", {
+    method: "POST",
+    body: JSON.stringify({ job_id: jobId }),
+  });
 }
 
 /** 관리자가 지정한 기본 AI 모델 (실패 시 DEFAULT_AI_MODEL). */
