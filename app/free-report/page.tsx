@@ -13,13 +13,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { getAccessToken } from "@/lib/auth-api";
-import { redeemReportToken, FREE_REPORT_PASS_KEY } from "@/lib/survey-api";
+import { redeemReportToken, claimReportJob, FREE_REPORT_PASS_KEY } from "@/lib/survey-api";
 import { trackEvent } from "@/lib/analytics";
 
 function FreeReportInner() {
   const router = useRouter();
   const params = useSearchParams();
   const token = (params.get("pass") || "").trim();
+  const job = (params.get("job") || "").trim(); // 로그인 복귀 시 바로 열람할 설문
   const [errMsg, setErrMsg] = useState("");
   const ranRef = useRef(false); // StrictMode 이중 실행 방지
 
@@ -32,9 +33,18 @@ function FreeReportInner() {
     }
     trackEvent("무료열람링크_진입");
     if (getAccessToken()) {
-      // 이미 로그인 — 즉시 리딤 후 설계 페이지로. 실패해도 흐름은 막지 않되 사유 표시.
+      // 이미 로그인 — 즉시 리딤. job 이 있으면(결과 화면에서 로그인 유도로 온 경우)
+      // 그 설문에 무료 1건을 확정하고 바로 상세보고서로, 없으면 설계 페이지로.
       redeemReportToken(token)
-        .then(() => router.replace("/design"))
+        .then(async () => {
+          try { localStorage.removeItem(FREE_REPORT_PASS_KEY); } catch { /* noop */ }
+          if (job) {
+            await claimReportJob(job).catch(() => {});
+            router.replace(`/results/${job}`);
+          } else {
+            router.replace("/design");
+          }
+        })
         .catch((e) => setErrMsg(e instanceof Error ? e.message : "링크 확인에 실패했습니다."));
       return;
     }
@@ -45,7 +55,7 @@ function FreeReportInner() {
       /* storage 불가 환경 — 무시 */
     }
     router.replace("/design");
-  }, [token, router]);
+  }, [token, job, router]);
 
   return (
     <div className="min-h-screen bg-slate-50">

@@ -35,6 +35,7 @@ import {
   getReportExempt,
   claimReportJob,
   redeemPendingReportToken,
+  FREE_REPORT_PASS_KEY,
   downloadSummaryPdf,
   claimDesign,
   type SurveyDraftPatch,
@@ -519,6 +520,8 @@ function DesignPageInner() {
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   // 상세보고서 무료 제공(결제 생략) 대상 여부 — 관리자 전역 설정의 이메일 목록 기준
   const [reportExempt, setReportExempt] = useState(false);
+  // 비로그인 상태로 무료 열람 링크를 타고 들어와 보관 중인 토큰 (로그인하면 적용됨)
+  const [pendingFreeToken, setPendingFreeToken] = useState<string | null>(null);
   // 로그인 여부 — 체험후기 버튼 동작·안내문 노출에 사용.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
@@ -535,6 +538,11 @@ function DesignPageInner() {
         .then((redeemed) => (redeemed ? true : getReportExempt()))
         .then(setReportExempt)
         .catch(() => {});
+    } else {
+      // 비로그인 — 링크로 들어와 보관된 토큰이 있으면 결과 단계에서 '로그인하고 무료 열람' 버튼 노출
+      try {
+        setPendingFreeToken(localStorage.getItem(FREE_REPORT_PASS_KEY));
+      } catch { /* noop */ }
     }
   }, []);
   // 비로그인 사용자가 대시보드 노드를 누르면 안내 토스트를 띄우고 이동은 막는다.
@@ -2140,6 +2148,21 @@ function DesignPageInner() {
                       <span className="leading-tight text-center">
                         상세보고서 보기
                         <span className="block text-[11px] font-medium text-indigo-200">결제 없이 이용 가능한 계정입니다</span>
+                      </span>
+                    </button>
+                  )}
+                  {!reportExempt && !isLoggedIn && pendingFreeToken && runJobId && (
+                    <button
+                      onClick={() => {
+                        trackEvent("상세보고서_무료열람_로그인유도");
+                        router.push(`/login?next=${encodeURIComponent(`/free-report?pass=${pendingFreeToken}&job=${runJobId}`)}`);
+                      }}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                    >
+                      <Download size={15} />
+                      <span className="leading-tight text-center">
+                        상세보고서 무료로 받기
+                        <span className="block text-[11px] font-medium text-indigo-200">무료 링크 적용 중 — 로그인 후 바로 열람됩니다</span>
                       </span>
                     </button>
                   )}
