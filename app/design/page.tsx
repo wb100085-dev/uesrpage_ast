@@ -428,6 +428,9 @@ function DesignPageInner() {
   // 입력
   const [tradeType, setTradeType] = useState("");
   const tradeTypeRef = useRef<HTMLDivElement>(null); // 미선택 검증 실패 시 스크롤 이동용
+  // 거래방식-조사목적 불일치 경고 (예: 목적은 B2B인데 B2C 선택) — 1회 경고 후 재클릭 시 진행
+  const [tradeMismatchWarning, setTradeMismatchWarning] = useState("");
+  const tradeMismatchAck = useRef(false);
   const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
   const [productAnswers, setProductAnswers] = useState(["", "", "", "", ""]);
   const [productFree, setProductFree] = useState("");
@@ -813,12 +816,20 @@ function DesignPageInner() {
     };
   }
 
+  // 거래방식을 바꾸면 불일치 경고 리셋
+  useEffect(() => {
+    setTradeMismatchWarning("");
+    tradeMismatchAck.current = false;
+  }, [tradeType]);
+
   /* ── Step 1→2: 가설 설계 API 호출 ── */
   // 거래방식을 정의 본문 앞에 명시해 AI가 컨텍스트로 활용 (가설·문항 생성 공용)
   function buildDefinitionPayload() {
     const tradeFull = TRADE_TYPES.find((t) => t.code === tradeType);
     const tradeLine = tradeFull ? `[거래방식] ${tradeFull.code} (${tradeFull.en})` : "";
-    return [tradeLine, productDef].filter(Boolean).join("\n\n");
+    // 복원·재실행 시 정의에 이미 박힌 [거래방식] 머리말을 모두 제거해 중복 표기를 방지
+    const cleanDef = productDef.replace(/\[거래방식\][^\n\[]*/g, "").trim();
+    return [tradeLine, cleanDef].filter(Boolean).join("\n\n");
   }
 
   /* ── Step 1→2: 가설만 생성 (문항은 만들지 않음 — AI 호출 절약 + 가설 수정 반영 가능) ── */
@@ -830,6 +841,23 @@ function DesignPageInner() {
         tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
       return;
+    }
+
+    // 거래방식-조사목적 불일치 감지 — B2C/기타 선택인데 정의·목적에 기업/기관 대상 신호가 있으면
+    // 1회 경고하고 멈춘다 (맞다면 버튼을 다시 누르면 그대로 진행).
+    if (!tradeMismatchAck.current && (tradeType === "B2C" || tradeType === "기타")) {
+      const text = `${productDef} ${researchPurpose}`.toLowerCase();
+      const b2bSignals = ["b2b", "비투비", "기업 대상", "기업을 대상", "기업 고객", "실무자", "의사결정권자", "구매 담당", "도입 여부", "공공기관", "지자체", "관공서", "조달", "b2g"];
+      const hit = b2bSignals.find((k) => text.includes(k));
+      if (hit) {
+        tradeMismatchAck.current = true;
+        setTradeMismatchWarning(
+          `조사 목적·정의에 기업/기관 대상 표현("${hit}")이 있습니다. 거래방식이 ${tradeType}로 선택되어 있는데 맞나요? ` +
+          `B2B/B2G 조사라면 거래방식을 바꿔야 직장인·기관 실무자 중심으로 응답자가 구성됩니다. 지금 선택이 맞다면 'AI 설계 시작'을 한 번 더 눌러주세요.`
+        );
+        tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
     }
 
     setApiError("");
@@ -1197,6 +1225,12 @@ function DesignPageInner() {
                   })}
                 </div>
                 {errTradeType && <ErrorMsg msg="거래방식을 선택해주세요." />}
+                {tradeMismatchWarning && (
+                  <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                    <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-amber-800">{tradeMismatchWarning}</p>
+                  </div>
+                )}
               </div>
 
               {/* 제품 정의 */}
