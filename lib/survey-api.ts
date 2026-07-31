@@ -30,6 +30,8 @@ export interface SurveyResult {
   응답자수: number;
   분포: DistItem[];
   평균점수: number | null;
+  /** 객관식 선택 근거 샘플 — 가상 응답자가 보기를 고르기 전 쓴 이유 (응답자 = "여·40대·성남시" 요약) */
+  객관식근거샘플?: { 선택: string; 근거: string; 응답자?: string }[];
 }
 
 export interface SurveyReport {
