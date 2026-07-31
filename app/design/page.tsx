@@ -431,6 +431,16 @@ function DesignPageInner() {
   // 거래방식-조사목적 불일치 경고 (예: 목적은 B2B인데 B2C 선택) — 1회 경고 후 재클릭 시 진행
   const [tradeMismatchWarning, setTradeMismatchWarning] = useState("");
   const tradeMismatchAck = useRef(false);
+  // 실행 시점 불일치 경고 (저장된 설계를 다시 실행하는 경로 — 설계 시 경고를 못 본 경우)
+  const runMismatchAck = useRef(false);
+
+  /** 정의·목적에 기업/기관 대상 신호가 있는데 거래방식이 B2C/기타면 감지된 키워드 반환 */
+  function detectTradeMismatch(): string | null {
+    if (tradeType !== "B2C" && tradeType !== "기타") return null;
+    const text = `${productDef} ${researchPurpose}`.toLowerCase();
+    const signals = ["b2b", "비투비", "기업 대상", "기업을 대상", "기업 고객", "실무자", "의사결정권자", "구매 담당", "도입 여부", "공공기관", "지자체", "관공서", "조달", "b2g"];
+    return signals.find((k) => text.includes(k)) ?? null;
+  }
   const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
   const [productAnswers, setProductAnswers] = useState(["", "", "", "", ""]);
   const [productFree, setProductFree] = useState("");
@@ -845,10 +855,8 @@ function DesignPageInner() {
 
     // 거래방식-조사목적 불일치 감지 — B2C/기타 선택인데 정의·목적에 기업/기관 대상 신호가 있으면
     // 1회 경고하고 멈춘다 (맞다면 버튼을 다시 누르면 그대로 진행).
-    if (!tradeMismatchAck.current && (tradeType === "B2C" || tradeType === "기타")) {
-      const text = `${productDef} ${researchPurpose}`.toLowerCase();
-      const b2bSignals = ["b2b", "비투비", "기업 대상", "기업을 대상", "기업 고객", "실무자", "의사결정권자", "구매 담당", "도입 여부", "공공기관", "지자체", "관공서", "조달", "b2g"];
-      const hit = b2bSignals.find((k) => text.includes(k));
+    if (!tradeMismatchAck.current) {
+      const hit = detectTradeMismatch();
       if (hit) {
         tradeMismatchAck.current = true;
         setTradeMismatchWarning(
@@ -925,6 +933,20 @@ function DesignPageInner() {
      지역·표본 수는 관리자 대시보드 전역 설정(analysis_sido / analysis_sample_size)을 따른다. */
   async function handleRunSurvey() {
     if (surveyQuestions.length === 0) return;
+
+    // 거래방식-목적 불일치 재확인 — 저장된 설계를 바로 실행하는 경우 설계 단계 경고를
+    // 못 봤을 수 있으므로 실행 직전에 1회 더 경고 (재클릭 시 진행)
+    if (!runMismatchAck.current) {
+      const hit = detectTradeMismatch();
+      if (hit) {
+        runMismatchAck.current = true;
+        setRunError(
+          `거래방식 확인: 조사 목적에 기업/기관 대상 표현("${hit}")이 있는데 거래방식이 ${tradeType}입니다. ` +
+          `B2B/B2G 조사라면 1단계에서 거래방식을 바꿔주세요. 지금 그대로 진행하려면 '조사 실행하기'를 한 번 더 눌러주세요.`
+        );
+        return;
+      }
+    }
     const selected = [...selectedHypotheses].sort((a, b) => a - b).map((i) => hypothesisTexts[i]);
     const hyps = (selected.length > 0 ? selected : hypothesisTexts).filter((h) => h && h.trim());
 
