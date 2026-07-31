@@ -71,7 +71,7 @@ export default function CheckoutDialog({
     initRef.current = true;
     (async () => {
       try {
-        const o = await createOrder(productKey);
+        const o = await createOrder(productKey, jobId);
         const toss = await loadTossPayments(o.client_key);
         // 결제창(개별 연동) — 위젯과 달리 render 없이 requestPayment 로 결제창을 띄운다.
         paymentRef.current = toss.payment({ customerKey: ANONYMOUS });

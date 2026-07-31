@@ -61,12 +61,18 @@ export function getProducts(): Promise<{ products: Product[] }> {
   return api("/api/payments/products");
 }
 
-/** 주문 생성 — 서버가 orderId·금액을 확정하고 결제위젯에 필요한 값을 반환. */
-export function createOrder(productKey: string): Promise<CreateOrderResponse> {
+/** 주문 생성 — 서버가 orderId·금액을 확정하고 결제위젯에 필요한 값을 반환.
+ * jobId 를 주면 '결제된 설문'으로 기록되어 내 분석 히스토리에서 결과 페이지로 직행할 수 있다. */
+export function createOrder(productKey: string, jobId?: string): Promise<CreateOrderResponse> {
   return api("/api/payments/create", {
     method: "POST",
-    body: JSON.stringify({ product_key: productKey }),
+    body: JSON.stringify({ product_key: productKey, ...(jobId ? { job_id: jobId } : {}) }),
   });
+}
+
+/** 내가 상세보고서를 볼 수 있는 조사 목록 (결제 완료 + 쿠폰 바인딩 + 무제한 권한). */
+export function getReportAccessJobs(): Promise<{ all_access: boolean; job_ids: string[] }> {
+  return api("/api/report-access/jobs");
 }
 
 /** successUrl 콜백에서 받은 값으로 결제를 최종 승인. */

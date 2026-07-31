@@ -12,6 +12,7 @@ import {
   type AuthUser,
 } from "@/lib/auth-api";
 import { getMyDesigns, listDrafts, deleteDraft, DEFAULT_SAMPLE_SIZE, type SurveyDraft } from "@/lib/survey-api";
+import { getReportAccessJobs } from "@/lib/payments-api";
 import RequireAuth from "@/components/RequireAuth";
 import {
   BarChart2, Settings, History, ChevronRight,
@@ -52,15 +53,24 @@ type HistoryItem = {
 
 /**
  * 히스토리 행 클릭 시 어디로 보낼지 결정.
- * - completed → /design?design=<id>  (결과 보기 = design 요약 결과 단계 + 작성 내용 복원)
+ * - completed + 열람 권한(결제·쿠폰·무료권한) → /results/<job_id> (상세보고서 다운로드 페이지)
+ *   — 기존엔 design 요약으로 가서 이미 결제한 설문도 다시 결제해야 하는 문제가 있었음
+ * - completed(권한 없음) → /design?design=<id>  (결과 보기 = design 요약 결과 단계)
  * - running + job_id → /survey/<job_id>   (진행 페이지)
  * - error + job_id   → /results/<job_id>  (결과 페이지가 에러 표시)
  * - 그 외 (가설/문항 단계 미완료, job_id 없음) → /design?design=<id> (이어쓰기)
  */
-function historyHref(item: HistoryItem): string {
+function historyHref(item: HistoryItem, access?: { all_access: boolean; job_ids: string[] }): string {
   if (item.job_id) {
     if (item.status === "running") return `/survey/${item.job_id}`;
     if (item.status === "error") return `/results/${item.job_id}`;
+    if (
+      item.status === "done" &&
+      access &&
+      (access.all_access || access.job_ids.includes(String(item.job_id)))
+    ) {
+      return `/results/${item.job_id}`;
+    }
   }
   // done(완료) 및 그 외 → design 페이지로: 작성 내용 복원 + 완료 시 요약 결과 단계로 진입
   return `/design?design=${item.id}`;
@@ -126,6 +136,12 @@ function UserDashboardInner() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  // 상세보고서 열람 권한 (결제·쿠폰·무료권한) — 히스토리 '결과 보기' 라우팅에 사용
+  const [reportAccess, setReportAccess] = useState<{ all_access: boolean; job_ids: string[] } | undefined>(undefined);
+
+  useEffect(() => {
+    getReportAccessJobs().then(setReportAccess).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -572,12 +588,14 @@ function UserDashboardInner() {
                   ) : (
                     <div className="space-y-3">
                       {history.map(item => {
-                        const href = historyHref(item);
-                        const ctaLabel = item.job_id && item.status === "done"
-                          ? "결과 보기"
-                          : item.job_id && item.status === "running"
-                            ? "진행 보기"
-                            : "이어서 작성";
+                        const href = historyHref(item, reportAccess);
+                        const ctaLabel = href.startsWith("/results/") && item.status === "done"
+                          ? "상세보고서 보기"
+                          : item.job_id && item.status === "done"
+                            ? "결과 보기"
+                            : item.job_id && item.status === "running"
+                              ? "진행 보기"
+                              : "이어서 작성";
                         return (
                           <Link
                             key={item.id}
