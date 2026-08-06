@@ -315,9 +315,12 @@ function ResultsPageInner() {
 
         {/* 다운로드 */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6 animate-fade-up-2">
-          <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2">
             <Download size={15} className="text-indigo-500" /> 다운로드
           </h3>
+          <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+            상세보고서는 생성 후 AI 비판 검토·수정 과정을 거쳐 완성되므로 다소 시간이 걸릴 수 있습니다 (약 2~4분).
+          </p>
           <div className="grid sm:grid-cols-3 gap-3">
             {[
               { kind: "design", label: "가설 및 설문 문항", sub: "PDF", fn: () => downloadDesignPdf(jobId) },
@@ -347,7 +350,7 @@ function ResultsPageInner() {
           </div>
           {detailStatus === "running" && (
             <p className="mt-2 text-xs text-indigo-500">
-              상세분석 보고서를 생성하고 있습니다. 1~2분 정도 소요되며, 완료되면 상세보고서를 내려받을 수 있습니다.
+              상세분석 보고서를 생성하고 AI 비판 검토·수정까지 진행하고 있습니다. 2~4분 정도 소요되며, 완료되면 상세보고서를 내려받을 수 있습니다.
             </p>
           )}
           {detailStatus === "error" && (

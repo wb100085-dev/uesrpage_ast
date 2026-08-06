@@ -277,7 +277,7 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
     try {
       let st = await getDetailStatus(jobId);
       if (st.detail_status !== "done") {
-        setReportMsg("상세보고서를 생성하고 있습니다. 1~2분 정도 소요됩니다. 창을 닫지 말고 잠시만 기다려 주세요.");
+        setReportMsg("상세보고서를 생성하고 AI 비판 검토·수정을 진행하고 있습니다. 2~4분 정도 소요됩니다. 창을 닫지 말고 잠시만 기다려 주세요.");
         if (st.detail_status !== "running") {
           await startDetail(jobId); // 이미 진행 중이면 백엔드가 현재 상태를 그대로 반환
         }
@@ -305,7 +305,7 @@ function DownloadPart({ jobId, alreadySubmitted }: { jobId: string | null; alrea
   }
 
   const items = [
-    { kind: "report", label: "상세보고서", sub: "30p 내외 PDF · 클릭 시 생성(1~2분 소요)", icon: FileText, onClick: runReport },
+    { kind: "report", label: "상세보고서", sub: "30p 내외 PDF · 생성 후 AI 검토·수정 진행(2~4분 소요)", icon: FileText, onClick: runReport },
     { kind: "raw", label: "원본자료 (Raw Data)", sub: "CSV / 엑셀", icon: Database, onClick: () => run("raw", () => downloadRawCsv(jobId!)) },
     { kind: "design", label: "설문 가설 및 설문 문항 설계서", sub: "PDF", icon: FileEdit, onClick: () => run("design", () => downloadDesignPdf(jobId!)) },
   ];
