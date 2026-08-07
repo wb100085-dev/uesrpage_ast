@@ -37,6 +37,7 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
       "입력 내용을 분석하고 있어요",
       "시장 컨텍스트를 파악하는 중이에요",
       "변수 간 관계를 정리해 가설을 도출하고 있어요",
+      "도출한 가설의 표현을 다듬고 있어요",
     ],
   },
   generate: {
@@ -48,7 +49,8 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
     captions: [
       "가설에 맞는 문항을 구성하고 있어요",
       "응답 옵션과 척도를 다듬는 중이에요",
-      "문항 순서를 최종 검토하고 있어요",
+      "생성된 설문을 비판적으로 검토하고 있어요",
+      "검토 의견을 반영해 문항을 다듬고 있어요",
     ],
   },
   survey: {
@@ -260,14 +262,34 @@ export default function SocialTwinLoader({
   const isShort = !cfg.steps;
   const pct = Math.min(Math.max(progress ?? 0, 0), 100);
 
-  // 짧은 작업: 안내 문구 순환
+  // 짧은 작업: 안내 문구 순환.
+  // 진행률(progress)이 오면 문구를 진행 구간에 균등 배분해 실제 단계와 맞추고,
+  // 마지막 구간(대기가 가장 긴 검토·마무리)에서는 마지막 두 문구를 교대해
+  // 오래 걸려도 화면이 멈춰 보이지 않게 한다.
   const captions = cfg.captions ?? [];
   const [capIdx, setCapIdx] = useState(0);
+  const [tailToggle, setTailToggle] = useState(false);
+  const hasProgress = progress != null;
+  const band = captions.length
+    ? Math.min(Math.floor((pct / 100) * captions.length), captions.length - 1)
+    : 0;
+  const inTail = hasProgress && captions.length >= 2 && band >= captions.length - 1;
   useEffect(() => {
     if (!isShort || captions.length < 2) return;
-    const t = setInterval(() => setCapIdx((i) => (i + 1) % captions.length), 2600);
-    return () => clearInterval(t);
-  }, [isShort, captions.length]);
+    if (!hasProgress) {
+      const t = setInterval(() => setCapIdx((i) => (i + 1) % captions.length), 2600);
+      return () => clearInterval(t);
+    }
+    if (inTail) {
+      const t = setInterval(() => setTailToggle((v) => !v), 3600);
+      return () => clearInterval(t);
+    }
+  }, [isShort, captions.length, hasProgress, inTail]);
+  const displayCapIdx = !hasProgress
+    ? capIdx
+    : inTail
+      ? (tailToggle ? captions.length - 2 : captions.length - 1)
+      : band;
 
   // 긴 작업: 백엔드 진행률이 단계 단위로 듬성듬성 와도 멈춰 보이지 않도록,
   // 표시용 진행률(displayPct)을 실제 값까지 빠르게 따라간 뒤
@@ -364,7 +386,7 @@ export default function SocialTwinLoader({
               <span
                 key={i}
                 className={`absolute inset-x-0 text-center text-sm text-slate-500 transition-opacity duration-500 ${
-                  i === capIdx ? "opacity-100" : "opacity-0"
+                  i === displayCapIdx ? "opacity-100" : "opacity-0"
                 }`}
               >
                 {c}

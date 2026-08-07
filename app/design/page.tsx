@@ -802,18 +802,20 @@ function DesignPageInner() {
   }
 
   // minDurationMs: API가 너무 빨리 끝나도 로딩 화면(기술 설명)을 최소 이 시간만큼 노출
-  function startAnimation(labels: string[], onDone: () => void, minDurationMs = 0) {
+  // expectedMs: 예상 소요시간 — 진행률이 이 시간에 맞춰 완만하게 97%로 수렴한다.
+  // (예상보다 오래 걸려도 조금씩 계속 차오르므로 한 지점에 멈춰 보이지 않는다)
+  function startAnimation(labels: string[], onDone: () => void, minDurationMs = 0, expectedMs = 20000) {
     setProgress(0);
     setProgressLabel(labels[0]);
     const startedAt = Date.now();
-    let p = 0; let li = 0;
+    let li = 0;
     timerRef.current = setInterval(() => {
-      p += Math.random() * 6 + 2;
-      const nextLi = Math.floor(p / (100 / labels.length));
-      if (nextLi !== li && nextLi < labels.length) { li = nextLi; setProgressLabel(labels[li]); }
-      if (p >= 95) { p = 95; }
-      setProgress(Math.min(p, 95));
-    }, 200);
+      const t = Date.now() - startedAt;
+      const p = 97 * (1 - Math.exp(-t / (expectedMs * 0.55)));
+      setProgress(Math.min(97, Math.round(p * 10) / 10));
+      const nextLi = Math.min(Math.floor(p / (100 / labels.length)), labels.length - 1);
+      if (nextLi !== li) { li = nextLi; setProgressLabel(labels[li]); }
+    }, 250);
 
     // 최소 노출 시간을 채울 때까지 대기(그 동안 막대는 95%까지 계속 진행)
     return () => {
@@ -874,7 +876,8 @@ function DesignPageInner() {
     const finish = startAnimation(
       ["입력 내용 분석 중...", "시장 컨텍스트 파악 중...", "가설 도출 중...", "검토 중..."],
       () => setStep("hyp_review"),
-      5000
+      5000,
+      15000
     );
 
     try {
@@ -910,9 +913,10 @@ function DesignPageInner() {
     setApiError("");
     setStep("survey_designing");
     const finish = startAnimation(
-      ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "최종 검토 중..."],
+      ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "생성된 설문 비판 검토 중...", "검토 의견 반영해 문항 다듬는 중..."],
       () => setStep("survey_review"),
-      5000
+      5000,
+      50000
     );
     try {
       const data = await generateQuestions({
