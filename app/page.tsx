@@ -10,63 +10,7 @@ import Reveal from "@/components/Reveal";
 import CtaLink from "@/components/CtaLink";
 import SiteFooter from "@/components/SiteFooter";
 import StartCtaButtons from "@/components/StartCtaButtons";
-
-/* ─────────────────────────────────────────
-   Hero — floating app mockup
-───────────────────────────────────────── */
-function HeroMockup() {
-  // 메인 화면 캡처(대시보드) + 상세보고서 3장(부채꼴 플로팅)
-  // unoptimized: UI 스크린샷은 webp 압축 없이 원본 PNG로 표시해 글자를 선명하게 유지
-  const reports = [
-    { src: "/checkout/report-cover.png", alt: "상세보고서 표지 예시", rot: "-rotate-[10deg]", ml: "" },
-    { src: "/checkout/report-summary.png", alt: "상세보고서 요약 예시", rot: "-rotate-[2deg]", ml: "-ml-14" },
-    { src: "/checkout/report-detail.png", alt: "문항별 분포 예시", rot: "rotate-[7deg]", ml: "-ml-14" },
-  ];
-  return (
-    <div className="animate-float relative max-w-lg mx-auto">
-      {/* 메인 — 분석 대시보드 화면 */}
-      <div className="relative z-10 rounded-2xl overflow-hidden ring-1 ring-white/20 shadow-2xl shadow-black/60 bg-white">
-        {/* 윈도우 크롬 */}
-        <div className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 border-b border-slate-200">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-          <div className="flex-1 mx-3 bg-white rounded-full h-3.5 border border-slate-200" />
-        </div>
-        <Image
-          src="/features/hero-dashboard.png"
-          alt="분석 대시보드 화면"
-          width={793}
-          height={688}
-          className="w-full h-auto"
-          sizes="520px"
-          priority
-          unoptimized
-        />
-      </div>
-      {/* 플로팅 — 상세보고서 3장 부채꼴 + 분석완료 칩 (우하단, 칩은 부채꼴 우상단) */}
-      <div className="absolute z-20 -bottom-14 -right-6">
-        <div className="relative">
-          {/* 부채꼴 스택 */}
-          <div className="flex items-end">
-            {reports.map((r) => (
-              <div
-                key={r.src}
-                className={`relative w-32 h-44 ${r.ml} ${r.rot} rounded-lg overflow-hidden ring-1 ring-white/40 shadow-xl shadow-black/40 bg-white`}
-              >
-                <Image src={r.src} alt={r.alt} fill sizes="128px" className="object-cover object-top" unoptimized />
-              </div>
-            ))}
-          </div>
-          {/* 칩 — 부채꼴 우상단 */}
-          <div className="absolute z-30 -top-3 -right-3 flex items-center gap-1.5 bg-emerald-500 text-white rounded-full px-3 py-1.5 text-xs font-semibold shadow-lg shadow-emerald-500/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" /> 분석 완료
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import HeroVideo from "@/components/HeroVideo";
 
 /* ─────────────────────────────────────────
    How it works — mini screen mockups
@@ -395,6 +339,16 @@ const TESTIMONIALS = [
   },
 ];
 
+// Use cases 로고 마퀴 — 함께한 기관. h 클래스로 시각적 크기를 통일 (가로형 로고는 낮게)
+const PARTNER_LOGOS = [
+  { src: "/logos/dip.svg", alt: "대구디지털혁신진흥원", w: 275, h: 32, cls: "h-6" },
+  { src: "/logos/kspo.svg", alt: "국민체육진흥공단", w: 946, h: 122, cls: "h-8" },
+  { src: "/logos/daegu-ccei.png", alt: "대구창조경제혁신센터", w: 249, h: 53, cls: "h-9" },
+  { src: "/logos/daegu-tp.png", alt: "대구테크노파크", w: 227, h: 35, cls: "h-7" },
+  { src: "/logos/kmedihub.png", alt: "대구경북첨단의료산업진흥재단", w: 186, h: 54, cls: "h-10" },
+  { src: "/logos/innopolis.svg", alt: "연구개발특구진흥재단", w: 171, h: 52, cls: "h-9" },
+];
+
 const USE_CASES = [
   {
     image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80&fit=crop",
@@ -524,8 +478,8 @@ export default function LandingPage() {
             backgroundSize: "40px 40px",
           }}
         />
-        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-24 w-full">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="relative max-w-7xl mx-auto px-5 sm:px-6 py-16 sm:py-24 w-full">
+          <div className="grid lg:grid-cols-[1fr_1.25fr] gap-12 items-center">
             <div>
               <div className="animate-fade-up inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glass text-indigo-300 text-xs font-semibold mb-7 border border-indigo-500/30">
                 <span className="relative flex h-2 w-2">
@@ -569,8 +523,8 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <div className="relative hidden lg:block px-8">
-              <HeroMockup />
+            <div className="relative hidden lg:block">
+              <HeroVideo />
             </div>
           </div>
         </div>
@@ -794,6 +748,34 @@ export default function LandingPage() {
             <p className="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">
               스타트업부터 공공기관까지,<br className="hidden sm:block" /> 의사결정이 필요한 모든 자리에 Socialtwin이 함께합니다.
             </p>
+          </Reveal>
+          {/* 기관 로고 마퀴 — 두 벌을 이어 붙여 -50% 이동으로 무한 루프 */}
+          <Reveal className="mb-12 sm:mb-16">
+            <div
+              className="overflow-hidden"
+              style={{
+                maskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+                WebkitMaskImage: "linear-gradient(to right, transparent, black 10%, black 90%, transparent)",
+              }}
+            >
+              <div className="flex w-max animate-marquee">
+                {[0, 1].map((copy) => (
+                  <div key={copy} aria-hidden={copy === 1} className="flex items-center gap-16 pr-16">
+                    {PARTNER_LOGOS.map((l) => (
+                      <Image
+                        key={l.src}
+                        src={l.src}
+                        alt={copy === 0 ? l.alt : ""}
+                        width={l.w}
+                        height={l.h}
+                        unoptimized
+                        className={`${l.cls} w-auto max-w-none`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
           </Reveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {USE_CASES.map((u, i) => (

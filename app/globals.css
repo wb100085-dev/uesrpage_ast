@@ -64,6 +64,10 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 /* SocialTwinLoader 전용 */
 @keyframes stw-link {
   0%, 100% { opacity: .15; }
@@ -92,8 +96,10 @@ body {
 .animate-stw-link  { animation: stw-link 2.4s infinite; }
 .animate-stw-sweep { animation: stw-sweep 1.6s infinite; }
 .animate-stw-write { animation: stw-write 5.4s ease-out infinite both; }
+.animate-marquee   { animation: marquee 32s linear infinite; }
 @media (prefers-reduced-motion: reduce) {
   .animate-stw-link, .animate-stw-sweep, .animate-stw-write { animation: none; }
+  .animate-marquee { animation: none; }
 }
 
 /* ── Shimmer text gradient ── */
