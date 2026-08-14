@@ -56,6 +56,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+            // 내부자(직원) 트래픽 표시 — /?internal=1 로 1회 접속하면 이 브라우저의
+            // 모든 방문이 traffic_type=internal 로 전송되어 GA4 통계에서 제외된다.
+            // /?internal=0 으로 해제. (GA4 데이터 필터 'Internal Traffic'과 연동)
+            try {
+              var _q = new URLSearchParams(location.search).get('internal');
+              if (_q === '1') localStorage.setItem('st_internal', '1');
+              if (_q === '0') localStorage.removeItem('st_internal');
+              if (localStorage.getItem('st_internal') === '1') {
+                gtag('set', { 'traffic_type': 'internal' });
+              }
+            } catch (e) {}
             gtag('config', '${GA_ID}');
           `}
         </Script>
