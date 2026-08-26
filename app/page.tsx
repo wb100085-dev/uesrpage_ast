@@ -206,7 +206,7 @@ function FeatureVisual5() {
         <div className="flex items-stretch gap-2 w-full max-w-[300px]">
           <div className="flex-1 bg-white rounded-lg px-2 py-2 border border-slate-200 text-center flex flex-col justify-center">
             <div className="text-[8px] text-slate-400 mb-0.5 uppercase tracking-wider">기존 리서치</div>
-            <div className="text-base font-bold text-slate-400 line-through tabular-nums">₩100만+</div>
+            <div className="text-base font-bold text-slate-400 line-through tabular-nums">₩200만+</div>
           </div>
           <div className="flex items-center">
             <ArrowRight size={14} className="text-rose-400" />
@@ -240,11 +240,11 @@ function FeatureVisualTime() {
           <div className="text-5xl font-extrabold text-slate-900 tracking-tight">
             ~1<span className="text-2xl font-bold ml-0.5">시간</span>
           </div>
-          <div className="text-slate-500 text-sm mt-1">결제 후 결과 확인까지</div>
+          <div className="text-slate-500 text-sm mt-1">작성부터 결과까지</div>
         </div>
       </div>
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2 text-[10px]">
-        <span className="text-slate-400 line-through">기존 2주 이상</span>
+        <span className="text-slate-400 line-through">기존 4주 이상</span>
         <ArrowRight size={10} className="text-emerald-500" />
         <span className="text-emerald-600 font-semibold">Socialtwin 1시간</span>
       </div>
@@ -445,7 +445,7 @@ const features = [
   },
   {
     title: "4. 압도적 속도",
-    desc: "기존 리서치가 2주 이상 걸리던 일을 약 1시간 만에 결과 대시보드로 확인합니다.",
+    desc: "기존 리서치가 4주 이상 걸리던 일을 약 1시간 만에 결과 대시보드로 확인합니다.",
     visual: <FeatureVisualTime />,
   },
   {
@@ -638,8 +638,8 @@ export default function LandingPage() {
                 neu: React.ReactNode;
               }> = [
                 { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 500명 설문조사 결과 보고서" },
-                { label: "비용", old: "건당 100만원 이상", neu: "95% 이상 절감(99,000원)" },
-                { label: "시간", old: "2주 이상", neu: "1시간 이내" },
+                { label: "비용", old: "건당 200만원 이상", neu: "95% 이상 절감(99,000원)" },
+                { label: "시간", old: "4주 이상", neu: "1시간 이내" },
                 { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
                 { label: "응답자 모집", old: "응답 패널 직접 모집", neu: "가상인구에서 즉시 추출" },
                 {
