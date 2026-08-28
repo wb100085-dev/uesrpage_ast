@@ -19,6 +19,7 @@ import {
   type Subscription,
 } from "@/lib/payments-api";
 import CheckoutDialog from "@/components/CheckoutDialog";
+import PaymentPendingDialog, { canOpenCheckout } from "@/components/PaymentPendingDialog";
 import RequireAuth from "@/components/RequireAuth";
 import {
   BarChart2, History, ChevronRight, CreditCard, Repeat, CalendarClock,
@@ -299,6 +300,8 @@ function UserDashboardInner() {
   /* 월정액 구독 상태 — 배지·남은 기간·결제 버튼 노출에 사용 */
   const [sub, setSub] = useState<Subscription | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  // 결제 연동 준비 안내 (토스 라이브 키 발급 전 — 일반 사용자는 결제창 대신 이 안내)
+  const [paymentPendingOpen, setPaymentPendingOpen] = useState(false);
   useEffect(() => {
     let cancelled = false;
     getMySubscription().then((v) => { if (!cancelled) setSub(v); });
@@ -789,7 +792,10 @@ function UserDashboardInner() {
 
                     <div className="mt-6 flex flex-wrap items-center gap-3">
                       <button
-                        onClick={() => setCheckoutOpen(true)}
+                        onClick={() => {
+                          if (canOpenCheckout()) setCheckoutOpen(true);
+                          else setPaymentPendingOpen(true);
+                        }}
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                       >
                         <CreditCard size={15} />
@@ -1072,6 +1078,8 @@ function UserDashboardInner() {
           )}
         </main>
       </div>
+
+      {paymentPendingOpen && <PaymentPendingDialog onClose={() => setPaymentPendingOpen(false)} />}
 
       {/* 월정액 구독 결제 모달 — 승인 완료 시 /checkout/success 로 이동한다 */}
       {checkoutOpen && (

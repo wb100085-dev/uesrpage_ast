@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ArrowLeft, ShieldCheck, CreditCard, Landmark, Wallet, Loader2 } from "lucide-react";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
+import PaymentPendingDialog, { canOpenCheckout } from "@/components/PaymentPendingDialog";
 
 // 표시용 — 금액은 백엔드 PRODUCTS가 최종 확정(여기 값은 안내용).
 const PRODUCT = {
@@ -45,10 +46,14 @@ export default function CheckoutPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const paymentRef = useRef<any>(null);
   const initRef = useRef(false);
+  // 토스 라이브 키 발급 전 — 일반 사용자는 주문을 만들지 않고 연동 안내만 보여준다
+  const [pendingOpen, setPendingOpen] = useState(true);
 
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
+    // 게이트된 사용자는 아래 early return 화면이 렌더되므로 주문을 만들지 않는다
+    if (!canOpenCheckout()) return;
     (async () => {
       try {
         const o = await createOrder(PRODUCT.key);
@@ -86,6 +91,24 @@ export default function CheckoutPage() {
   }
 
   const amount = order?.amount ?? PRODUCT.amount;
+
+  if (!canOpenCheckout()) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        {pendingOpen && <PaymentPendingDialog onClose={() => setPendingOpen(false)} />}
+        <div className="max-w-md mx-auto px-6 py-24 text-center">
+          <p className="text-sm text-slate-500 leading-relaxed break-keep">
+            죄송합니다. 결제 연동이 진행 중입니다.
+            <br />
+            회사 전화번호(010-9969-0406) 또는 이메일(hys@omninode.kr)로 연락주시면 처리해드리겠습니다.
+          </p>
+          <Link href="/" className="mt-6 inline-block text-sm text-indigo-600 hover:underline">
+            ← 홈으로
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 px-4 py-10">

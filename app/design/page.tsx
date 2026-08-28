@@ -23,6 +23,7 @@ import {
   type Subscription,
 } from "@/lib/payments-api";
 import CheckoutDialog from "@/components/CheckoutDialog";
+import PaymentPendingDialog, { canOpenCheckout } from "@/components/PaymentPendingDialog";
 import QuestionResultCard from "@/components/QuestionResultCard";
 import InfographicCard from "@/components/InfographicCard";
 import TechCopyCard from "@/components/TechCopyCard";
@@ -658,6 +659,8 @@ function DesignPageInner() {
      결제 완료 후 토스 → /checkout/success → "조사 이어서 진행하기" → /design?draft=..&paid=<orderId>
      로 돌아오며, 그 주문이 실제 paid 인지 서버에 확인한 뒤에만 게이트를 연다. */
   const [panelCheckoutOpen, setPanelCheckoutOpen] = useState(false);
+  // 결제 연동 준비 안내 (라이브 키 발급 전)
+  const [paymentPendingOpen, setPaymentPendingOpen] = useState(false);
   const [paidProductKey, setPaidProductKey] = useState<string | null>(null);
   const [paidOrderId, setPaidOrderId] = useState<string | null>(null);
   const paidParam = searchParams.get("paid");
@@ -1178,6 +1181,11 @@ function DesignPageInner() {
     // 유료 패널 수 — 결제창부터. 설계를 잃지 않도록 임시저장 후 결제로 보낸다.
     if (needsPayment()) {
       setRunError("");
+      // 토스 라이브 키 발급 전 — 일반 사용자에겐 결제창 대신 연동 안내를 띄운다
+      if (!canOpenCheckout()) {
+        setPaymentPendingOpen(true);
+        return;
+      }
       await handleSaveDraft();
       setPanelCheckoutOpen(true);
       return;
@@ -3040,6 +3048,8 @@ function DesignPageInner() {
           </div>
         </div>
       )}
+
+      {paymentPendingOpen && <PaymentPendingDialog onClose={() => setPaymentPendingOpen(false)} />}
 
       {/* 조사 실행 전 결제 — 패널 수(100·500명)에 해당하는 상품으로 결제창을 띄운다.
           결제 후 /checkout/success 에서 "조사 이어서 진행하기" 로 이 설계로 돌아온다. */}
