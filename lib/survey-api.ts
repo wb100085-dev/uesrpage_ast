@@ -6,7 +6,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 // 기본 AI 모델 — GPT-5.5 (최고급). 백엔드 ai_router 가 요청별 model 오버라이드로 사용.
 export const DEFAULT_AI_MODEL = "gpt-5.5";
 // 가상인구 추출 기본 표본 수 (설정 API 실패 시 폴백 — 평소엔 관리자 대시보드 값을 따름)
-export const DEFAULT_SAMPLE_SIZE = 50;
+export const DEFAULT_SAMPLE_SIZE = 100;
 // 조사 실행 기본 지역 (설정 API 실패 시 폴백)
 export const DEFAULT_SIDO = "전국";
 
