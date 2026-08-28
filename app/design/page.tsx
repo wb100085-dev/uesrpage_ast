@@ -40,6 +40,7 @@ import {
   runSurvey as apiRunSurvey,
   askPanel,
   getDetailStatus,
+  startDetail,
   downloadRawCsv,
   downloadReportPdf,
   getSurveyStatus,
@@ -747,6 +748,23 @@ function DesignPageInner() {
     timer = setInterval(tick, 5000);
     return () => { cancelled = true; if (timer) clearInterval(timer); };
   }, [step, runJobId]);
+
+  /** 상세보고서 생성 시작 — 무료 체험(10명)은 자동 생성하지 않으므로 사용자가 눌러 만든다. */
+  const [detailStarting, setDetailStarting] = useState(false);
+  async function handleStartDetail() {
+    if (!runJobId || detailStarting) return;
+    setDetailStarting(true);
+    setResultDownloadError(null);
+    try {
+      trackEvent("상세보고서_생성요청");
+      const r = await startDetail(runJobId);
+      setDetailStatus(r.detail_status ?? "running");
+    } catch (e) {
+      setResultDownloadError(e instanceof Error ? e.message : "상세보고서 생성을 시작하지 못했습니다.");
+    } finally {
+      setDetailStarting(false);
+    }
+  }
 
   /* ── 결과 단계: 가상인구 패널에게 질문 ── */
   const [panelMessages, setPanelMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
@@ -2634,7 +2652,12 @@ function DesignPageInner() {
                   <Download size={15} className="text-slate-300" /> 다운로드
                 </h3>
                 <div className="mb-3 leading-relaxed">
-                  {detailStatus === "running" ? (
+                  {detailStatus === "idle" ? (
+                    <p className="text-[11px] text-slate-400">
+                      상세보고서는 <span className="font-semibold text-amber-300">‘상세보고서 생성하기’</span>를
+                      누르면 만들어집니다. 요약보고서는 지금 바로 내려받을 수 있습니다.
+                    </p>
+                  ) : detailStatus === "running" ? (
                     <>
                       <p className="text-[11px] text-slate-400">
                         상세보고서를 생성하고 있습니다 — 초안 생성 → 검토 → 수정·보완 과정을 거치며
@@ -2653,13 +2676,15 @@ function DesignPageInner() {
                   {[
                     { kind: "summary", label: "요약보고서", sub: "PDF", locked: false, pending: false },
                     { kind: "raw", label: "가상인구 Raw Data", sub: "엑셀(CSV)", locked: !paidTier, pending: false },
-                    { kind: "report", label: "상세보고서", sub: "PDF", locked: false, pending: detailStatus !== "done" },
+                    { kind: "report", label: "상세보고서", sub: "PDF", locked: false, pending: detailStatus !== "done" && detailStatus !== "idle" },
                   ].map((d) => (
                     <button
                       key={d.kind}
                       onClick={() => {
                         if (d.locked) { setUpgradeOpen(true); return; }
                         if (d.pending) return;
+                        // 아직 만들지 않은 상세보고서 — 먼저 생성부터 시작한다
+                        if (d.kind === "report" && detailStatus === "idle") { handleStartDetail(); return; }
                         handleResultDownload(d.kind);
                       }}
                       disabled={resultDownloading !== null || d.pending}
@@ -2673,12 +2698,18 @@ function DesignPageInner() {
                     >
                       {d.locked
                         ? <Lock size={16} className="text-amber-300 shrink-0" />
-                        : d.pending
-                          ? <RefreshCw size={16} className="text-slate-300 shrink-0 animate-spin" />
-                          : <Download size={16} className="text-white shrink-0" />}
+                        : d.kind === "report" && detailStatus === "idle"
+                          ? <Sparkles size={16} className="text-amber-300 shrink-0" />
+                          : d.pending
+                            ? <RefreshCw size={16} className="text-slate-300 shrink-0 animate-spin" />
+                            : <Download size={16} className="text-white shrink-0" />}
                       <span className="min-w-0">
                         <span className={`block text-sm font-medium truncate ${d.locked ? "text-amber-100" : "text-white"}`}>
-                          {resultDownloading === d.kind ? "준비 중…" : d.label}
+                          {resultDownloading === d.kind
+                            ? "준비 중…"
+                            : d.kind === "report" && detailStatus === "idle"
+                              ? (detailStarting ? "생성 시작 중…" : "상세보고서 생성하기")
+                              : d.label}
                         </span>
                         <span className={`block text-[11px] ${
                           d.locked ? "text-amber-300 font-medium"
@@ -2687,9 +2718,11 @@ function DesignPageInner() {
                         }`}>
                           {d.locked
                             ? "유료 버전에서 가능"
-                            : d.pending
-                              ? (detailStatus === "error" ? "생성 실패 — 다시 시도해 주세요" : "생성 중…")
-                              : d.sub}
+                            : d.kind === "report" && detailStatus === "idle"
+                              ? "눌러서 생성 (약 5~10분)"
+                              : d.pending
+                                ? (detailStatus === "error" ? "생성 실패 — 다시 시도해 주세요" : "생성 중…")
+                                : d.sub}
                         </span>
                       </span>
                     </button>
