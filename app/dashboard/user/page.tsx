@@ -11,7 +11,7 @@ import {
   authChangePassword,
   type AuthUser,
 } from "@/lib/auth-api";
-import { getMyDesigns, listDrafts, deleteDraft, type SurveyDraft } from "@/lib/survey-api";
+import { getMyDesigns, listDrafts, deleteDraft, deleteMyDesign, type SurveyDraft } from "@/lib/survey-api";
 import {
   getReportAccessJobs,
   getMySubscription,
@@ -198,6 +198,20 @@ function UserDashboardInner() {
       setDrafts((d) => d.filter((x) => x.id !== id));
     } catch (err) {
       alert("삭제 실패: " + (err instanceof Error ? err.message : String(err)));
+    }
+  }
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  async function handleDeleteHistory(id: string, title: string) {
+    if (!confirm(`"${title}" 분석 기록을 삭제할까요?\n삭제하면 결과·보고서도 함께 사라지며 되돌릴 수 없습니다.`)) return;
+    setDeletingId(id);
+    try {
+      await deleteMyDesign(Number(id));
+      setHistory((h) => h.filter((x) => x.id !== id));
+    } catch (err) {
+      alert("삭제 실패: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -603,10 +617,23 @@ function UserDashboardInner() {
                               ? "진행 보기"
                               : "이어서 작성";
                         return (
+                          <div key={item.id} className="relative group">
+                            {/* 삭제 — Link 위에 겹쳐 배치(중첩 클릭 방지) */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteHistory(item.id, item.title); }}
+                              disabled={deletingId === item.id}
+                              title="분석 기록 삭제"
+                              aria-label="분석 기록 삭제"
+                              className="absolute top-3 right-3 z-10 w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === item.id
+                                ? <RefreshCw size={13} className="animate-spin" />
+                                : <Trash2 size={13} />}
+                            </button>
                           <Link
-                            key={item.id}
                             href={href}
-                            className="block bg-white rounded-2xl border border-slate-100 shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition-all group"
+                            className="block bg-white rounded-2xl border border-slate-100 shadow-sm p-4 pr-12 hover:border-indigo-300 hover:shadow-md transition-all"
                           >
                             <div className="flex items-start justify-between">
                               <div className="min-w-0 flex-1">
@@ -626,6 +653,7 @@ function UserDashboardInner() {
                             </div>
                             <p className="text-[10px] text-slate-400 mt-2">{fmtDate(item.created_at)}</p>
                           </Link>
+                          </div>
                         );
                       })}
                     </div>

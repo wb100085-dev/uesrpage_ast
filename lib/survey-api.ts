@@ -439,6 +439,11 @@ export function getMyDesign(id: number): Promise<{ design: DesignFull }> {
   return apiFetch(`/api/survey/my-designs/${id}`);
 }
 
+/** 내 분석 히스토리에서 설계 1건 삭제 (본인 것만 — 서버가 소유권을 검사한다). */
+export function deleteMyDesign(id: number): Promise<{ ok: boolean }> {
+  return apiFetch(`/api/survey/my-designs/${id}`, { method: "DELETE" });
+}
+
 /**
  * 비로그인으로 만든 설계기록(user_email NULL)을 현재 로그인 사용자에게 귀속.
  * 체험후기→회원가입 흐름에서 가입 직후 호출. 멱등(already)·충돌(conflict) 모두
