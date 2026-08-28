@@ -98,7 +98,7 @@ export default function CheckoutPage() {
         {pendingOpen && <PaymentPendingDialog onClose={() => setPendingOpen(false)} />}
         <div className="max-w-md mx-auto px-6 py-24 text-center">
           <p className="text-sm text-slate-500 leading-relaxed break-keep">
-            죄송합니다. 결제 연동이 진행 중입니다.
+            지금은 카드 결제 및 계좌이체만 가능합니다.
             <br />
             회사 전화번호(010-9969-0406) 또는 이메일(hys@omninode.kr)로 연락주시면 처리해드리겠습니다.
           </p>

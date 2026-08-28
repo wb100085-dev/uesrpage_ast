@@ -48,7 +48,7 @@ export default function PaymentPendingDialog({ onClose }: { onClose: () => void 
         </button>
 
         <h3 className="text-base font-bold text-slate-900 pr-6 break-keep">
-          죄송합니다. 결제 연동이 진행 중입니다.
+          지금은 카드 결제 및 계좌이체만 가능합니다.
         </h3>
         <p className="mt-2 text-sm text-slate-600 leading-relaxed break-keep">
           아래 회사 전화번호 및 이메일로 연락주시면 처리해드리겠습니다.
