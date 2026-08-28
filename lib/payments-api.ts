@@ -90,3 +90,60 @@ export function confirmPayment(p: {
     }),
   });
 }
+
+/* ── 월정액 구독 ───────────────────────────────────────────
+ * 백엔드는 별도 subscriptions 테이블 없이 payments(product_key='monthly_100',
+ * status='paid')의 최신 승인시각 + 30일로 활성 여부를 계산한다.
+ * 결제 1건 = 1개월이며, 갱신 결제를 하면 그 시점부터 다시 30일이 시작된다. */
+
+/** 월정액 구독 상품 key — 백엔드 PRODUCTS 와 1:1. */
+export const SUBSCRIPTION_PRODUCT_KEY = "monthly_100";
+
+export interface Subscription {
+  active: boolean;
+  plan: string;
+  plan_name: string;
+  amount: number;
+  /** 구독 중 조사 1건당 가상인구 수 (100) */
+  sample_size: number;
+  period_days: number;
+  started_at: string | null;
+  expires_at: string | null;
+  /** 남은 일수 (올림). 비활성이면 0 */
+  days_left: number;
+}
+
+/** 내 월정액 구독 상태. 비로그인·오류 시 비활성으로 폴백한다(화면이 깨지지 않도록). */
+export function getMySubscription(): Promise<Subscription> {
+  return api<Subscription>("/api/subscription/me").catch(() => ({
+    active: false,
+    plan: SUBSCRIPTION_PRODUCT_KEY,
+    plan_name: "월정액 구독 (가상인구 100명 무제한)",
+    amount: 500000,
+    sample_size: 100,
+    period_days: 30,
+    started_at: null,
+    expires_at: null,
+    days_left: 0,
+  }));
+}
+
+/** 패널 수 → 건당 결제 상품 key (백엔드 PANEL_PRODUCT_BY_SIZE 와 1:1). 무료(10명)는 null. */
+export function panelProductKey(size: number): string | null {
+  if (size === 100) return "survey_100";
+  if (size === 500) return "survey_500";
+  return null;
+}
+
+export interface OrderStatus {
+  order_id: string;
+  status: string;
+  product_key: string | null;
+  amount: number;
+  order_name: string | null;
+}
+
+/** 주문 1건의 상태 — 결제 후 조사 실행을 열어줄지 서버에 확인할 때 사용. */
+export function getOrder(orderId: string): Promise<OrderStatus> {
+  return api(`/api/payments/order?order_id=${encodeURIComponent(orderId)}`);
+}

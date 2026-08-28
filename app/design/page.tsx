@@ -8,13 +8,22 @@ import {
   Clock, Check, Pencil, Upload, FileText,
   X, BarChart2, Target, Lightbulb, Trash2, Plus,
   AlertCircle, Wand2, ListChecks, Users, Save, RefreshCw,
+  SlidersHorizontal, MapPin, Repeat, Lock, Send, MessageCircle, Info,
   LayoutDashboard, ImagePlus, PieChart,
-  Download, Star, CreditCard,
+  Download, CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ContactDialog from "@/components/ContactDialog";
+import RequireAuth from "@/components/RequireAuth";
+import {
+  getMySubscription,
+  panelProductKey,
+  getOrder,
+  getReportAccessJobs,
+  type Subscription,
+} from "@/lib/payments-api";
 import CheckoutDialog from "@/components/CheckoutDialog";
-import ReviewDialog from "@/components/ReviewDialog";
+import QuestionResultCard from "@/components/QuestionResultCard";
 import InfographicCard from "@/components/InfographicCard";
 import TechCopyCard from "@/components/TechCopyCard";
 import { trackEvent } from "@/lib/analytics";
@@ -29,24 +38,22 @@ import {
   generateHypotheses,
   generateQuestions,
   runSurvey as apiRunSurvey,
+  askPanel,
+  getDetailStatus,
+  downloadRawCsv,
+  downloadReportPdf,
   getSurveyStatus,
   getSurveyResults,
-  getAppSettings,
   getReportExempt,
   claimReportJob,
   redeemPendingReportToken,
   FREE_REPORT_PASS_KEY,
   downloadSummaryPdf,
-  claimDesign,
   type SurveyDraftPatch,
   type InfographicSummary,
+  type SurveyResult,
+  type SurveyReport,
 } from "@/lib/survey-api";
-import {
-  savePendingReview,
-  getPendingReview,
-  clearPendingReview,
-  PENDING_REVIEW_NEXT,
-} from "@/lib/pending-review";
 
 /* ─────────────────────────────────────────
    타입
@@ -57,6 +64,7 @@ type Step =
   | "hyp_review"
   | "survey_designing"
   | "survey_review"
+  | "panel"
   | "result"
   | "survey_running"
   | "survey_result";
@@ -91,21 +99,55 @@ const TRADE_TYPES: { code: string; en: string; ko: string; desc: string; icon: s
 
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
 
-const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "result", "survey_running", "survey_result"];
+/* ── 패널 설정 ──────────────────────────────────────────
+   축·라벨은 관리자 설문설계 "4. 실행 설정"과 동일하게 맞춘다
+   (frontend/src/pages/Survey.tsx 의 FILTER_OPTIONS / SIDO_OPTIONS).
+   가상인구 CSV의 실제 분류이므로 임의로 늘리면 매칭이 실패한다. */
+const SIDO_OPTIONS = [
+  "전국", "서울특별시", "부산광역시", "대구광역시", "인천광역시", "광주광역시",
+  "대전광역시", "울산광역시", "세종특별자치시", "경기도", "강원도", "충청북도",
+  "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주특별자치도",
+];
+
+const PANEL_AXES = [
+  { key: "genders", label: "성별", options: ["남자", "여자"] },
+  { key: "age_bands", label: "연령대", options: ["10대 이하", "20대", "30대", "40대", "50대", "60대", "70대 이상"] },
+  { key: "economic_activities", label: "경제활동", options: ["경제활동", "비경제활동"] },
+  { key: "education_levels", label: "교육정도", options: ["중졸이하", "고졸", "대졸이상"] },
+  { key: "income_levels", label: "가구소득", options: ["200만원 미만", "200~400만원", "400~600만원", "600만원 이상"] },
+] as const;
+type AxisKey = (typeof PANEL_AXES)[number]["key"];
+
+/** 상세보고서 무료 제공(이메일 목록·무료 쿠폰) 대상자의 조사 패널 수 — 유료 스탠다드와 동일. */
+const FREE_PROVISION_PANEL_SIZE = 100;
+
+/** 결제 상품 key → 패널 수 (백엔드 PANEL_PRODUCT_BY_SIZE 의 역매핑). */
+const PANEL_SIZE_BY_PRODUCT: Record<string, number> = { survey_100: 100, survey_500: 500 };
+
+/* 패널 수 — 요금제와 1:1. 월정액 구독자는 100명으로 고정된다. */
+const PANEL_SIZES = [
+  { size: 10, name: "무료 체험", price: "무료", desc: "결제 없이 전체 흐름을 확인해보세요." },
+  { size: 100, name: "스탠다드", price: "99,000원", desc: "의사결정에 바로 쓰는 표준 조사 1건.", note: "건당 · 부가세 포함" },
+  { size: 500, name: "프로", price: "300,000원", desc: "표본을 키워 세부 집단까지 나눠 봅니다.", note: "건당 · 부가세 포함" },
+] as const;
+
+const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "panel", "result", "survey_running", "survey_result"];
 // 단계별 기술 카피(참고용/SocialTwin_단계별_기술카피_최종.md) 매핑 — design 8단계
 const STEP_TO_NUM: Record<Step, number> = {
   input: 1, hyp_designing: 2, hyp_review: 3, survey_designing: 4,
-  survey_review: 5, result: 6, survey_running: 7, survey_result: 8,
+  // 패널 설정은 '가상인구 응답자' 카피(7)를 재사용한다.
+  survey_review: 5, panel: 7, result: 6, survey_running: 7, survey_result: 8,
 };
-const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "최종 검토", "설문 진행", "결과"];
-const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, BarChart2, Users, PieChart];
+const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "패널 설정", "최종 검토", "설문 진행", "결과"];
+const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, SlidersHorizontal, BarChart2, Users, PieChart];
 
 const BACK_MAP: Partial<Record<Step, Step>> = {
   hyp_designing: "input",
   hyp_review: "input",
   survey_designing: "hyp_review",
   survey_review: "hyp_review",
-  result: "survey_review",
+  panel: "survey_review",
+  result: "panel",
   survey_running: "result",
   survey_result: "result",
 };
@@ -404,14 +446,15 @@ function fieldErrorMsg(topic: string, len: number, text: string): string | null 
 /* ─────────────────────────────────────────
    메인 페이지
 ───────────────────────────────────────── */
-// 비로그인도 전체 흐름(질문입력→결과)을 진행할 수 있도록 인증 가드를 제거한다.
-// 설계 이력은 백엔드가 익명(user_email NULL)으로도 기록하며, 체험후기 단계에서
-// 로그인하면 그 익명 기록에 가입 이메일을 연결한다(claimDesign).
+// 조사 설계는 로그인 필수 — URL 직접 진입도 /login?next=/design 으로 보낸다.
+// (RequireAuth 는 네비 훅을 쓰지 않으므로 Suspense 바깥에 둘 수 있다.)
 export default function DesignPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
-      <DesignPageInner />
-    </Suspense>
+    <RequireAuth>
+      <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+        <DesignPageInner />
+      </Suspense>
+    </RequireAuth>
   );
 }
 
@@ -420,7 +463,6 @@ function DesignPageInner() {
   const searchParams = useSearchParams();
   const draftIdFromUrl = searchParams.get("draft");
   const designIdFromUrl = searchParams.get("design");
-  const reviewIntent = searchParams.get("review") === "1";
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
@@ -522,20 +564,16 @@ function DesignPageInner() {
   const [contactOpen, setContactOpen] = useState(false);
   // 상세보고서 결제 다이얼로그
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  // 체험후기 설문 다이얼로그
-  const [reviewOpen, setReviewOpen] = useState(false);
   // 요약보고서 PDF 다운로드 상태
-  const [summaryDownloading, setSummaryDownloading] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
   // 결제하기 버튼은 슈퍼유저/스태프 계정에만 노출. 일반 로그인·비로그인은 모두 숨김
-  // (체험후기 또는 별도 문의로 안내). localStorage(캐시 사용자)는 마운트 후 effect에서
+  // (별도 문의로 안내). localStorage(캐시 사용자)는 마운트 후 effect에서
   // 읽어 SSR 하이드레이션 미스매치를 피한다.
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   // 상세보고서 무료 제공(결제 생략) 대상 여부 — 관리자 전역 설정의 이메일 목록 기준
   const [reportExempt, setReportExempt] = useState(false);
   // 비로그인 상태로 무료 열람 링크를 타고 들어와 보관 중인 토큰 (로그인하면 적용됨)
   const [pendingFreeToken, setPendingFreeToken] = useState<string | null>(null);
-  // 로그인 여부 — 체험후기 버튼 동작·안내문 노출에 사용.
+  // 로그인 여부 — 안내문 노출 분기에 사용.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   useEffect(() => {
     const u = getCachedUser();
@@ -549,7 +587,11 @@ function DesignPageInner() {
       // 무료 열람 링크로 진입해 보관된 토큰이 있으면 먼저 리딤 → 그 결과 포함해 면제 확인
       redeemPendingReportToken()
         .then((redeemed) => (redeemed ? true : getReportExempt()))
-        .then(setReportExempt)
+        .then((exempt) => {
+          setReportExempt(exempt);
+          // 상세보고서 무료 제공(이메일 목록·무료 쿠폰) 대상은 100명 기준으로 조사한다
+          if (exempt) setPanelSize(FREE_PROVISION_PANEL_SIZE);
+        })
         .catch(() => {});
     } else {
       // 비로그인 — 링크로 들어와 보관된 토큰이 있으면 결과 단계에서 '로그인하고 무료 열람' 버튼 노출
@@ -585,7 +627,180 @@ function DesignPageInner() {
   const [runError, setRunError] = useState("");
   const [infographic, setInfographic] = useState<InfographicSummary | null>(null);
   const [runMeta, setRunMeta] = useState<{ n: number; sido: string } | null>(null);
+  // 문항별 결과(막대 그래프)·상세 보고서 — 결제 후 결과 페이지와 동일한 화면을 위해 보관
+  const [surveyResults, setSurveyResults] = useState<SurveyResult[]>([]);
+  const [detailReport, setDetailReport] = useState<SurveyReport | null>(null);
   const [sampleSize, setSampleSize] = useState<number | null>(null); // 로딩 화면 사람 아이콘·응답 카운터용
+
+  /* ── 패널 설정 (설문 검토 ↔ 최종 검토 사이 단계) ──
+     빈 배열 = '전체' (그 축을 제한하지 않음). 기본값은 모든 축 전체. */
+  const [panelSido, setPanelSido] = useState<string[]>(["전국"]);
+  const [panelAxes, setPanelAxes] = useState<Record<AxisKey, string[]>>({
+    genders: [], age_bands: [], economic_activities: [], education_levels: [], income_levels: [],
+  });
+  const [panelSize, setPanelSize] = useState<number>(10);
+  // 월정액 구독자는 패널 수가 100명으로 고정된다.
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getMySubscription().then((v) => {
+      if (cancelled) return;
+      setSubscription(v);
+      if (v.active) setPanelSize(v.sample_size);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const subActive = Boolean(subscription?.active);
+
+  /* ── 조사 실행 전 결제 게이트 ──
+     패널 수가 유료 구간(100·500명)이고 월정액 구독자가 아니면 결제를 먼저 받는다.
+     결제 완료 후 토스 → /checkout/success → "조사 이어서 진행하기" → /design?draft=..&paid=<orderId>
+     로 돌아오며, 그 주문이 실제 paid 인지 서버에 확인한 뒤에만 게이트를 연다. */
+  const [panelCheckoutOpen, setPanelCheckoutOpen] = useState(false);
+  const [paidProductKey, setPaidProductKey] = useState<string | null>(null);
+  const [paidOrderId, setPaidOrderId] = useState<string | null>(null);
+  const paidParam = searchParams.get("paid");
+  useEffect(() => {
+    if (!paidParam) return;
+    let cancelled = false;
+    getOrder(paidParam)
+      .then((o) => {
+        if (cancelled) return;
+        if (o.status === "paid" && o.product_key) {
+          setPaidProductKey(o.product_key);
+          setPaidOrderId(o.order_id);
+          // 결제한 상품이 곧 패널 수 — 결제 후 복귀 시 기본값(10명)으로 되돌아가지 않게 복원
+          const paidSize = PANEL_SIZE_BY_PRODUCT[o.product_key];
+          if (paidSize) setPanelSize(paidSize);
+        }
+      })
+      .catch(() => { /* 조회 실패 시 게이트 유지 */ });
+    return () => { cancelled = true; };
+  }, [paidParam]);
+
+  /* 서버 기준 유료 열람 권한 — 결제(주문↔조사 연결)·쿠폰·구독을 모두 반영한다.
+     URL 의 ?paid 파라미터에만 의존하면 새로고침이나 재진입에서 권한이 사라진다. */
+  const [reportAccess, setReportAccess] = useState<{ all: boolean; jobs: string[] }>({ all: false, jobs: [] });
+  useEffect(() => {
+    if (step !== "survey_result") return;
+    let cancelled = false;
+    getReportAccessJobs()
+      .then((r) => { if (!cancelled) setReportAccess({ all: !!r.all_access, jobs: r.job_ids ?? [] }); })
+      .catch(() => { /* 실패 시 기존 판정 유지 */ });
+    return () => { cancelled = true; };
+  }, [step, runJobId]);
+
+  /** 유료 이용 여부 — 월정액 구독자 · 이번 조사를 결제한 경우 · 무료 제공 대상 계정.
+      무료(10명) 체험에서는 패널 질문·원본자료(엑셀)가 잠긴다. */
+  const paidTier =
+    subActive ||
+    paidProductKey != null ||
+    reportExempt ||
+    reportAccess.all ||
+    (runJobId != null && reportAccess.jobs.includes(runJobId));
+
+  /* ── 결과 단계: 다운로드 ── */
+  const [resultDownloading, setResultDownloading] = useState<string | null>(null);
+  const [resultDownloadError, setResultDownloadError] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  async function handleResultDownload(kind: string) {
+    if (!runJobId) { setResultDownloadError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
+    setResultDownloading(kind);
+    setResultDownloadError(null);
+    try {
+      if (kind === "summary") { trackEvent("요약보고서_다운로드"); await downloadSummaryPdf(runJobId); }
+      else if (kind === "raw") { trackEvent("원본자료_다운로드"); await downloadRawCsv(runJobId); }
+      else {
+        trackEvent("상세보고서_다운로드", { 경로: "조사결과" });
+        // 계정당 1건 무료 쿠폰을 이 설문에 확정 (무제한 권한이면 서버가 무시)
+        claimReportJob(runJobId).catch(() => { /* 권한 없으면 다운로드에서 걸러짐 */ });
+        await downloadReportPdf(runJobId);
+      }
+    } catch (err) {
+      setResultDownloadError(err instanceof Error ? err.message : "다운로드에 실패했습니다.");
+    } finally {
+      setResultDownloading(null);
+    }
+  }
+
+  /* ── 결과 단계: 상세보고서 생성 상태 ──
+     조사 실행이 끝나면 백엔드가 이어서 상세 분석을 돌린다(survey_run → _run_detail_sync).
+     생성 전에는 다운로드가 409 로 거절되므로, 완료될 때까지 폴링해 버튼을 잠근다. */
+  const [detailStatus, setDetailStatus] = useState<string>("idle");
+  useEffect(() => {
+    if (step !== "survey_result" || !runJobId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const tick = async () => {
+      try {
+        const st = await getDetailStatus(runJobId);
+        if (cancelled) return;
+        setDetailStatus(st.detail_status ?? "idle");
+        if (st.report) setDetailReport(st.report);
+        if (st.detail_status === "done" || st.detail_status === "error") {
+          if (timer) clearInterval(timer);
+        }
+      } catch { /* 일시 오류는 다음 폴링에서 회복 */ }
+    };
+    tick();
+    timer = setInterval(tick, 5000);
+    return () => { cancelled = true; if (timer) clearInterval(timer); };
+  }, [step, runJobId]);
+
+  /* ── 결과 단계: 가상인구 패널에게 질문 ── */
+  const [panelMessages, setPanelMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
+  const [panelInput, setPanelInput] = useState("");
+  const [panelSending, setPanelSending] = useState(false);
+  const [panelError, setPanelError] = useState<string | null>(null);
+
+  async function handleAskPanel() {
+    const q = panelInput.trim();
+    if (!q || panelSending || !runJobId) return;
+    setPanelMessages((m) => [...m, { role: "user", text: q }]);
+    setPanelInput("");
+    setPanelSending(true);
+    setPanelError(null);
+    try {
+      const { answer } = await askPanel(runJobId, q);
+      setPanelMessages((m) => [...m, { role: "panel", text: answer }]);
+    } catch (e) {
+      setPanelError(e instanceof Error ? e.message : "답변을 받지 못했습니다.");
+    } finally {
+      setPanelSending(false);
+    }
+  }
+
+  /** 현재 패널 수로 조사를 실행하려면 결제가 필요한가 */
+  function needsPayment(): boolean {
+    if (subActive) return false;                       // 월정액 — 무제한
+    if (reportExempt) return false;                    // 무료 제공(이메일 목록·쿠폰) 대상
+    const key = panelProductKey(panelSize);
+    if (!key) return false;                            // 무료 체험(10명)
+    return paidProductKey !== key;                     // 이미 결제한 상품이면 통과
+  }
+
+  /** 축의 라벨 하나를 토글. 전체 선택/해제는 setPanelAxes 로 직접 처리. */
+  function toggleAxis(key: AxisKey, label: string) {
+    setPanelAxes((prev) => {
+      const cur = prev[key];
+      const next = cur.includes(label) ? cur.filter((v) => v !== label) : [...cur, label];
+      return { ...prev, [key]: next };
+    });
+  }
+
+  /** 체크박스 선택 → 백엔드가 쓰는 비율맵(라벨→%). 선택 라벨에 균등 배분. */
+  function buildTargetFilters(): Record<string, Record<string, number>> {
+    const out: Record<string, Record<string, number>> = {};
+    for (const axis of PANEL_AXES) {
+      const picked = panelAxes[axis.key];
+      // 전체(빈 배열)이거나 모든 라벨을 고른 경우 = 제한 없음 → 축 자체를 보내지 않는다
+      if (picked.length === 0 || picked.length === axis.options.length) continue;
+      const share = Math.round(100 / picked.length);
+      out[axis.key] = Object.fromEntries(picked.map((l) => [l, share]));
+    }
+    return out;
+  }
 
   // 언마운트 시 상태 폴링 정리
   useEffect(() => () => {
@@ -633,6 +848,7 @@ function DesignPageInner() {
             if (!cancelled && res.infographic) {
               setInfographic(res.infographic);
               setRunMeta({ n: res.n_respondents ?? 0, sido: res.sido ?? "" });
+              setSurveyResults(res.results ?? []);
               target = "survey_result";
             }
           } catch {
@@ -640,7 +856,8 @@ function DesignPageInner() {
           }
         }
         if (cancelled) return;
-        setStep(target);
+        // 거래방식이 없는 예전 설계 — 필수값이므로 질문 입력부터 다시 받는다
+        setStep(design.trade_type ? target : "input");
         setSubmitted(true);
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : String(err));
@@ -673,6 +890,21 @@ function DesignPageInner() {
         if (d.purposeMode === "structured" || d.purposeMode === "free") setPurposeMode(d.purposeMode);
         if (Array.isArray(d.purposeAnswers)) setPurposeAnswers((d.purposeAnswers as string[]).slice(0, 5).concat(["", "", "", "", ""]).slice(0, 5));
         if (typeof d.purposeFree === "string") setPurposeFree(d.purposeFree);
+        // 패널 설정 복원 (결제 후 ?paid= 로 돌아온 경우 아래 effect 가 결제 상품 기준으로 덮어씀)
+        if (Array.isArray(d.panelSido) && d.panelSido.length > 0) setPanelSido(d.panelSido as string[]);
+        if (d.panelAxes && typeof d.panelAxes === "object") {
+          const ax = d.panelAxes as Record<string, unknown>;
+          setPanelAxes((prev) => {
+            const next = { ...prev };
+            for (const axis of PANEL_AXES) {
+              const v = ax[axis.key];
+              if (Array.isArray(v)) next[axis.key] = v as string[];
+            }
+            return next;
+          });
+        }
+        // 결제 후 복귀(?paid=)라면 결제 상품이 패널 수를 결정하므로 임시저장 값으로 덮지 않는다
+        if (!paidParam && typeof d.panelSize === "number" && d.panelSize > 0) setPanelSize(d.panelSize);
         // AI 결과 복원
         if (Array.isArray(draft.hypotheses)) setHypothesisTexts(draft.hypotheses);
         if (Array.isArray(draft.selected_hypotheses)) setSelectedHypotheses(new Set(draft.selected_hypotheses as number[]));
@@ -685,7 +917,9 @@ function DesignPageInner() {
           result: "result",
         };
         const restored = stepMap[draft.step] ?? "input";
-        setStep(restored);
+        // 거래방식이 비어 있는 예전 임시저장 — 필수값이므로 질문 입력부터 다시 받는다
+        const restoredTrade = typeof d.tradeType === "string" ? d.tradeType : "";
+        setStep(restoredTrade ? restored : "input");
         setSubmitted(true);
         setSavedAt(new Date(draft.updated_at).getTime());
       } catch (err) {
@@ -715,6 +949,8 @@ function DesignPageInner() {
       input_data: {
         tradeType, productMode, productAnswers, productFree,
         purposeMode, purposeAnswers, purposeFree,
+        // 패널 설정 — 결제 후 복귀·임시저장 복원에서 그대로 살아나야 한다
+        panelSido, panelAxes, panelSize,
       },
       hypotheses: hypothesisTexts,
       selected_hypotheses: Array.from(selectedHypotheses),
@@ -735,35 +971,6 @@ function DesignPageInner() {
     }
   }
 
-  /* ── 체험후기 버튼 ── */
-  // 로그인: 바로 후기 설문 오픈. 비로그인: 진행 컨텍스트(job_id·design_id)를
-  // 보관하고 로그인으로 보낸 뒤, 로그인 완료 시 ?review=1 로 돌아와 자동 복원.
-  function handleReviewClick() {
-    trackEvent("체험후기_클릭");
-    if (isLoggedIn) {
-      setReviewOpen(true);
-      return;
-    }
-    savePendingReview({ jobId: runJobId, designId });
-    router.push(`/login?next=${encodeURIComponent(PENDING_REVIEW_NEXT)}`);
-  }
-
-  /* ── 로그인 후 체험후기 복원 (?review=1) ── */
-  // 비로그인 때 보관한 컨텍스트로: ① 익명 설계기록에 가입 이메일 연결(claim)
-  // ② 후기 설문 자동 오픈. 로그인 상태에서만 동작.
-  useEffect(() => {
-    if (!reviewIntent) return;
-    if (!(getAccessToken() && getCachedUser())) return;
-    const pending = getPendingReview();
-    if (pending?.designId) {
-      claimDesign(pending.designId).catch(() => { /* 실패해도 흐름 계속 */ });
-    }
-    if (pending?.jobId) setRunJobId(pending.jobId);
-    clearPendingReview();
-    setReviewOpen(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reviewIntent]);
-
   /* ── 헬퍼 ── */
   function stopTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -781,12 +988,15 @@ function DesignPageInner() {
   }
 
   function isStepAvailable(s: Step): boolean {
+    // 거래방식은 필수 — 미선택이면 질문 입력 단계 밖으로 나갈 수 없다
+    if (s !== "input" && !tradeType) return false;
     switch (s) {
       case "input": return true;
       case "hyp_designing": return false;
       case "hyp_review": return hypothesisTexts.length > 0;
       case "survey_designing": return false;
       case "survey_review": return surveyQuestions.length > 0;
+      case "panel": return surveyQuestions.length > 0;
       case "result": return hypothesisTexts.length > 0 && surveyQuestions.length > 0;
       case "survey_running": return false;
       case "survey_result": return infographic != null; // 조사 결과가 있을 때만 재진입 가능
@@ -938,6 +1148,23 @@ function DesignPageInner() {
   async function handleRunSurvey() {
     if (surveyQuestions.length === 0) return;
 
+    // 거래방식 필수 — 미선택 상태로 실행되면 패널 구성이 조사 목적과 어긋난다
+    if (!tradeType) {
+      setSubmitted(true);
+      setRunError("거래방식을 선택해주세요. 질문 입력 단계에서 주된 거래 대상을 골라야 조사를 실행할 수 있습니다.");
+      setStep("input");
+      setTimeout(() => tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return;
+    }
+
+    // 유료 패널 수 — 결제창부터. 설계를 잃지 않도록 임시저장 후 결제로 보낸다.
+    if (needsPayment()) {
+      setRunError("");
+      await handleSaveDraft();
+      setPanelCheckoutOpen(true);
+      return;
+    }
+
     // 거래방식-목적 불일치 재확인 — 저장된 설계를 바로 실행하는 경우 설계 단계 경고를
     // 못 봤을 수 있으므로 실행 직전에 1회 더 경고 (재클릭 시 진행)
     if (!runMismatchAck.current) {
@@ -961,8 +1188,8 @@ function DesignPageInner() {
     setProgressLabel("조사 실행 준비 중...");
     setStep("survey_running");
 
-    // 표본 수(전역 설정)를 조회해 로딩 화면에 전달 (실패해도 기본 아이콘 수로 표시)
-    getAppSettings().then((s) => setSampleSize(s.analysis_sample_size || null));
+    // 패널 설정에서 고른 수를 로딩 화면(사람 아이콘·응답 카운터)에 그대로 반영
+    setSampleSize(panelSize);
 
     try {
       const { job_id } = await apiRunSurvey({
@@ -972,6 +1199,12 @@ function DesignPageInner() {
         needs: researchPurpose,
         design_id: designId,
         trade_type: tradeType,
+        // 패널 설정 — 시도는 복수 선택 시 첫 항목(백엔드는 단일 시도 문자열을 받는다)
+        sido: panelSido.includes("전국") ? "전국" : panelSido[0],
+        sample_size: panelSize,
+        target_filters: buildTargetFilters(),
+        // 실행 전 결제분이 있으면 이 조사에 묶어 유료 기능(원본자료·패널 질문)을 연다
+        ...(paidOrderId ? { order_id: paidOrderId } : {}),
       });
       setRunJobId(job_id);
 
@@ -998,6 +1231,7 @@ function DesignPageInner() {
             if (res.infographic) {
               setInfographic(res.infographic);
               setRunMeta({ n: res.n_respondents ?? 0, sido: res.sido ?? "" });
+              setSurveyResults(res.results ?? []);
               setStep("survey_result");
             } else {
               setRunError(res.error || "결과 요약을 생성하지 못했습니다. 다시 시도해 주세요.");
@@ -1898,13 +2132,230 @@ function DesignPageInner() {
                 )}
 
                 <button
-                  onClick={() => { if (editAllMode) finishEditAll(); setStep("result"); }}
+                  onClick={() => { if (editAllMode) finishEditAll(); setStep("panel"); }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] mt-2"
                 >
-                  요약 보기 <ArrowRight size={15} />
+                  패널 설정 <ArrowRight size={15} />
                 </button>
               </div>
             </div>
+            {saveDraftBlock}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════
+            6. 패널 설정 — 조사에 응답할 가상인구를 고른다
+        ══════════════════════════════════════════ */}
+        {step === "panel" && (
+          <div className="space-y-5">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+                  <SlidersHorizontal size={16} className="text-indigo-600" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-slate-900">패널 설정</h2>
+                  <p className="mt-0.5 text-xs text-slate-500 leading-relaxed break-keep">
+                    설문에 응답할 가상인구를 고릅니다. 조건을 좁히지 않으면(전체) 조사 목적에 맞는
+                    응답자 구성을 AI가 자동으로 잡아줍니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 지역 */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin size={15} className="text-slate-400" />
+                <h3 className="text-sm font-bold text-slate-900">시도</h3>
+                <span className="text-[11px] text-slate-400">복수 선택 가능</span>
+              </div>
+              <p className="text-xs text-slate-600 mb-3">전국을 고르면 모든 시도를 합산합니다.</p>
+              <div className="flex flex-wrap gap-2">
+                {SIDO_OPTIONS.map((name) => {
+                  const isAll = name === "전국";
+                  const checked = panelSido.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        if (isAll) { setPanelSido(["전국"]); return; }
+                        const next = checked
+                          ? panelSido.filter((v) => v !== name)
+                          : [...panelSido.filter((v) => v !== "전국"), name];
+                        setPanelSido(next.length === 0 ? ["전국"] : next);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        checked
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 인구 특성 축 */}
+            {PANEL_AXES.map((axis) => {
+              const picked = panelAxes[axis.key];
+              const isAll = picked.length === 0;
+              return (
+                <div key={axis.key} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="text-sm font-bold text-slate-900">{axis.label}</h3>
+                    {!isAll && (
+                      <button
+                        type="button"
+                        onClick={() => setPanelAxes((p) => ({ ...p, [axis.key]: [] }))}
+                        className="text-[11px] text-slate-400 hover:text-slate-700"
+                      >
+                        전체로 되돌리기
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPanelAxes((p) => ({ ...p, [axis.key]: [] }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                        isAll
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                      }`}
+                    >
+                      전체
+                    </button>
+                    {axis.options.map((opt) => {
+                      const checked = picked.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleAxis(axis.key, opt)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            checked
+                              ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* 패널 수 — 요금제 */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-1">
+                <Users size={15} className="text-slate-400" />
+                <h3 className="text-sm font-bold text-slate-900">패널 수</h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-4">
+                설문에 응답할 가상인구 수입니다. 많을수록 세부 집단까지 나눠 볼 수 있습니다.
+              </p>
+
+              {subActive || reportExempt ? (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                      <Repeat size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      {subActive ? (
+                        <>
+                          <p className="text-sm font-bold text-slate-900">
+                            월정액 고객 — 100명 고정
+                            <span className="ml-2 text-xs font-semibold text-indigo-600">
+                              {subscription?.days_left}일 남음
+                            </span>
+                          </p>
+                          <p className="mt-1 text-xs text-slate-600 leading-relaxed break-keep">
+                            월정액 구독은 가상인구 <strong className="font-semibold">100명</strong> 규모로 고정되며,
+                            구독 기간 동안 <strong className="font-semibold">횟수 제한 없이</strong> 조사하실 수 있습니다.
+                            이 조사는 추가 결제 없이 바로 진행됩니다.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm font-bold text-slate-900">무료 제공 대상 — 100명 고정</p>
+                          <p className="mt-1 text-xs text-slate-600 leading-relaxed break-keep">
+                            상세보고서 무료 제공(무료 쿠폰·무료 제공 계정) 대상이라
+                            가상인구 <strong className="font-semibold">100명</strong> 규모로 조사합니다.
+                            추가 결제 없이 바로 진행되며, 원본자료(엑셀)와 패널 질문도 이용하실 수 있습니다.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {PANEL_SIZES.map((p) => {
+                    const active = panelSize === p.size;
+                    return (
+                      <button
+                        key={p.size}
+                        type="button"
+                        onClick={() => setPanelSize(p.size)}
+                        className={`text-left rounded-xl border p-4 transition-all ${
+                          active
+                            ? "border-indigo-500 bg-indigo-50/60 ring-1 ring-indigo-200"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className={`text-xs font-bold ${active ? "text-indigo-700" : "text-slate-500"}`}>
+                            {p.name}
+                          </span>
+                          <span
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              active ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
+                            }`}
+                          >
+                            {active && <Check size={10} strokeWidth={4} className="text-white" />}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-lg font-extrabold text-slate-900 tabular-nums">
+                          {p.size}<span className="text-sm font-bold ml-0.5">명</span>
+                        </p>
+                        <p className={`mt-0.5 text-sm font-bold ${active ? "text-indigo-700" : "text-slate-700"}`}>
+                          {p.price}
+                        </p>
+                        {"note" in p && p.note && (
+                          <p className="text-[11px] text-slate-400">{p.note}</p>
+                        )}
+                        <p className="mt-2 text-[11px] text-slate-500 leading-snug break-keep">{p.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!subActive && !reportExempt && (
+                <p className="mt-3 text-[11px] text-slate-400 leading-relaxed break-keep">
+                  무료 체험(10명)은 결제 없이 진행됩니다. 100명·500명은 조사를 진행할 때 결제가 필요하며,
+                  자주 조사하신다면{" "}
+                  <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline underline-offset-2">
+                    월정액 구독(100명 무제한)
+                  </a>
+                  이 유리합니다.
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => setStep("result")}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99]"
+            >
+              최종 검토 <ArrowRight size={15} />
+            </button>
             {saveDraftBlock}
           </div>
         )}
@@ -1915,11 +2366,12 @@ function DesignPageInner() {
         {step === "result" && (
           <div>
             {/* KPI */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {[
                 { icon: <Target size={18} />, label: "거래방식", value: tradeType || "—", accent: "indigo" },
                 { icon: <Lightbulb size={18} />, label: "선택 가설", value: `${selectedHypotheses.size}개`, accent: "sky" },
                 { icon: <FileText size={18} />, label: "설문 문항", value: `${surveyQuestions.length}개`, accent: "emerald" },
+                { icon: <Users size={18} />, label: "패널 수", value: `${panelSize}명`, accent: "amber" },
               ].map((k) => (
                 <div key={k.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${k.accent}-50 text-${k.accent}-500 flex-shrink-0`}>
@@ -2030,11 +2482,109 @@ function DesignPageInner() {
                 </div>
               </section>
 
+              {/* 4. 패널 설정 요약 */}
+              <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold flex items-center justify-center">4</span>
+                  <SlidersHorizontal size={14} className="text-amber-500" />
+                  <h3 className="text-sm font-semibold text-slate-800">패널 설정</h3>
+                  <button
+                    onClick={() => setStep("panel")}
+                    className="ml-auto text-[11px] font-medium text-indigo-600 hover:underline"
+                  >
+                    수정하기
+                  </button>
+                </div>
+                <div className="p-5 flex flex-col gap-4">
+                  {/* 패널 수 + 요금 */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <Users size={15} className="text-slate-400" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          가상인구 {panelSize}명
+                          {subActive && <span className="ml-2 text-xs font-semibold text-indigo-600">월정액 · 고정</span>}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {subActive
+                            ? `월정액 구독 중 — 추가 결제 없이 진행됩니다 (${subscription?.days_left}일 남음)`
+                            : (PANEL_SIZES.find((p) => p.size === panelSize)?.desc ?? "")}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-sm font-bold ${subActive ? "text-indigo-600" : "text-slate-800"}`}>
+                      {subActive
+                        ? "무제한"
+                        : (PANEL_SIZES.find((p) => p.size === panelSize)?.price ?? "—")}
+                    </span>
+                  </div>
+
+                  {/* 조사 지역 */}
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 mb-2">조사 지역</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {panelSido.map((name) => (
+                        <span key={name} className="text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded px-2 py-1">{name}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 인구 특성 축 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                    {PANEL_AXES.map((axis) => {
+                      const picked = panelAxes[axis.key];
+                      const isAll = picked.length === 0;
+                      return (
+                        <div key={axis.key}>
+                          <p className="text-xs font-bold text-slate-700 mb-2">{axis.label}</p>
+                          {isAll ? (
+                            <span className="inline-flex items-center rounded px-2 py-1 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200">
+                              전체
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                              {picked.map((v) => (
+                                <span key={v} className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-1">{v}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {Object.keys(buildTargetFilters()).length === 0 ? (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+                      <Sparkles size={15} className="mt-0.5 shrink-0 text-violet-500" />
+                      <p className="text-xs leading-relaxed break-keep text-violet-900">
+                        <strong className="font-bold">특성 조건을 좁히지 않았습니다</strong> — 조사 목적에 맞는
+                        응답자 구성을 <strong className="font-bold">AI가 자동으로</strong> 잡아줍니다.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+                      <SlidersHorizontal size={15} className="mt-0.5 shrink-0 text-indigo-500" />
+                      <p className="text-xs leading-relaxed break-keep text-indigo-900">
+                        <strong className="font-bold">선택한 특성 조건</strong>으로 가상인구를 추출합니다.
+                        선택한 라벨에 균등 비율이 적용됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
               {/* 실행 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행합니다.</p>
                   <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 AI 응답 생성에 몇 분 정도 걸릴 수 있습니다.</p>
+                  {needsPayment() && (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 font-medium">
+                      <CreditCard size={13} className="flex-shrink-0 mt-0.5" />
+                      가상인구 {panelSize}명 조사는{" "}
+                      {PANEL_SIZES.find((p) => p.size === panelSize)?.price} 결제 후 진행됩니다.
+                    </p>
+                  )}
                   {runError && (
                     <p className="mt-1.5 flex items-start gap-1 text-xs text-rose-500 font-medium">
                       <AlertCircle size={13} className="flex-shrink-0 mt-0.5" /> {runError}
@@ -2046,7 +2596,9 @@ function DesignPageInner() {
                   disabled={surveyQuestions.length === 0}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Users size={15} /> 조사 실행하기 <ArrowRight size={15} />
+                  {needsPayment()
+                    ? <><CreditCard size={15} /> 결제하고 조사 실행하기 <ArrowRight size={15} /></>
+                    : <><Users size={15} /> 조사 실행하기 <ArrowRight size={15} /></>}
                 </button>
               </div>
             </div>
@@ -2075,6 +2627,113 @@ function DesignPageInner() {
         {step === "survey_result" && (
           <div>
             <div className="flex flex-col gap-5">
+              {/* ── 다운로드 — 결제 후 결과 페이지(/results/[id])와 동일 구성 ──
+                  무료(10명) 조사에서는 Raw Data·상세보고서가 잠긴다. */}
+              <div className="rounded-2xl border border-slate-800 bg-slate-900 shadow-lg p-5">
+                <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
+                  <Download size={15} className="text-slate-300" /> 다운로드
+                </h3>
+                <div className="mb-3 leading-relaxed">
+                  {detailStatus === "running" ? (
+                    <>
+                      <p className="text-[11px] text-slate-400">
+                        상세보고서를 생성하고 있습니다 — 초안 생성 → 검토 → 수정·보완 과정을 거치며
+                        패널의 수에 따라 약 5~10분 걸립니다.
+                      </p>
+                      <p className="mt-1 text-[11px] font-medium text-indigo-300">
+                        기다리는 동안 우측의 <span className="font-bold text-indigo-200">가상인구 패널</span>에게
+                        궁금한 점을 질문해 보세요.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-slate-400">조사 결과 자료를 내려받으실 수 있습니다.</p>
+                  )}
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { kind: "summary", label: "요약보고서", sub: "PDF", locked: false, pending: false },
+                    { kind: "raw", label: "가상인구 Raw Data", sub: "엑셀(CSV)", locked: !paidTier, pending: false },
+                    { kind: "report", label: "상세보고서", sub: "PDF", locked: false, pending: detailStatus !== "done" },
+                  ].map((d) => (
+                    <button
+                      key={d.kind}
+                      onClick={() => {
+                        if (d.locked) { setUpgradeOpen(true); return; }
+                        if (d.pending) return;
+                        handleResultDownload(d.kind);
+                      }}
+                      disabled={resultDownloading !== null || d.pending}
+                      className={`flex items-center gap-2.5 rounded-xl border px-4 py-3 text-left transition disabled:cursor-not-allowed ${
+                        d.locked
+                          ? "border-amber-400/40 bg-amber-400/10 hover:border-amber-400/70"
+                          : d.pending
+                            ? "border-white/15 bg-white/5 opacity-70"
+                            : "border-white/15 bg-white/10 hover:border-white/40 hover:bg-white/20"
+                      }`}
+                    >
+                      {d.locked
+                        ? <Lock size={16} className="text-amber-300 shrink-0" />
+                        : d.pending
+                          ? <RefreshCw size={16} className="text-slate-300 shrink-0 animate-spin" />
+                          : <Download size={16} className="text-white shrink-0" />}
+                      <span className="min-w-0">
+                        <span className={`block text-sm font-medium truncate ${d.locked ? "text-amber-100" : "text-white"}`}>
+                          {resultDownloading === d.kind ? "준비 중…" : d.label}
+                        </span>
+                        <span className={`block text-[11px] ${
+                          d.locked ? "text-amber-300 font-medium"
+                          : d.pending ? "text-slate-300 font-medium"
+                          : "text-slate-400"
+                        }`}>
+                          {d.locked
+                            ? "유료 버전에서 가능"
+                            : d.pending
+                              ? (detailStatus === "error" ? "생성 실패 — 다시 시도해 주세요" : "생성 중…")
+                              : d.sub}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {!paidTier && (
+                  <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3">
+                    <Info size={15} className="mt-0.5 shrink-0 text-amber-300" />
+                    <p className="text-xs leading-relaxed break-keep text-amber-100">
+                      <strong className="font-bold text-amber-200">무료 체험은 가상인구 10명 기준입니다.</strong>{" "}
+                      상세보고서는 그대로 받아보실 수 있지만, 모집단이 작아 세부 집단별 비교나 비율 해석은
+                      제한적입니다.
+                      <br />
+                      의사결정 근거로 쓰시려면 100명 이상 조사를 권합니다.
+                    </p>
+                  </div>
+                )}
+                {resultDownloadError && (
+                  <p className="mt-2 text-[11px] text-red-300 leading-snug">{resultDownloadError}</p>
+                )}
+              </div>
+
+              {/* AI 핵심 인사이트 — 상세 분석이 끝나면 표시 */}
+              {(detailReport?.상세분석 ?? "").trim() && (
+                <div className="bg-gradient-to-br from-indigo-950 to-slate-900 rounded-2xl p-6 border border-indigo-800/40">
+                  <div className="flex items-center gap-2.5 mb-5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+                      <Sparkles size={15} className="text-indigo-300" />
+                    </div>
+                    <span className="text-sm font-semibold text-white">AI 핵심 인사이트</span>
+                  </div>
+                  <div className="space-y-3">
+                    {(detailReport!.상세분석 ?? "").split("\n").filter((l) => l.trim()).slice(0, 4).map((line, i) => (
+                      <div key={i} className="flex items-start gap-3 text-sm text-slate-300 leading-relaxed break-keep">
+                        <span className="w-5 h-5 rounded-full bg-indigo-500/25 text-indigo-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                          {i + 1}
+                        </span>
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 설문 개요 — 제품/서비스 정의 + 조사 목적·니즈 */}
               {(productDef.trim() || researchPurpose.trim()) && (
                 <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -2108,133 +2767,54 @@ function DesignPageInner() {
                 </div>
               )}
 
-              {/* 요약보고서 다운로드 — 고객 인터뷰(인포그래픽) 바로 아래 */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">요약보고서</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    위 조사 결과 요약을 PDF로 내려받을 수 있습니다.
-                  </p>
-                </div>
-                <div className="w-full sm:w-56 sm:flex-shrink-0">
-                  <button
-                    onClick={async () => {
-                      trackEvent("요약보고서_다운로드");
-                      if (!runJobId) { setSummaryError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
-                      setSummaryError(null);
-                      setSummaryDownloading(true);
-                      try {
-                        await downloadSummaryPdf(runJobId);
-                      } catch (err) {
-                        setSummaryError(err instanceof Error ? err.message : "요약보고서 다운로드에 실패했습니다.");
-                      } finally {
-                        setSummaryDownloading(false);
-                      }
-                    }}
-                    disabled={summaryDownloading}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {summaryDownloading
-                      ? <><RefreshCw size={15} className="animate-spin" /> 생성 중…</>
-                      : <><Download size={15} /> 요약보고서 다운로드</>}
-                  </button>
-                  {summaryError && (
-                    <p className="text-[11px] text-red-500 leading-snug mt-1.5">{summaryError}</p>
-                  )}
-                </div>
-              </div>
+              {/* 무료 열람 쿠폰 보유(비로그인) — 로그인하면 바로 상세보고서 열람 */}
+              {!paidTier && !isLoggedIn && pendingFreeToken && runJobId && (
+                <button
+                  onClick={() => {
+                    trackEvent("상세보고서_무료열람_로그인유도");
+                    router.push(`/login?next=${encodeURIComponent(`/free-report?pass=${pendingFreeToken}&job=${runJobId}`)}`);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                >
+                  <Download size={15} />
+                  <span className="leading-tight text-center">
+                    상세보고서 무료로 받기
+                    <span className="block text-[11px] font-medium text-indigo-200">무료 쿠폰 적용 중 — 로그인 후 바로 열람됩니다</span>
+                  </span>
+                </button>
+              )}
 
-              {/* 상세분석 안내 + 액션 버튼 */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">상세보고서는 유료서비스입니다.</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    상세분석에는 가상패널에게 질문하기, 가상인구 패널 인구통계 정보, 문항별 응답 분포, 상세분석 및 시사점 등을
-                    <br />
-                    포함한 상세분석 보고서와 Raw Data가 포함됩니다.
-                    상세보고서는 초안 생성 → 검토 → 수정·보완 과정을 거쳐 완성되므로 다소 시간이 걸릴 수 있습니다.
-                    <br />
-                    진행을 원하시면 <span className="sm:hidden">아래</span><span className="hidden sm:inline">우측</span> 버튼을 이용해 주세요.
-                  </p>
-                  {/* 리뷰 이벤트 안내 */}
-                  <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
-                    <p className="text-[12px] leading-relaxed text-slate-600">
-                      체험후기를 남겨주시면, <b className="text-slate-900">99,000원 상당의 상세보고서(30p 내외 PDF)와 원본자료(엑셀)</b>를 <br />
-                    무료로 제공(아이디 당 1회)해 드리는 이벤트 중입니다.
-                    </p>
-                    {/* 50명 이상 안내 + 문의 메일(우측, 축소) — 랜딩페이지와 동일 배치 */}
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <p className="text-[12px] leading-relaxed text-slate-500">
-                        50명 이상 응답이 필요한 경우는 별도 문의 부탁드립니다.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setContactOpen(true)}
-                        className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
-                      >
-                        <MessageSquare size={14} /> 문의하기
-                      </button>
-                    </div>
+              {/* 문항별 결과 — 막대 그래프 */}
+              {surveyResults.length > 0 && (
+                <div>
+                  <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 mb-4">
+                    <BarChart2 size={15} className="text-indigo-500" /> 문항별 결과
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-5">
+                    {surveyResults.map((r) => (
+                      <QuestionResultCard key={r.문항번호} result={r} />
+                    ))}
                   </div>
                 </div>
+              )}
 
-                {/* 액션 버튼 — 체험후기 · 결제하기(슈퍼유저/스태프만) */}
-                <div className="flex flex-col gap-2 w-full sm:w-56 sm:flex-shrink-0">
+              {/* 요금 안내 + 문의 */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs leading-relaxed text-slate-600">
+                    더 큰 규모의 조사나 원본자료·상세보고서가 필요하시면{" "}
+                    <a href="/pricing" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 underline underline-offset-2">
+                      요금 안내
+                    </a>
+                    를 확인해 주세요.
+                  </p>
                   <button
-                    onClick={handleReviewClick}
-                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 transition-all hover:shadow-lg hover:shadow-amber-200"
+                    type="button"
+                    onClick={() => setContactOpen(true)}
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
                   >
-                    <Star size={15} className="flex-shrink-0" />
-                    <span className="leading-tight text-center">
-                      체험후기 남기기
-                      <span className="block text-[11px] font-medium text-amber-50">(99,000원 상당의 리워드 제공)</span>
-                    </span>
+                    <MessageSquare size={14} /> 문의하기
                   </button>
-                  {!isLoggedIn && (
-                    <p className="text-[11px] leading-snug text-slate-400 text-center">
-                      체험후기 이벤트 참여는 <span className="font-medium text-slate-500">로그인(회원가입) 후</span> 가능합니다.
-                      <br />체험후기 남기기를 누르면 로그인 화면으로 이동합니다.
-                    </p>
-                  )}
-                  {reportExempt && runJobId && (
-                    <button
-                      onClick={() => {
-                        trackEvent("상세보고서_무료열람");
-                        claimReportJob(runJobId).catch(() => {}); // 계정당 1건 링크 → 이 설문에 확정
-                        router.push(`/results/${runJobId}`);
-                      }}
-                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
-                    >
-                      <Download size={15} />
-                      <span className="leading-tight text-center">
-                        상세보고서 보기
-                        <span className="block text-[11px] font-medium text-indigo-200">결제 없이 이용 가능한 계정입니다</span>
-                      </span>
-                    </button>
-                  )}
-                  {!reportExempt && !isLoggedIn && pendingFreeToken && runJobId && (
-                    <button
-                      onClick={() => {
-                        trackEvent("상세보고서_무료열람_로그인유도");
-                        router.push(`/login?next=${encodeURIComponent(`/free-report?pass=${pendingFreeToken}&job=${runJobId}`)}`);
-                      }}
-                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
-                    >
-                      <Download size={15} />
-                      <span className="leading-tight text-center">
-                        상세보고서 무료로 받기
-                        <span className="block text-[11px] font-medium text-indigo-200">무료 쿠폰 적용 중 — 로그인 후 바로 열람됩니다</span>
-                      </span>
-                    </button>
-                  )}
-                  {!reportExempt && paymentsEnabled && (
-                    <button
-                      onClick={() => { trackEvent("결제하기_클릭"); setCheckoutOpen(true); }}
-                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
-                    >
-                      <CreditCard size={15} /> 결제하기
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
@@ -2242,9 +2822,113 @@ function DesignPageInner() {
         )}
 
           </div>
-          {/* 우측 — 단계별 기술 설명 패널 (데스크톱: 스티키) */}
+          {/* 우측 — 결과 단계에서는 가상인구 패널 대화창, 그 외에는 단계별 기술 설명 (스티키) */}
           <aside className="lg:sticky lg:top-20 self-start">
-            <TechCopyCard step={STEP_TO_NUM[step]} />
+            {step === "survey_result" ? (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[32rem] lg:h-[calc(100vh-7rem)]">
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                    <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
+                    {!paidTier && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5">
+                        <Lock size={9} /> 유료
+                      </span>
+                    )}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 할 수 있습니다.
+                  </p>
+                </div>
+
+                {paidTier ? (
+                  <>
+                    <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                      {panelMessages.length === 0 && (
+                        <div className="text-center text-sm text-slate-400 py-10">
+                          <MessageCircle size={28} className="mx-auto mb-3 text-slate-300" />
+                          궁금한 점을 물어보세요.
+                          <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                            {["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"].map((ex) => (
+                              <button
+                                key={ex}
+                                onClick={() => setPanelInput(ex)}
+                                className="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 hover:border-indigo-300 hover:text-indigo-600 transition"
+                              >
+                                {ex}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {panelMessages.map((m, i) => (
+                        <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line leading-6 break-keep ${
+                            m.role === "user" ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-700"
+                          }`}>
+                            {m.text}
+                          </div>
+                        </div>
+                      ))}
+                      {panelSending && (
+                        <div className="flex justify-start">
+                          <div className="bg-slate-100 text-slate-400 rounded-2xl px-4 py-2.5 text-sm flex items-center gap-2">
+                            <RefreshCw size={14} className="animate-spin" /> 답변 생성 중…
+                          </div>
+                        </div>
+                      )}
+                      {panelError && <p className="text-sm text-red-600">{panelError}</p>}
+                    </div>
+                    <div className="border-t border-slate-100 p-3">
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); handleAskPanel(); }}
+                        className="flex items-end gap-2"
+                      >
+                        <textarea
+                          value={panelInput}
+                          onChange={(e) => setPanelInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                              e.preventDefault();
+                              handleAskPanel();
+                            }
+                          }}
+                          rows={1}
+                          placeholder="가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
+                          className="flex-1 resize-none rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-400 max-h-32"
+                        />
+                        <button
+                          type="submit"
+                          disabled={panelSending || !panelInput.trim()}
+                          className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition disabled:opacity-50"
+                          aria-label="전송"
+                        >
+                          <Send size={16} />
+                        </button>
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center p-5">
+                    <button
+                      onClick={() => setUpgradeOpen(true)}
+                      className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-left hover:border-amber-300 transition"
+                    >
+                      <p className="flex items-center gap-1.5 text-sm font-bold text-amber-800">
+                        <Lock size={14} /> 유료 버전에서 가능한 기능입니다
+                      </p>
+                      <p className="mt-1.5 text-xs text-amber-700 leading-relaxed break-keep">
+                        무료 체험(가상인구 10명)에서는 패널 질문과 원본자료(엑셀) 내려받기가 제공되지 않습니다.
+                        상세보고서는 무료로도 받아보실 수 있습니다.
+                        <br />
+                        100명·500명 조사나 월정액 구독에서 패널 질문과 원본자료까지 이용하실 수 있습니다.
+                      </p>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <TechCopyCard step={STEP_TO_NUM[step]} />
+            )}
           </aside>
         </div>
       </div>
@@ -2256,8 +2940,6 @@ function DesignPageInner() {
           onClose={() => setCheckoutOpen(false)}
         />
       )}
-
-      <ReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} jobId={runJobId ?? undefined} />
 
       <ContactDialog
         open={contactOpen}
@@ -2278,6 +2960,63 @@ function DesignPageInner() {
             : null,
         ].filter(Boolean).join("\n")}
       />
+
+      {/* 무료 체험에서 잠긴 기능을 눌렀을 때 — 유료 안내 */}
+      {upgradeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setUpgradeOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setUpgradeOpen(false)}
+              aria-label="닫기"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+            >
+              <X size={16} />
+            </button>
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-4">
+              <Lock size={24} className="text-amber-500" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">유료 버전에서 가능한 기능입니다</h3>
+            <p className="mt-2 text-xs text-slate-500 leading-relaxed break-keep">
+              무료 체험(가상인구 10명)에서는 <strong className="font-semibold text-slate-700">가상인구 패널 질문</strong>과{" "}
+              <strong className="font-semibold text-slate-700">원본자료(엑셀)</strong>가 제공되지 않습니다.
+              상세보고서는 무료로도 받아보실 수 있지만, 모집단이 10명이라 해석이 제한적입니다.
+              가상인구 100명·500명 조사 또는 월정액 구독에서 전체 기능을 이용하실 수 있습니다.
+            </p>
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                onClick={() => { setUpgradeOpen(false); setStep("panel"); }}
+                className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-500 transition-all"
+              >
+                패널 수 변경하고 다시 조사하기
+              </button>
+              <a
+                href="/pricing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all"
+              >
+                요금 안내 보기
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 조사 실행 전 결제 — 패널 수(100·500명)에 해당하는 상품으로 결제창을 띄운다.
+          결제 후 /checkout/success 에서 "조사 이어서 진행하기" 로 이 설계로 돌아온다. */}
+      {panelCheckoutOpen && (
+        <CheckoutDialog
+          productKey={panelProductKey(panelSize) ?? "detailed_report"}
+          returnTo={draftId != null ? `/design?draft=${draftId}` : "/design"}
+          onClose={() => setPanelCheckoutOpen(false)}
+        />
+      )}
     </div>
   );
 }

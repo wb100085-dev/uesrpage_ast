@@ -29,6 +29,19 @@ const SHOW_KEY_DEBUG =
   process.env.NODE_ENV !== "production" ||
   process.env.NEXT_PUBLIC_PAYMENTS_DEBUG === "true";
 
+// 월정액 구독 상품 key — 이 값이면 왼쪽 패널을 구독 안내로 바꿔 렌더한다.
+const SUBSCRIPTION_KEY = "monthly_100";
+
+// 월정액 구독 패널 카피
+const SUBSCRIPTION_FEATURES = [
+  "가상인구 100명 규모 조사 무제한",
+  "조사 건수 제한 없음 — 몇 번이든 반복 검증",
+  "상세보고서(30p 내외 PDF) 무제한 열람",
+  "설문에 응답한 가상인구와 심층 인터뷰",
+  "원본자료(Excel) 제공",
+  "결제일 기준 30일 이용",
+];
+
 // 왼쪽 정보 패널에 표시할 상세보고서 포함 내역 (참고용 예시 보고서 구성 기준)
 const REPORT_FEATURES = [
   "핵심 지표(KPI)·가설 검증 요약",
@@ -52,11 +65,15 @@ export default function CheckoutDialog({
   onClose,
   productKey = "detailed_report",
   jobId,
+  returnTo,
 }: {
   onClose: () => void;
   productKey?: string;
   jobId?: string; // 결제 후 상세분석 결과로 연결할 설문 job_id
+  /** 결제 완료 화면에서 되돌아갈 앱 내 경로(상대 경로). 조사 실행 전 결제 흐름에 사용. */
+  returnTo?: string;
 }) {
+  const isSubscription = productKey === SUBSCRIPTION_KEY;
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,9 +107,12 @@ export default function CheckoutDialog({
     setPaying(true);
     setError(null);
     try {
-      const successUrl =
-        `${window.location.origin}/checkout/success` +
-        (jobId ? `?job=${encodeURIComponent(jobId)}` : "");
+      const params = new URLSearchParams();
+      if (jobId) params.set("job", jobId);
+      // 결제 후 조사 설계로 되돌아가기 위한 경로 (orderId 는 성공 페이지가 덧붙인다)
+      if (returnTo) params.set("next", returnTo);
+      const qs = params.toString();
+      const successUrl = `${window.location.origin}/checkout/success${qs ? `?${qs}` : ""}`;
       await payment.requestPayment({
         method,
         amount: { currency: "KRW", value: order.amount },
@@ -109,7 +129,7 @@ export default function CheckoutDialog({
     }
   }
 
-  const amount = order?.amount ?? 99000;
+  const amount = order?.amount ?? (isSubscription ? 500000 : 99000);
 
   return (
     <div
@@ -141,13 +161,17 @@ export default function CheckoutDialog({
               className="h-7 w-auto object-contain"
             />
             <span className="shrink-0 text-[11px] font-semibold bg-white/15 px-2 py-0.5 rounded-full">
-              30페이지 분량
+              {isSubscription ? "30일 무제한 · 보고서 30p" : "30페이지 분량"}
             </span>
           </div>
 
-          <h2 className="mt-5 text-2xl font-bold tracking-tight">상세보고서</h2>
+          <h2 className="mt-5 text-2xl font-bold tracking-tight">
+            {isSubscription ? "월정액 구독" : "상세보고서"}
+          </h2>
           <p className="mt-1.5 text-sm text-indigo-100 leading-relaxed">
-            가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요.
+            {isSubscription
+              ? "결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하세요."
+              : "가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요."}
           </p>
 
           {/* 실제 보고서 페이지 미리보기 — 3장 한 줄 배치 */}
@@ -171,6 +195,7 @@ export default function CheckoutDialog({
             </div>
             <p className="mt-2 text-[11px] text-indigo-200 text-center">
               ▲ 실제 상세보고서 예시 (요약·표지·문항별 분포)
+              {isSubscription && " — 구독 기간 동안 무제한 열람"}
             </p>
           </div>
 
@@ -180,8 +205,9 @@ export default function CheckoutDialog({
               <MessageCircle size={14} /> 가상인구 패널에게 질문
             </div>
             <p className="mt-1 text-[11px] text-indigo-100 leading-relaxed">
-              결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을
-              던지고 응답을 받아볼 수 있습니다.
+              {isSubscription
+                ? "구독 기간 동안 진행한 모든 설문에서, 응답한 가상인구 패널에게 직접 추가 질문을 던지고 답을 받아볼 수 있습니다."
+                : "결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 던지고 응답을 받아볼 수 있습니다."}
             </p>
             {/* 챗 화면 미리보기 */}
             <div className="mt-2.5 rounded-lg bg-white p-2.5 shadow-inner space-y-1.5">
@@ -202,7 +228,7 @@ export default function CheckoutDialog({
           </div>
 
           <ul className="mt-5 space-y-2">
-            {REPORT_FEATURES.map((f) => (
+            {(isSubscription ? SUBSCRIPTION_FEATURES : REPORT_FEATURES).map((f) => (
               <li key={f} className="flex items-start gap-2 text-[13px]">
                 <span className="mt-0.5 shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20">
                   <Check size={11} strokeWidth={3} />
@@ -213,7 +239,13 @@ export default function CheckoutDialog({
           </ul>
 
           <div className="mt-auto pt-6">
-            <p className="text-3xl font-extrabold">{won(amount)}</p>
+            <p className="text-3xl font-extrabold">
+              {won(amount)}
+              {isSubscription && (
+                <span className="ml-1 text-base font-semibold text-indigo-200">/ 월</span>
+              )}
+            </p>
+            <p className="mt-1 text-[11px] text-indigo-200">부가세 포함</p>
           </div>
         </div>
 

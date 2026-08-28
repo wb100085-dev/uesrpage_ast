@@ -11,35 +11,29 @@ import {
   authChangePassword,
   type AuthUser,
 } from "@/lib/auth-api";
-import { getMyDesigns, listDrafts, deleteDraft, DEFAULT_SAMPLE_SIZE, type SurveyDraft } from "@/lib/survey-api";
-import { getReportAccessJobs } from "@/lib/payments-api";
+import { getMyDesigns, listDrafts, deleteDraft, type SurveyDraft } from "@/lib/survey-api";
+import {
+  getReportAccessJobs,
+  getMySubscription,
+  SUBSCRIPTION_PRODUCT_KEY,
+  type Subscription,
+} from "@/lib/payments-api";
+import CheckoutDialog from "@/components/CheckoutDialog";
 import RequireAuth from "@/components/RequireAuth";
 import {
-  BarChart2, Settings, History, ChevronRight,
-  LogOut, MapPin, Layers, Sparkles, Clock,
+  BarChart2, History, ChevronRight, CreditCard, Repeat, CalendarClock,
+  LogOut, MapPin, Sparkles, Clock,
   CheckCircle2, AlertCircle, RefreshCw, Construction,
-  User, Users, ArrowRight, Zap, X,
-  FileText, Target, ChevronDown, Save,
+  User, Users, ArrowRight, Zap, Save,
   Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
   Info, LayoutDashboard,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
-const SIDO_LIST = [
-  { name: "전국", code: "00" }, { name: "서울특별시", code: "11" },
-  { name: "부산광역시", code: "21" }, { name: "대구광역시", code: "22" },
-  { name: "인천광역시", code: "23" }, { name: "광주광역시", code: "24" },
-  { name: "대전광역시", code: "25" }, { name: "울산광역시", code: "26" },
-  { name: "세종특별자치시", code: "29" }, { name: "경기도", code: "31" },
-  { name: "강원도", code: "32" }, { name: "충청북도", code: "33" },
-  { name: "충청남도", code: "34" }, { name: "전라북도", code: "35" },
-  { name: "전라남도", code: "36" }, { name: "경상북도", code: "37" },
-  { name: "경상남도", code: "38" }, { name: "제주특별자치도", code: "39" },
-];
 
 /* ─── 타입 ─────────────────────────────────── */
 type SideMenu = "entrant" | "analysis" | "account";
-type AnalysisTab = "home" | "history" | "drafts" | "settings";
+type AnalysisTab = "home" | "history" | "drafts" | "subscription";
 
 type HistoryItem = {
   id: string;
@@ -76,13 +70,6 @@ function historyHref(item: HistoryItem, access?: { all_access: boolean; job_ids:
   return `/design?design=${item.id}`;
 }
 
-type AnalysisSettings = {
-  definition: string;
-  needs: string;
-  target: string;
-  sido: string;
-  sampleSize: number;
-};
 
 /** 백엔드 status → UI status 매핑 */
 function mapStatus(s: string): HistoryItem["status"] {
@@ -96,6 +83,13 @@ function mapStatus(s: string): HistoryItem["status"] {
 function fmtDate(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+/** 구독 기간 표시용 — null 안전, 날짜만 (예: 2026.09.27) */
+function fmtDay(iso: string | null) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "-";
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
 }
 function fmtAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -302,14 +296,14 @@ function UserDashboardInner() {
     }
   }
 
-  /* 설정 (잠금 탭 — 미리보기용 state) */
-  const [settings, setSettings] = useState<AnalysisSettings>({
-    definition: "", needs: "", target: "",
-    sido: "서울특별시", sampleSize: DEFAULT_SAMPLE_SIZE,
-  });
-  const [saved, setSaved] = useState(false);
-  function updateSettings(patch: Partial<AnalysisSettings>) { setSettings(p => ({ ...p, ...patch })); setSaved(false); }
-  function handleSave() { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+  /* 월정액 구독 상태 — 배지·남은 기간·결제 버튼 노출에 사용 */
+  const [sub, setSub] = useState<Subscription | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    getMySubscription().then((v) => { if (!cancelled) setSub(v); });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -390,8 +384,15 @@ function UserDashboardInner() {
           {/* ══ 분석 대시보드 ══ */}
           {sideMenu === "analysis" && (
             <div className="max-w-3xl mx-auto">
-              <div className="mb-6">
+              <div className="mb-6 flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-bold text-slate-900">분석 대시보드</h1>
+                {/* 월정액 고객 배지 — 활성 구독자에게만 노출 */}
+                {sub?.active && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+                    <Repeat size={12} /> 월정액 고객
+                    <span className="font-semibold text-indigo-500">· {sub.days_left}일 남음</span>
+                  </span>
+                )}
               </div>
 
               {/* 탭: 새 분석 | 히스토리 | 설정 — 모바일 가로 스크롤 + 라벨 축약 */}
@@ -420,13 +421,15 @@ function UserDashboardInner() {
                       <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "drafts" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>{drafts.length}</span>
                     )}
                   </button>
-                  {/* 설정 — 구현중 */}
-                  <button onClick={() => setAnalysisTab("settings")}
-                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "settings" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                    <Settings size={14} /> 설정
-                    <span className="ml-1 hidden sm:inline-flex items-center gap-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      <Construction size={8} /> 구현중
-                    </span>
+                  {/* 월정액 구독 */}
+                  <button onClick={() => setAnalysisTab("subscription")}
+                    className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "subscription" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                    <Repeat size={14} /> 월정액 구독
+                    {sub?.active && (
+                      <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "subscription" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+                        이용중
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>
@@ -696,72 +699,113 @@ function UserDashboardInner() {
                 </div>
               )}
 
-              {/* ── 설정 탭 (구현 중) ── */}
-              {analysisTab === "settings" && (
-                <div className="relative">
-                  {/* 흐린 설정 미리보기 */}
-                  <div className="space-y-6 select-none pointer-events-none" style={{ filter: "blur(4px)", opacity: 0.45 }}>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Target size={15} className="text-indigo-600" /></div>
-                        <div><p className="text-sm font-semibold text-slate-800">타겟 설정</p><p className="text-xs text-slate-500 mt-0.5">분석하고자 하는 타겟 고객을 구체적으로 설명하세요. (선택)</p></div>
+              {/* ── 월정액 구독 탭 ── */}
+              {analysisTab === "subscription" && (
+                <div className="space-y-5">
+                  {/* 현재 상태 카드 */}
+                  <div className={`rounded-2xl border p-6 ${sub?.active ? "border-indigo-200 bg-indigo-50/60" : "border-slate-100 bg-white shadow-sm"}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${sub?.active ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-400"}`}>
+                            <Repeat size={16} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900">
+                              {sub?.active ? "월정액 고객" : "월정액 구독 미이용"}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              {sub?.active
+                                ? "가상인구 100명 규모 조사를 무제한으로 이용하고 계십니다."
+                                : "구독하시면 가상인구 100명 규모 조사를 무제한으로 이용하실 수 있습니다."}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <textarea rows={3} className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl bg-slate-50 resize-none" placeholder="예: 30대 워킹맘, 1인 가구 직장인…" readOnly />
+                      {sub?.active && (
+                        <div className="text-right shrink-0">
+                          <p className="text-2xl font-extrabold text-indigo-700 tabular-nums leading-none">
+                            {sub.days_left}<span className="text-sm font-bold ml-0.5">일</span>
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-1">남은 이용 기간</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><FileText size={15} className="text-indigo-600" /></div>
-                        <div><p className="text-sm font-semibold text-slate-800">제품/서비스 정의</p><p className="text-xs text-slate-500 mt-0.5">분석할 제품 또는 서비스를 300자 이상 상세히 설명하세요.</p></div>
-                      </div>
-                      <textarea rows={5} className="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl bg-slate-50 resize-none" readOnly />
-                    </div>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center"><Layers size={15} className="text-indigo-600" /></div>
-                        <div><p className="text-sm font-semibold text-slate-800">가상인구 설정</p><p className="text-xs text-slate-500 mt-0.5">분석에 사용할 지역과 가상인구 표본 수를 설정하세요.</p></div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="h-12 bg-slate-100 rounded-xl" />
-                        <div className="h-12 bg-slate-100 rounded-xl" />
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full mt-4" />
-                    </div>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex justify-end">
-                      <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-100 text-indigo-400 text-sm font-semibold">
-                        <Save size={14} /> 설정 저장
-                      </div>
-                    </div>
+
+                    {sub?.active && (
+                      <dl className="mt-5 grid sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm border-t border-indigo-100 pt-4">
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-slate-500">이용 시작</dt>
+                          <dd className="font-medium text-slate-800">{fmtDay(sub.started_at)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-slate-500">이용 종료</dt>
+                          <dd className="font-medium text-slate-800">{fmtDay(sub.expires_at)}</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-slate-500">조사당 가상인구</dt>
+                          <dd className="font-medium text-slate-800">{sub.sample_size}명</dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-slate-500">조사 횟수</dt>
+                          <dd className="font-medium text-slate-800">무제한</dd>
+                        </div>
+                      </dl>
+                    )}
                   </div>
 
-                  {/* 구현 중 안내 오버레이 */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative bg-white rounded-3xl shadow-2xl shadow-black/10 border border-slate-100 p-8 max-w-sm w-full mx-4 text-center">
-                      <button
-                        onClick={() => setAnalysisTab("home")}
-                        aria-label="닫기"
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                      >
-                        <X size={16} />
-                      </button>
-                      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-5">
-                        <Construction size={28} className="text-slate-400" />
+                  {/* 요금제 설명 */}
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">월정액 구독</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          결제일 기준 30일 동안, 횟수 제한 없이 조사하세요.
+                        </p>
                       </div>
-                      <div className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full mb-4">
-                        <Construction size={11} /> 구현중
+                      <div className="text-right">
+                        <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
+                          500,000<span className="text-sm font-bold text-slate-400 ml-0.5">원 / 월</span>
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1">부가세 포함</p>
                       </div>
-                      <h3 className="text-base font-bold text-slate-900 mb-2">상세 설정은 현재 구현 중입니다</h3>
-                      <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                        타겟 설정, 제품 정의, 조사 니즈,<br />
-                        지역·가상인구 수를 미리 저장해 두는 기능을<br />
-                        준비하고 있어요. 곧 만나보실 수 있습니다.
-                      </p>
-                      <button
-                        onClick={() => setAnalysisTab("home")}
-                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all"
-                      >
-                        닫기
-                      </button>
                     </div>
+
+                    <ul className="mt-5 grid sm:grid-cols-2 gap-x-6 gap-y-2.5">
+                      {[
+                        "가상인구 100명 규모 조사 무제한",
+                        "조사 건수 제한 없음 — 몇 번이든 반복 검증",
+                        "상세보고서(30p 내외 PDF) 무제한 열람",
+                        "설문에 응답한 가상인구와 심층 인터뷰",
+                        "원본자료(Excel) 제공",
+                        "결제일 기준 30일 이용",
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-sm text-slate-600 leading-snug break-keep">
+                          <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5 text-emerald-500" />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => setCheckoutOpen(true)}
+                        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
+                      >
+                        <CreditCard size={15} />
+                        {sub?.active ? "기간 연장 결제하기" : "결제하기"}
+                      </button>
+                      <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2">
+                        전체 요금제 보기
+                      </a>
+                    </div>
+
+                    {sub?.active && (
+                      <p className="mt-3 flex items-start gap-1.5 text-[11px] text-slate-400 leading-relaxed">
+                        <CalendarClock size={13} className="mt-px flex-shrink-0" />
+                        지금 결제하시면 결제한 시점부터 다시 30일이 시작됩니다.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1028,6 +1072,14 @@ function UserDashboardInner() {
           )}
         </main>
       </div>
+
+      {/* 월정액 구독 결제 모달 — 승인 완료 시 /checkout/success 로 이동한다 */}
+      {checkoutOpen && (
+        <CheckoutDialog
+          productKey={SUBSCRIPTION_PRODUCT_KEY}
+          onClose={() => setCheckoutOpen(false)}
+        />
+      )}
     </div>
   );
 }

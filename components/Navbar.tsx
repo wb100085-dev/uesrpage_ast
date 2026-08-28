@@ -80,6 +80,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               { label: "진행 순서", href: "/#how", external: false },
               { label: "차별성", href: "/#features", external: false },
               { label: "활용", href: "/#use-cases", external: false },
+              { label: "요금 안내", href: "/pricing", external: false },
               { label: "(주)옴니노드", href: "https://www.omninode.kr", external: true },
             ].map((item) =>
               item.external ? (
@@ -150,10 +151,10 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 로그인
               </Link>
               <Link
-                href="/design"
+                href="/login?next=%2Fdesign"
                 className="text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
-                무료 체험하기
+                조사 시작하기
               </Link>
             </>
           )}
@@ -180,6 +181,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 { label: "진행 순서", href: "/#how" },
                 { label: "차별성", href: "/#features" },
                 { label: "활용", href: "/#use-cases" },
+                { label: "요금 안내", href: "/pricing" },
               ].map((l) => (
                 <a
                   key={l.label}
@@ -222,11 +224,11 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
             </>
           ) : (
             <Link
-              href="/design"
+              href="/login?next=%2Fdesign"
               onClick={() => setOpen(false)}
               className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
             >
-              무료 체험하기
+              조사 시작하기
             </Link>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { getAccessToken } from "./auth-api";
+import { getMySubscription } from "./payments-api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -240,16 +241,35 @@ export async function runSurvey(body: {
   design_id?: number | null;
   /** 거래방식 — B2B/B2G면 백엔드가 패널에서 비경제활동·미성년(10대 이하)을 하드 제외 */
   trade_type?: string;
+  /** 패널 설정 화면에서 고른 시도. 미지정이면 전역 설정을 따른다. */
+  sido?: string;
+  /** 패널 설정 화면에서 고른 패널 수. 미지정이면 구독/전역 설정을 따른다. */
+  sample_size?: number;
+  /**
+   * 가상인구 특성 필터(축→라벨→비율%). ⚠️ 이 키를 보내는 순간 백엔드의
+   * AI 자동 타겟팅·지역 자동 전환이 꺼진다(survey_design_views.py). 사용자가
+   * 실제로 조건을 좁혔을 때만 전달할 것 — 빈 객체면 아래에서 제외한다.
+   */
+  target_filters?: Record<string, Record<string, number>>;
+  /** 조사 실행 전 결제한 주문번호 — 서버가 이 조사에 결제를 묶어 유료 기능을 연다. */
+  order_id?: string;
 }): Promise<RunResponse> {
+  const { sido, sample_size, target_filters, order_id, ...rest } = body;
   const s = await getAppSettings();
+  // 월정액 구독자는 전역 설정 대신 구독 요금제의 표본 수(100명)로 조사한다.
+  const sub = await getMySubscription();
+  const size = sample_size ?? (sub.active ? sub.sample_size : (s.analysis_sample_size || DEFAULT_SAMPLE_SIZE));
+  const narrowed = target_filters && Object.keys(target_filters).length > 0;
   return apiFetch("/api/survey/run", {
     method: "POST",
     body: JSON.stringify({
-      ...body,
-      sido: s.analysis_sido || DEFAULT_SIDO,
+      ...rest,
+      sido: sido || s.analysis_sido || DEFAULT_SIDO,
       // 백엔드 RunRequestSerializer 상한(10000)에 맞춰 클램프
-      sample_size: Math.max(1, Math.min(10000, s.analysis_sample_size || DEFAULT_SAMPLE_SIZE)),
+      sample_size: Math.max(1, Math.min(10000, size)),
       model: s.default_ai_model || DEFAULT_AI_MODEL,
+      ...(narrowed ? { target_filters } : {}),
+      ...(order_id ? { order_id } : {}),
     }),
   });
 }

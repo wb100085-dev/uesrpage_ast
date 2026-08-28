@@ -18,6 +18,10 @@ function SuccessInner() {
   const orderId = params.get("orderId");
   const amount = params.get("amount");
   const job = params.get("job"); // 결제와 연결된 설문 job_id (상세분석 결과로 이동)
+  // 조사 실행 전 결제 흐름 — 결제 후 돌아갈 앱 내 경로(예: /design?draft=12).
+  // open redirect 방지를 위해 "/"로 시작하는 상대 경로만 허용한다.
+  const nextRaw = params.get("next") || "";
+  const next = nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : "";
   const validParams = !!(paymentKey && orderId && amount);
 
   const [confirmState, setConfirmState] = useState<"loading" | "ok" | "error">("loading");
@@ -95,7 +99,14 @@ function SuccessInner() {
                     영수증 보기
                   </a>
                 )}
-                {job ? (
+                {next ? (
+                  <Link
+                    href={`${next}${next.includes("?") ? "&" : "?"}paid=${encodeURIComponent(orderId ?? "")}`}
+                    className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
+                  >
+                    조사 이어서 진행하기
+                  </Link>
+                ) : job ? (
                   <Link
                     href={`/results/${job}`}
                     className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"

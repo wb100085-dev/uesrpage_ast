@@ -14,8 +14,8 @@ type Props = {
 
 export default function CtaLink({
   className,
-  // 비로그인 무료체험: 로그인 화면을 거치지 않고 곧장 설계 페이지로 진입.
-  loginHref = "/design",
+  // 비로그인: 로그인 화면으로 보내고, 로그인 후 조사 설계로 이어준다.
+  loginHref = "/login?next=%2Fdesign",
   dashboardHref = "/dashboard/user",
   children,
 }: Props) {
@@ -34,6 +34,8 @@ export default function CtaLink({
     <Link
       href={isUser ? dashboardHref : loginHref}
       className={className}
+      // GA4 이벤트명은 백엔드 analytics_dashboard_views.py 화이트리스트와
+      // 관리자 TrafficDashboard 가 같은 키를 참조하므로 바꾸지 않는다(버튼 라벨만 변경됨).
       onClick={() => trackEvent("무료체험_클릭", { 로그인여부: isUser ? "로그인" : "비로그인" })}
     >
       {children}

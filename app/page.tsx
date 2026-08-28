@@ -3,7 +3,7 @@ import Image from "next/image";
 import {
   ArrowRight, Sparkles, BarChart2, Users,
   Zap, Globe, Brain, Check, TrendingUp, Clock,
-  ChevronRight, Shield, MessageSquare, Gift,
+  ChevronRight, Shield, MessageSquare,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Reveal from "@/components/Reveal";
@@ -498,20 +498,9 @@ export default function LandingPage() {
                 <span className="text-slate-200 font-medium">1시간 안에</span> 인사이트를 얻으세요.
               </p>
               <div className="animate-fade-up-4 mb-12">
-                <div className="mb-5 max-w-md rounded-2xl glass border border-amber-400/30 p-4">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-300">
-                    <Gift size={12} /> 리뷰 이벤트 · ~8.31까지
-                  </span>
-                  <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
-                    체험 후기를 남겨주세요.{" "}
-                    <span className="font-semibold text-white">99,000원 상당</span>의 상세보고서와 원본자료를{" "}<br />
-                    <span className="font-semibold text-amber-300">무료로 제공</span>해 드립니다.{" "}
-                    <span className="text-slate-500">(아이디 당 1회)</span>
-                  </p>
-                </div>
                 <div className="flex flex-wrap gap-3">
                   <CtaLink className="btn-primary">
-                    무료 체험하기 <ArrowRight size={16} />
+                    조사 시작하기 <ArrowRight size={16} />
                   </CtaLink>
                 </div>
               </div>
@@ -637,7 +626,7 @@ export default function LandingPage() {
                 old: React.ReactNode;
                 neu: React.ReactNode;
               }> = [
-                { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 500명 설문조사 결과 보고서" },
+                { label: "결과", old: "고객 100명 설문조사 결과 보고서", neu: "고객 100명 설문조사 결과 보고서" },
                 { label: "비용", old: "건당 200만원 이상", neu: "95% 이상 절감(99,000원)" },
                 { label: "시간", old: "4주 이상", neu: "1시간 이내" },
                 { label: "설문 설계", old: "전문가 필요", neu: "AI 자동 설계" },
@@ -955,19 +944,8 @@ export default function LandingPage() {
                     시작해보세요
                   </h2>
                   <CtaLink className="btn-primary shrink-0 text-base px-8 py-4">
-                    무료 체험하기 <ArrowRight size={18} />
+                    조사 시작하기 <ArrowRight size={18} />
                   </CtaLink>
-                </div>
-                <div className="mb-7 rounded-2xl border border-amber-300/60 bg-amber-50 p-4">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-100 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-                    <Gift size={12} /> 리뷰 이벤트 · ~8.31까지
-                  </span>
-                  <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
-                    체험 후기를 남겨주세요.{" "}
-                    <span className="font-semibold text-slate-900">99,000원 상당</span>의 상세보고서와 원본자료를{" "}
-                    <span className="font-semibold text-amber-700">무료로 제공</span>해 드립니다.{" "}
-                    <span className="text-slate-400">(아이디 당 1회)</span>
-                  </p>
                 </div>
                 <StartCtaButtons />
               </div>

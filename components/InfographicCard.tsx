@@ -54,10 +54,10 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
             <FileBarChart size={13} /> 분석 결과 요약
           </div>
           {info.headline && (
-            <h2 className="text-xl sm:text-2xl font-bold mt-1.5 leading-snug">{info.headline}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1.5 leading-snug whitespace-pre-line break-keep">{info.headline}</h2>
           )}
           {info.subheadline && (
-            <p className="text-sm text-indigo-100 mt-1.5 leading-relaxed">{info.subheadline}</p>
+            <p className="text-sm text-indigo-100 mt-1.5 leading-relaxed whitespace-pre-line break-keep">{info.subheadline}</p>
           )}
         </div>
 
@@ -114,7 +114,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
                 {info.key_findings.map((f, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
-                    <span className="leading-relaxed">{f}</span>
+                    <span className="leading-relaxed whitespace-pre-line break-keep">{f}</span>
                   </li>
                 ))}
               </ul>
@@ -126,7 +126,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
                 {info.next_actions.map((a, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
                     <CheckCircle2 size={16} className="text-fuchsia-500 flex-shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{a}</span>
+                    <span className="leading-relaxed whitespace-pre-line break-keep">{a}</span>
                   </li>
                 ))}
               </ul>
@@ -142,7 +142,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
             {info.target_segments.map((s, i) => (
               <div key={i} className="rounded-xl border border-slate-200 p-3.5">
                 <div className="text-xs font-bold text-purple-700 mb-1.5">{s.segment}</div>
-                <div className="text-xs text-slate-600 leading-relaxed">{s.insight}</div>
+                <div className="text-xs text-slate-600 leading-relaxed whitespace-pre-line break-keep">{s.insight}</div>
               </div>
             ))}
           </div>
@@ -158,7 +158,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
                 {info.risks.map((r, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">!</span>
-                    <span className="leading-relaxed">{r}</span>
+                    <span className="leading-relaxed whitespace-pre-line break-keep">{r}</span>
                   </li>
                 ))}
               </ul>
@@ -170,7 +170,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
                 {info.opportunities.map((o, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
                     <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">+</span>
-                    <span className="leading-relaxed">{o}</span>
+                    <span className="leading-relaxed whitespace-pre-line break-keep">{o}</span>
                   </li>
                 ))}
               </ul>
@@ -191,7 +191,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {quotes.map((q, i) => (
                 <div key={i} className="border-l-2 border-amber-300 bg-slate-50 rounded-r-xl p-3.5">
-                  <blockquote className="text-sm text-slate-800 italic leading-relaxed">&ldquo;{q.text}&rdquo;</blockquote>
+                  <blockquote className="text-sm text-slate-800 italic leading-relaxed whitespace-pre-line break-keep">&ldquo;{q.text}&rdquo;</blockquote>
                   {q.source && <div className="text-[11px] text-amber-600 mt-2 text-right font-medium">— {q.source}</div>}
                 </div>
               ))}
