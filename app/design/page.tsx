@@ -126,7 +126,7 @@ const FREE_PROVISION_PANEL_SIZE = 100;
 /** 결제 상품 key → 패널 수 (백엔드 PANEL_PRODUCT_BY_SIZE 의 역매핑). */
 const PANEL_SIZE_BY_PRODUCT: Record<string, number> = { survey_100: 100, survey_500: 500 };
 
-/* 패널 수 — 요금제와 1:1. 월정액 구독자는 100명으로 고정된다. */
+/* 패널 수 — 요금제와 1:1. 30일권 이용자는 100명으로 고정된다. */
 const PANEL_SIZES = [
   { size: 10, name: "무료 체험", price: "무료", desc: "결제 없이 전체 흐름을 확인해보세요." },
   { size: 100, name: "스탠다드", price: "99,000원", desc: "의사결정에 바로 쓰는 표준 조사 1건.", note: "건당 · 부가세 포함" },
@@ -641,7 +641,7 @@ function DesignPageInner() {
     genders: [], age_bands: [], economic_activities: [], education_levels: [], income_levels: [],
   });
   const [panelSize, setPanelSize] = useState<number>(10);
-  // 월정액 구독자는 패널 수가 100명으로 고정된다.
+  // 30일권 이용자는 패널 수가 100명으로 고정된다.
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -655,7 +655,7 @@ function DesignPageInner() {
   const subActive = Boolean(subscription?.active);
 
   /* ── 조사 실행 전 결제 게이트 ──
-     패널 수가 유료 구간(100·500명)이고 월정액 구독자가 아니면 결제를 먼저 받는다.
+     패널 수가 유료 구간(100·500명)이고 30일권 이용자가 아니면 결제를 먼저 받는다.
      결제 완료 후 토스 → /checkout/success → "조사 이어서 진행하기" → /design?draft=..&paid=<orderId>
      로 돌아오며, 그 주문이 실제 paid 인지 서버에 확인한 뒤에만 게이트를 연다. */
   const [panelCheckoutOpen, setPanelCheckoutOpen] = useState(false);
@@ -682,7 +682,7 @@ function DesignPageInner() {
     return () => { cancelled = true; };
   }, [paidParam]);
 
-  /* 서버 기준 유료 열람 권한 — 결제(주문↔조사 연결)·쿠폰·구독을 모두 반영한다.
+  /* 서버 기준 유료 열람 권한 — 결제(주문↔조사 연결)·쿠폰·30일권을 모두 반영한다.
      URL 의 ?paid 파라미터에만 의존하면 새로고침이나 재진입에서 권한이 사라진다. */
   const [reportAccess, setReportAccess] = useState<{ all: boolean; jobs: string[] }>({ all: false, jobs: [] });
   useEffect(() => {
@@ -694,7 +694,7 @@ function DesignPageInner() {
     return () => { cancelled = true; };
   }, [step, runJobId]);
 
-  /** 유료 이용 여부 — 월정액 구독자 · 이번 조사를 결제한 경우 · 무료 제공 대상 계정.
+  /** 유료 이용 여부 — 30일권 이용자 · 이번 조사를 결제한 경우 · 무료 제공 대상 계정.
       무료(10명) 체험에서는 패널 질문·원본자료(엑셀)가 잠긴다. */
   const paidTier =
     subActive ||
@@ -794,7 +794,7 @@ function DesignPageInner() {
 
   /** 현재 패널 수로 조사를 실행하려면 결제가 필요한가 */
   function needsPayment(): boolean {
-    if (subActive) return false;                       // 월정액 — 무제한
+    if (subActive) return false;                       // 30일권 — 기간 내 무제한
     if (reportExempt) return false;                    // 무료 제공(이메일 목록·쿠폰) 대상
     const key = panelProductKey(panelSize);
     if (!key) return false;                            // 무료 체험(10명)
@@ -2297,14 +2297,14 @@ function DesignPageInner() {
                       {subActive ? (
                         <>
                           <p className="text-sm font-bold text-slate-900">
-                            월정액 고객 — 100명 고정
+                            30일권 이용 중 — 100명 고정
                             <span className="ml-2 text-xs font-semibold text-indigo-600">
                               {subscription?.days_left}일 남음
                             </span>
                           </p>
                           <p className="mt-1 text-xs text-slate-600 leading-relaxed break-keep">
-                            월정액 구독은 가상인구 <strong className="font-semibold">100명</strong> 규모로 고정되며,
-                            구독 기간 동안 <strong className="font-semibold">횟수 제한 없이</strong> 조사하실 수 있습니다.
+                            30일권은 가상인구 <strong className="font-semibold">100명</strong> 규모로 고정되며,
+                            이용 기간 동안 <strong className="font-semibold">횟수 제한 없이</strong> 조사하실 수 있습니다.
                             이 조사는 추가 결제 없이 바로 진행됩니다.
                           </p>
                         </>
@@ -2369,7 +2369,7 @@ function DesignPageInner() {
                   무료 체험(10명)은 결제 없이 진행됩니다. 100명·500명은 조사를 진행할 때 결제가 필요하며,
                   자주 조사하신다면{" "}
                   <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline underline-offset-2">
-                    월정액 구독(100명 무제한)
+                    30일권(100명 무제한)
                   </a>
                   이 유리합니다.
                 </p>
@@ -2529,11 +2529,11 @@ function DesignPageInner() {
                       <div>
                         <p className="text-sm font-bold text-slate-900">
                           가상인구 {panelSize}명
-                          {subActive && <span className="ml-2 text-xs font-semibold text-indigo-600">월정액 · 고정</span>}
+                          {subActive && <span className="ml-2 text-xs font-semibold text-indigo-600">30일권 · 고정</span>}
                         </p>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           {subActive
-                            ? `월정액 구독 중 — 추가 결제 없이 진행됩니다 (${subscription?.days_left}일 남음)`
+                            ? `30일권 이용 중 — 추가 결제 없이 진행됩니다 (${subscription?.days_left}일 남음)`
                             : (PANEL_SIZES.find((p) => p.size === panelSize)?.desc ?? "")}
                         </p>
                       </div>
@@ -2961,7 +2961,7 @@ function DesignPageInner() {
                         무료 체험(가상인구 10명)에서는 패널 질문과 원본자료(엑셀) 내려받기가 제공되지 않습니다.
                         상세보고서는 무료로도 받아보실 수 있습니다.
                         <br />
-                        100명·500명 조사나 월정액 구독에서 패널 질문과 원본자료까지 이용하실 수 있습니다.
+                        100명·500명 조사나 30일권에서 패널 질문과 원본자료까지 이용하실 수 있습니다.
                       </p>
                     </button>
                   </div>
@@ -3027,7 +3027,7 @@ function DesignPageInner() {
               무료 체험(가상인구 10명)에서는 <strong className="font-semibold text-slate-700">가상인구 패널 질문</strong>과{" "}
               <strong className="font-semibold text-slate-700">원본자료(엑셀)</strong>가 제공되지 않습니다.
               상세보고서는 무료로도 받아보실 수 있지만, 모집단이 10명이라 해석이 제한적입니다.
-              가상인구 100명·500명 조사 또는 월정액 구독에서 전체 기능을 이용하실 수 있습니다.
+              가상인구 100명·500명 조사 또는 30일권에서 전체 기능을 이용하실 수 있습니다.
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <button

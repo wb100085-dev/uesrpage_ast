@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, MessagesSquare, Repeat, Sparkles, Users, X, Zap } from "lucide-react";
+import { ArrowRight, Check, Info, MessagesSquare, Repeat, Sparkles, Users, X, Zap } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Reveal from "@/components/Reveal";
 import CtaLink from "@/components/CtaLink";
@@ -9,7 +9,7 @@ import PricingContactButton from "@/components/PricingContactButton";
 export const metadata = {
   title: "요금 안내 · SocialTwin",
   description:
-    "SocialTwin 요금 안내 — 가상인구 10명 무료 체험부터 건당 결제(100명 99,000원 / 500명 300,000원), 무제한 월정액(100명 규모 월 500,000원)까지. 모든 금액 부가세 포함.",
+    "SocialTwin 요금 안내 — 가상인구 10명 무료 체험부터 건당 결제(100명 99,000원 / 500명 300,000원), 30일권(100명 규모 무제한 500,000원 / 30일)까지. 자동갱신 없는 선불 이용권이며, 모든 금액은 부가세 포함입니다.",
 };
 
 type Plan = {
@@ -23,6 +23,8 @@ type Plan = {
   features: string[];
   /** 해당 플랜에서 제공되지 않는 항목 (무료 체험의 한계를 명시) */
   excluded?: string[];
+  /** 결제 조건 고지 — 자동갱신 여부·이용기간 만료 처리처럼 결제 전에 반드시 보여야 하는 문구 */
+  notice?: string;
   highlight: boolean;
   cta: "free" | "start";
   ctaLabel: string;
@@ -87,19 +89,21 @@ const PLANS: Plan[] = [
     ctaLabel: "조사 시작하기",
   },
   {
-    key: "monthly",
-    name: "월정액",
+    key: "pass30",
+    name: "30일권",
     icon: <Repeat size={16} />,
     scale: "가상인구 100명 · 무제한",
     price: "500,000",
-    unit: "원 / 월",
-    desc: "횟수 제한 없이 반복 검증하는 팀을 위한 정액제.",
+    unit: "원 / 30일",
+    desc: "30일 동안 횟수 제한 없이 반복 검증하는 팀을 위한 선불 이용권.",
     features: [
       "스탠다드 플랜의 모든 기능 포함",
       "가상인구 100명 규모 조사 무제한",
-      "조사 건수 제한 없음 — 몇 번이든 반복 검증",
+      "결제일부터 30일간 조사 건수 제한 없음",
       "로그인 후 대시보드에서 결제",
     ],
+    notice:
+      "자동으로 갱신되지 않는 선불 이용권입니다. 결제일부터 30일이 지나면 이용이 자동으로 종료되며, 해지 신청이나 추가 결제가 발생하지 않습니다. 계속 이용하시려면 만료 후 다시 결제해 주세요.",
     highlight: false,
     cta: "start",
     ctaLabel: "조사 시작하기",
@@ -137,11 +141,19 @@ export default function PricingPage() {
             </h1>
             <p className="text-slate-500 text-base sm:text-lg leading-relaxed break-keep max-w-2xl mx-auto">
               가상인구 <strong className="text-slate-700 font-semibold">10명</strong>까지는 무료로 체험할 수 있습니다.
-              그 다음부터는 조사 규모에 맞춰 건당 결제하거나, 자주 조사하신다면 무제한 월정액을 선택하세요.
+              그 다음부터는 조사 규모에 맞춰 건당 결제하거나, 자주 조사하신다면 30일권을 선택하세요.
+              <br className="hidden sm:block" />
+              <strong className="text-slate-700 font-semibold">정기 구독(자동결제) 상품은 판매하지 않습니다</strong> — 모든 상품은 결제한 그 건에만 적용되는 선불 방식입니다.
             </p>
-            <div className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-500">
-              <Check size={12} strokeWidth={3} className="text-emerald-500" />
-              표시된 모든 금액은 부가세(VAT) 포함 금액입니다
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-500">
+                <Check size={12} strokeWidth={3} className="text-emerald-500" />
+                표시된 모든 금액은 부가세(VAT) 포함 금액입니다
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-500">
+                <Check size={12} strokeWidth={3} className="text-emerald-500" />
+                자동결제·자동갱신 없음 — 모든 상품이 선불 1회 결제입니다
+              </span>
             </div>
           </Reveal>
         </div>
@@ -246,6 +258,17 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
+                  {plan.notice && (
+                    <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
+                        <Info size={12} strokeWidth={2.5} /> 결제 전 확인
+                      </div>
+                      <p className="mt-1 text-[12px] leading-relaxed text-amber-900/90 break-keep">
+                        {plan.notice}
+                      </p>
+                    </div>
+                  )}
+
                   {plan.cta === "free" && (
                     <CtaLink className="block text-center py-3 rounded-xl font-semibold text-sm transition-all bg-slate-900 text-white hover:bg-slate-800">
                       {plan.ctaLabel}
@@ -330,11 +353,19 @@ export default function PricingPage() {
               },
               {
                 q: "언제 결제하나요?",
-                a: "건당 결제 플랜은 설문 문항이 생성된 뒤 실제 설문조사를 진행하는 시점에 결제합니다. 문항 설계까지는 비용이 발생하지 않습니다. 월정액은 로그인 후 대시보드에서 결제하시면 바로 적용됩니다.",
+                a: "건당 결제 플랜은 설문 문항이 생성된 뒤 실제 설문조사를 진행하는 시점에 결제합니다. 문항 설계까지는 비용이 발생하지 않습니다. 30일권은 로그인 후 대시보드에서 결제하시면 즉시 적용됩니다.",
               },
               {
-                q: "월정액은 정말 무제한인가요?",
-                a: "네. 월 500,000원(부가세 포함)으로 가상인구 100명 규모의 조사를 횟수 제한 없이 이용하실 수 있습니다. 여러 안을 비교하거나 매달 반복해서 검증하는 팀이라면 건당 결제보다 유리합니다. 결제는 로그인 후 대시보드에서 진행합니다.",
+                q: "30일권은 정말 무제한인가요?",
+                a: "네. 500,000원(부가세 포함)으로 결제일부터 30일 동안 가상인구 100명 규모의 조사를 횟수 제한 없이 이용하실 수 있습니다. 여러 안을 비교하거나 한 달 안에 반복해서 검증하는 팀이라면 건당 결제보다 유리합니다. 결제는 로그인 후 대시보드에서 진행합니다.",
+              },
+              {
+                q: "30일권은 자동으로 갱신되나요? 해지는 어떻게 하나요?",
+                a: "자동으로 갱신되지 않습니다. 30일권은 결제한 시점부터 30일 동안만 유효한 선불 이용권이며, 카드 정보를 저장해두고 다음 달에 다시 청구하는 정기결제가 아닙니다. 기간이 끝나면 자동으로 이용이 종료되므로 별도의 해지 신청을 하실 필요가 없고, 해지하지 않았다는 이유로 추가 청구가 발생하지도 않습니다. 계속 이용하시려면 만료 후 대시보드에서 다시 결제해 주시면 그 시점부터 새로 30일이 시작됩니다.",
+              },
+              {
+                q: "30일권을 쓰다가 중간에 환불받을 수 있나요?",
+                a: "가능합니다. 결제일로부터 7일 이내이고 이용 이력이 없으면 전액 환불되며, 그 밖의 경우에는 남은 기간에 비례해 환불해 드립니다. 자세한 기준은 결제·환불 정책의 \u2018이용 기간형 상품\u2019 항목을 확인해 주세요.",
               },
               {
                 q: "가상인구 수가 많으면 무엇이 달라지나요?",

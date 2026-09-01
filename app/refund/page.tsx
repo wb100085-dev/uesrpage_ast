@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function RefundPage() {
   return (
-    <LegalLayout title="SocialTwin 결제 및 환불 정책" updatedAt="2026년 5월 22일">
+    <LegalLayout title="SocialTwin 결제 및 환불 정책" updatedAt="2026년 9월 1일">
       <p>
         본 정책은 주식회사 옴니노드(이하 &ldquo;회사&rdquo;)가 제공하는 SocialTwin 서비스(이하 &ldquo;서비스&rdquo;)의 유료서비스
         결제 및 환불에 관한 사항을 규정합니다. 본 정책은{" "}
@@ -29,6 +29,10 @@ export default function RefundPage() {
 
       <h2>제2조 (유료서비스의 종류)</h2>
       <p>회사가 제공하는 유료서비스는 다음과 같으며, 각 상품별 가격·이용기간·제공 내용은 서비스 화면에 별도 표시합니다.</p>
+      <p>
+        <strong>회사는 자동결제(정기결제) 방식의 구독 상품을 제공하지 않습니다.</strong> 아래 모든 상품은 회원이 결제한
+        1건에 대해서만 대금이 청구되는 선불 방식이며, 회사는 회원의 결제수단 정보를 보관하였다가 자동으로 재청구하지 않습니다.
+      </p>
       <table>
         <thead>
           <tr>
@@ -39,7 +43,8 @@ export default function RefundPage() {
         </thead>
         <tbody>
           <tr><td><strong>1회성 리포트/패키지</strong></td><td>특정 주제에 대한 분석 리포트, 데이터셋, 패키지 상품</td><td>디지털 콘텐츠 청약철회 기준</td></tr>
-          <tr><td><strong>유료 부가기능</strong></td><td>무료 회원의 기능 제한 해제, 고급 분석, 무제한 생성 등</td><td>사용 기간 비례 환불</td></tr>
+          <tr><td><strong>30일권</strong> (이용 기간형)</td><td>결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하는 선불 이용권. <strong>자동갱신 없음</strong></td><td>사용 기간 비례 환불</td></tr>
+          <tr><td><strong>기타 유료 부가기능</strong></td><td>무료 회원의 기능 제한 해제, 고급 분석 등</td><td>사용 기간 비례 환불</td></tr>
           <tr><td><strong>크레딧/포인트</strong> (운영 시)</td><td>서비스 이용을 위해 선결제하는 단위</td><td>미사용분 환불 가능</td></tr>
         </tbody>
       </table>
@@ -87,7 +92,12 @@ export default function RefundPage() {
         </tbody>
       </table>
 
-      <h3>2. 유료 부가기능 (이용 기간형)</h3>
+      <h3>2. 30일권 등 이용 기간형 상품</h3>
+      <p>
+        30일권은 결제 승인 시점부터 30일간 유효하며 기간 만료 시 자동으로 종료됩니다. 자동갱신·자동결제가 없으므로 해지
+        신청 절차가 없고, 이용 기간 중 잔여기간에 대한 환불을 원하는 경우 아래 기준에 따라 처리합니다.
+        (아래 표의 &ldquo;약정일수&rdquo;는 30일권의 경우 30일입니다.)
+      </p>
       <table>
         <thead>
           <tr><th>상황</th><th>환불 기준</th></tr>

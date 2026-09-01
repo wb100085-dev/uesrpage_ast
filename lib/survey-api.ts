@@ -243,7 +243,7 @@ export async function runSurvey(body: {
   trade_type?: string;
   /** 패널 설정 화면에서 고른 시도. 미지정이면 전역 설정을 따른다. */
   sido?: string;
-  /** 패널 설정 화면에서 고른 패널 수. 미지정이면 구독/전역 설정을 따른다. */
+  /** 패널 설정 화면에서 고른 패널 수. 미지정이면 30일권/전역 설정을 따른다. */
   sample_size?: number;
   /**
    * 가상인구 특성 필터(축→라벨→비율%). ⚠️ 이 키를 보내는 순간 백엔드의
@@ -256,7 +256,7 @@ export async function runSurvey(body: {
 }): Promise<RunResponse> {
   const { sido, sample_size, target_filters, order_id, ...rest } = body;
   const s = await getAppSettings();
-  // 월정액 구독자는 전역 설정 대신 구독 요금제의 표본 수(100명)로 조사한다.
+  // 30일권 이용자는 전역 설정 대신 이용권 요금제의 표본 수(100명)로 조사한다.
   const sub = await getMySubscription();
   const size = sample_size ?? (sub.active ? sub.sample_size : (s.analysis_sample_size || DEFAULT_SAMPLE_SIZE));
   const narrowed = target_filters && Object.keys(target_filters).length > 0;

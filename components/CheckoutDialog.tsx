@@ -29,17 +29,19 @@ const SHOW_KEY_DEBUG =
   process.env.NODE_ENV !== "production" ||
   process.env.NEXT_PUBLIC_PAYMENTS_DEBUG === "true";
 
-// 월정액 구독 상품 key — 이 값이면 왼쪽 패널을 구독 안내로 바꿔 렌더한다.
+// 30일권 상품 key — 이 값이면 왼쪽 패널을 이용권 안내로 바꿔 렌더한다.
+//   key 문자열은 과거 '월정액' 시절 이름이라 바꾸지 않는다(기존 결제 이력이 이 값으로 저장됨).
+//   상품 성격은 자동갱신 없는 선불 30일 이용권이다.
 const SUBSCRIPTION_KEY = "monthly_100";
 
-// 월정액 구독 패널 카피
+// 30일권 패널 카피
 const SUBSCRIPTION_FEATURES = [
   "가상인구 100명 규모 조사 무제한",
   "조사 건수 제한 없음 — 몇 번이든 반복 검증",
   "상세보고서(30p 내외 PDF) 무제한 열람",
   "설문에 응답한 가상인구와 심층 인터뷰",
   "원본자료(Excel) 제공",
-  "결제일 기준 30일 이용",
+  "결제일 기준 30일 이용 — 자동갱신 없음",
 ];
 
 // 왼쪽 정보 패널에 표시할 상세보고서 포함 내역 (참고용 예시 보고서 구성 기준)
@@ -166,11 +168,11 @@ export default function CheckoutDialog({
           </div>
 
           <h2 className="mt-5 text-2xl font-bold tracking-tight">
-            {isSubscription ? "월정액 구독" : "상세보고서"}
+            {isSubscription ? "30일권" : "상세보고서"}
           </h2>
           <p className="mt-1.5 text-sm text-indigo-100 leading-relaxed">
             {isSubscription
-              ? "결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하세요."
+              ? "결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하세요. 자동으로 갱신되지 않는 선불 이용권입니다."
               : "가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요."}
           </p>
 
@@ -195,7 +197,7 @@ export default function CheckoutDialog({
             </div>
             <p className="mt-2 text-[11px] text-indigo-200 text-center">
               ▲ 실제 상세보고서 예시 (요약·표지·문항별 분포)
-              {isSubscription && " — 구독 기간 동안 무제한 열람"}
+              {isSubscription && " — 이용 기간 동안 무제한 열람"}
             </p>
           </div>
 
@@ -206,7 +208,7 @@ export default function CheckoutDialog({
             </div>
             <p className="mt-1 text-[11px] text-indigo-100 leading-relaxed">
               {isSubscription
-                ? "구독 기간 동안 진행한 모든 설문에서, 응답한 가상인구 패널에게 직접 추가 질문을 던지고 답을 받아볼 수 있습니다."
+                ? "이용 기간 동안 진행한 모든 설문에서, 응답한 가상인구 패널에게 직접 추가 질문을 던지고 답을 받아볼 수 있습니다."
                 : "결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 던지고 응답을 받아볼 수 있습니다."}
             </p>
             {/* 챗 화면 미리보기 */}
@@ -242,10 +244,10 @@ export default function CheckoutDialog({
             <p className="text-3xl font-extrabold">
               {won(amount)}
               {isSubscription && (
-                <span className="ml-1 text-base font-semibold text-indigo-200">/ 월</span>
+                <span className="ml-1 text-base font-semibold text-indigo-200">/ 30일</span>
               )}
             </p>
-            <p className="mt-1 text-[11px] text-indigo-200">부가세 포함</p>
+            <p className="mt-1 text-[11px] text-indigo-200">부가세 포함 · 1회 결제</p>
           </div>
         </div>
 
@@ -318,6 +320,21 @@ export default function CheckoutDialog({
             <p className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
               {error}
             </p>
+          )}
+
+          {/* 결제 조건 고지 — 결제 버튼 바로 위. 30일권은 자동갱신 여부를 반드시 명시한다. */}
+          {isSubscription && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
+                <AlertTriangle size={12} strokeWidth={2.5} /> 결제 전 확인
+              </div>
+              <ul className="mt-1.5 space-y-1 text-[11.5px] leading-relaxed text-amber-900/90 break-keep">
+                <li>· 결제 금액 <strong>{won(amount)}</strong> (부가세 포함) — 지금 <strong>1회만</strong> 청구됩니다.</li>
+                <li>· 이용 기간은 결제 승인 시점부터 <strong>30일</strong>이며, <strong>자동으로 갱신되지 않습니다.</strong></li>
+                <li>· 카드 정보를 저장해 자동 재청구하는 정기결제가 아니므로 <strong>해지 신청이 필요 없고</strong>, 30일 후 이용이 자동 종료됩니다.</li>
+                <li>· 환불 기준은 <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-semibold">결제·환불 정책</a>을 따릅니다.</li>
+              </ul>
+            </div>
           )}
 
           <div className="mt-auto pt-4">

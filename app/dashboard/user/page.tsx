@@ -85,7 +85,7 @@ function fmtDate(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
-/** 구독 기간 표시용 — null 안전, 날짜만 (예: 2026.09.27) */
+/** 이용권 기간 표시용 — null 안전, 날짜만 (예: 2026.09.27) */
 function fmtDay(iso: string | null) {
   if (!iso) return "-";
   const d = new Date(iso);
@@ -311,7 +311,7 @@ function UserDashboardInner() {
     }
   }
 
-  /* 월정액 구독 상태 — 배지·남은 기간·결제 버튼 노출에 사용 */
+  /* 30일권 상태 — 배지·남은 기간·결제 버튼 노출에 사용. 자동갱신 없음(선불 이용권) */
   const [sub, setSub] = useState<Subscription | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   // 결제 연동 준비 안내 (토스 라이브 키 발급 전 — 일반 사용자는 결제창 대신 이 안내)
@@ -403,10 +403,10 @@ function UserDashboardInner() {
             <div className="max-w-3xl mx-auto">
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-bold text-slate-900">분석 대시보드</h1>
-                {/* 월정액 고객 배지 — 활성 구독자에게만 노출 */}
+                {/* 30일권 배지 — 이용권이 살아 있을 때만 노출 */}
                 {sub?.active && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-                    <Repeat size={12} /> 월정액 고객
+                    <Repeat size={12} /> 30일권 이용 중
                     <span className="font-semibold text-indigo-500">· {sub.days_left}일 남음</span>
                   </span>
                 )}
@@ -438,10 +438,10 @@ function UserDashboardInner() {
                       <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "drafts" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"}`}>{drafts.length}</span>
                     )}
                   </button>
-                  {/* 월정액 구독 */}
+                  {/* 30일권 */}
                   <button onClick={() => setAnalysisTab("subscription")}
                     className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "subscription" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
-                    <Repeat size={14} /> 월정액 구독
+                    <Repeat size={14} /> 30일권
                     {sub?.active && (
                       <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "subscription" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"}`}>
                         이용중
@@ -730,7 +730,7 @@ function UserDashboardInner() {
                 </div>
               )}
 
-              {/* ── 월정액 구독 탭 ── */}
+              {/* ── 30일권 탭 ── */}
               {analysisTab === "subscription" && (
                 <div className="space-y-5">
                   {/* 현재 상태 카드 */}
@@ -743,12 +743,12 @@ function UserDashboardInner() {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-slate-900">
-                              {sub?.active ? "월정액 고객" : "월정액 구독 미이용"}
+                              {sub?.active ? "30일권 이용 중" : "30일권 미이용"}
                             </p>
                             <p className="text-xs text-slate-500 mt-0.5">
                               {sub?.active
                                 ? "가상인구 100명 규모 조사를 무제한으로 이용하고 계십니다."
-                                : "구독하시면 가상인구 100명 규모 조사를 무제한으로 이용하실 수 있습니다."}
+                                : "30일권을 구매하시면 30일 동안 가상인구 100명 규모 조사를 무제한으로 이용하실 수 있습니다."}
                             </p>
                           </div>
                         </div>
@@ -770,7 +770,7 @@ function UserDashboardInner() {
                           <dd className="font-medium text-slate-800">{fmtDay(sub.started_at)}</dd>
                         </div>
                         <div className="flex justify-between gap-3">
-                          <dt className="text-slate-500">이용 종료</dt>
+                          <dt className="text-slate-500">이용 종료(만료일)</dt>
                           <dd className="font-medium text-slate-800">{fmtDay(sub.expires_at)}</dd>
                         </div>
                         <div className="flex justify-between gap-3">
@@ -779,7 +779,11 @@ function UserDashboardInner() {
                         </div>
                         <div className="flex justify-between gap-3">
                           <dt className="text-slate-500">조사 횟수</dt>
-                          <dd className="font-medium text-slate-800">무제한</dd>
+                          <dd className="font-medium text-slate-800">기간 내 무제한</dd>
+                        </div>
+                        <div className="flex justify-between gap-3 sm:col-span-2">
+                          <dt className="text-slate-500">자동갱신</dt>
+                          <dd className="font-semibold text-slate-800">없음 — 만료일에 자동 종료됩니다</dd>
                         </div>
                       </dl>
                     )}
@@ -789,14 +793,14 @@ function UserDashboardInner() {
                   <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">월정액 구독</p>
+                        <p className="text-sm font-bold text-slate-900">30일권</p>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          결제일 기준 30일 동안, 횟수 제한 없이 조사하세요.
+                          결제일 기준 30일 동안, 횟수 제한 없이 조사하세요. 자동갱신 없는 선불 이용권입니다.
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-2xl font-extrabold text-slate-900 tabular-nums leading-none">
-                          500,000<span className="text-sm font-bold text-slate-400 ml-0.5">원 / 월</span>
+                          500,000<span className="text-sm font-bold text-slate-400 ml-0.5">원 / 30일</span>
                         </p>
                         <p className="text-[11px] text-slate-400 mt-1">부가세 포함</p>
                       </div>
@@ -809,7 +813,7 @@ function UserDashboardInner() {
                         "상세보고서(30p 내외 PDF) 무제한 열람",
                         "설문에 응답한 가상인구와 심층 인터뷰",
                         "원본자료(Excel) 제공",
-                        "결제일 기준 30일 이용",
+                        "결제일 기준 30일 이용 — 자동갱신 없음",
                       ].map((f) => (
                         <li key={f} className="flex items-start gap-2 text-sm text-slate-600 leading-snug break-keep">
                           <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5 text-emerald-500" />
@@ -818,7 +822,23 @@ function UserDashboardInner() {
                       ))}
                     </ul>
 
-                    <div className="mt-6 flex flex-wrap items-center gap-3">
+                    {/* 결제 조건 고지 — 결제 버튼 바로 위에 노출한다 (자동갱신 여부·만료 처리·환불) */}
+                    <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                        <AlertCircle size={13} strokeWidth={2.5} /> 결제 전 확인해 주세요
+                      </div>
+                      <ul className="mt-2 space-y-1.5 text-[12px] leading-relaxed text-amber-900/90 break-keep">
+                        <li>· <strong>결제 금액</strong> — 500,000원 (부가세 포함), 1회 결제.</li>
+                        <li>· <strong>이용 기간</strong> — 결제 승인 시점부터 30일. 만료일은 결제 후 이 화면에 표시됩니다.</li>
+                        <li>· <strong>자동갱신 없음</strong> — 카드 정보를 저장해 두었다가 자동으로 재결제하는 정기결제 상품이 아닙니다. 30일이 지나면 이용이 자동으로 종료되며 추가 청구가 발생하지 않습니다.</li>
+                        <li>· <strong>해지 방법</strong> — 자동결제가 없으므로 별도의 해지 신청이 필요 없습니다. 계속 이용하시려면 만료 후 이 화면에서 다시 결제해 주세요.</li>
+                        <li>· <strong>중도 환불</strong> — 결제일로부터 7일 이내 미이용 시 전액 환불, 그 외에는 잔여기간에 비례해 환불합니다. 자세한 기준은{" "}
+                          <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-semibold">결제·환불 정책</a>을 확인해 주세요.
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
                       <button
                         onClick={() => {
                           if (canOpenCheckout()) setCheckoutOpen(true);
@@ -827,7 +847,7 @@ function UserDashboardInner() {
                         className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200"
                       >
                         <CreditCard size={15} />
-                        {sub?.active ? "기간 연장 결제하기" : "결제하기"}
+                        {sub?.active ? "30일 연장 결제하기" : "30일권 결제하기"}
                       </button>
                       <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2">
                         전체 요금제 보기
@@ -837,7 +857,7 @@ function UserDashboardInner() {
                     {sub?.active && (
                       <p className="mt-3 flex items-start gap-1.5 text-[11px] text-slate-400 leading-relaxed">
                         <CalendarClock size={13} className="mt-px flex-shrink-0" />
-                        지금 결제하시면 결제한 시점부터 다시 30일이 시작됩니다.
+                        지금 결제하시면 남은 기간에 더해지는 것이 아니라, 결제한 시점부터 30일이 새로 시작됩니다.
                       </p>
                     )}
                   </div>
@@ -1109,7 +1129,7 @@ function UserDashboardInner() {
 
       {paymentPendingOpen && <PaymentPendingDialog onClose={() => setPaymentPendingOpen(false)} />}
 
-      {/* 월정액 구독 결제 모달 — 승인 완료 시 /checkout/success 로 이동한다 */}
+      {/* 30일권 결제 모달 — 승인 완료 시 /checkout/success 로 이동한다 */}
       {checkoutOpen && (
         <CheckoutDialog
           productKey={SUBSCRIPTION_PRODUCT_KEY}

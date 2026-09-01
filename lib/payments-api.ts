@@ -91,12 +91,15 @@ export function confirmPayment(p: {
   });
 }
 
-/* ── 월정액 구독 ───────────────────────────────────────────
+/* ── 30일권(이용권) ────────────────────────────────────────
  * 백엔드는 별도 subscriptions 테이블 없이 payments(product_key='monthly_100',
  * status='paid')의 최신 승인시각 + 30일로 활성 여부를 계산한다.
- * 결제 1건 = 1개월이며, 갱신 결제를 하면 그 시점부터 다시 30일이 시작된다. */
+ * 결제 1건 = 30일이며, 재결제하면 그 시점부터 다시 30일이 시작된다.
+ * ⚠️ 자동갱신(빌링키) 없음 — 만료되면 그대로 종료되고 별도 해지 절차가 필요 없다.
+ *    key 문자열 'monthly_100' 은 과거 '월정액' 시절 이름이지만 기존 결제 이력이
+ *    그 값으로 저장돼 있어 바꾸지 않는다. 표시 문구만 '30일권'으로 통일한다. */
 
-/** 월정액 구독 상품 key — 백엔드 PRODUCTS 와 1:1. */
+/** 30일권 상품 key — 백엔드 PRODUCTS 와 1:1. */
 export const SUBSCRIPTION_PRODUCT_KEY = "monthly_100";
 
 export interface Subscription {
@@ -104,7 +107,7 @@ export interface Subscription {
   plan: string;
   plan_name: string;
   amount: number;
-  /** 구독 중 조사 1건당 가상인구 수 (100) */
+  /** 30일권 이용 중 조사 1건당 가상인구 수 (100) */
   sample_size: number;
   period_days: number;
   started_at: string | null;
@@ -113,12 +116,12 @@ export interface Subscription {
   days_left: number;
 }
 
-/** 내 월정액 구독 상태. 비로그인·오류 시 비활성으로 폴백한다(화면이 깨지지 않도록). */
+/** 내 30일권 상태. 비로그인·오류 시 비활성으로 폴백한다(화면이 깨지지 않도록). */
 export function getMySubscription(): Promise<Subscription> {
   return api<Subscription>("/api/subscription/me").catch(() => ({
     active: false,
     plan: SUBSCRIPTION_PRODUCT_KEY,
-    plan_name: "월정액 구독 (가상인구 100명 무제한)",
+    plan_name: "30일권 (가상인구 100명 무제한)",
     amount: 500000,
     sample_size: 100,
     period_days: 30,

@@ -450,7 +450,7 @@ const features = [
   },
   {
     title: "5. 20분의 1 비용",
-    desc: "기존 리서치 회사 의뢰 대비 95% 이상 저렴한 가격. 월 구독 없이 조사 한 건당 결제합니다.",
+    desc: "기존 리서치 회사 의뢰 대비 95% 이상 저렴한 가격. 자동결제 없이 필요한 만큼만 결제합니다.",
     visual: <FeatureVisual5 />,
   },
   {
@@ -842,8 +842,8 @@ export default function LandingPage() {
             <div className="inline-block text-indigo-300 text-xs font-bold uppercase tracking-[.15em] bg-indigo-500/15 border border-indigo-500/20 px-3 py-1.5 rounded-full mb-4">
               Pricing
             </div>
-            <h2 className="text-4xl font-bold text-white tracking-tight mb-3">구독 없음, 건당 결제</h2>
-            <p className="text-slate-400 text-lg">필요할 때만 사용하세요. 월정액 부담이 없습니다.</p>
+            <h2 className="text-4xl font-bold text-white tracking-tight mb-3">자동결제 없음, 필요한 만큼만</h2>
+            <p className="text-slate-400 text-lg">조사 한 건당 결제하거나, 30일권으로 기간 내 무제한 이용하세요. 자동으로 갱신되는 정기결제는 없습니다.</p>
           </Reveal>
           <div className="grid md:grid-cols-3 gap-5">
             {[
