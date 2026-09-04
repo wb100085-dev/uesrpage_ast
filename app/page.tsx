@@ -598,23 +598,33 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* ── 저작권 등록 — 가상인구 DB + 소프트웨어 (홍보용 신뢰 근거) ──
+          {/* ── 가상인구의 정체 + 저작권 등록 (홍보용 신뢰 근거) ──
               등록증 원본은 회사 홈페이지(omninode)의 이미지/certs 와 동일 파일.
-              문구는 등록증 기재사항만 쓴다 — 등록은 '권리 등록'이지 성능 심사·인증이
-              아니므로 "국가가 성능을 인정" 류의 표현은 넣지 않는다. */}
+
+              문구 원칙 두 가지 (바꿀 때 반드시 지킬 것):
+              ① 주인공은 "국가통계 기반 초정밀 합성데이터"다. 등록증은 그 뒤를 받치는
+                 근거로만 쓴다. "권리를 보유한 자산" 처럼 소유권을 앞세우면 홍보가 아니라
+                 "함부로 쓰지 말라"는 경고로 읽힌다.
+              ② 등록증 기재사항만 쓴다. 저작권·DB제작자권리 등록은 '권리 등록'이지
+                 성능 심사·인증이 아니므로 "국가가 성능을 인정" 류의 표현은 넣지 않는다. */}
           <Reveal delay={200}>
             <div className="mt-14 sm:mt-16 rounded-3xl border border-slate-200 bg-white p-6 sm:p-9">
               <div className="text-center mb-8">
                 <div className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-bold uppercase tracking-[.15em] bg-emerald-50 px-3 py-1.5 rounded-full mb-4">
-                  <Shield size={13} /> 한국저작권위원회 등록
+                  <Shield size={13} /> 국가통계 기반 합성데이터
                 </div>
                 <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight break-keep">
-                  가상인구도, 소프트웨어도<br className="sm:hidden" /> 등록된 지식재산입니다
+                  AI가 지어낸 인구가 아닙니다.<br />
+                  국가통계로 재현한 <span className="text-indigo-600">대한민국</span>입니다
                 </h3>
-                <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-2xl mx-auto leading-relaxed break-keep">
-                  Socialtwin이 쓰는 가상인구 데이터베이스와 이를 구동하는 시뮬레이션 소프트웨어는
-                  각각 한국저작권위원회에 권리로 등록되어 있습니다.
-                  어디서 가져온 데이터가 아니라, 저희가 만들고 권리를 보유한 자산입니다.
+                {/* 문장 단위로 줄을 끊는다 — sm 이상에서만 <br> 적용, 모바일은 자연스럽게 흐르게 둔다 */}
+                <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-3xl mx-auto leading-relaxed break-keep">
+                  Socialtwin의 가상인구는 AI가 상상해 만들어낸 가짜 프로필이 아닙니다.
+                  <br className="hidden sm:block" />
+                  통계청·공공데이터의 국가통계를 기반으로 대한민국의 인구·사회·생활 구조를 그대로 모방해 만든{" "}
+                  <strong className="font-semibold text-slate-700">초정밀 합성데이터</strong>입니다.
+                  <br className="hidden sm:block" />
+                  그 데이터베이스와 이를 구동하는 시뮬레이션 소프트웨어는 한국저작권위원회에 각각 등록을 마쳤습니다.
                 </p>
               </div>
 
