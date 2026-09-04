@@ -597,6 +597,104 @@ export default function LandingPage() {
               </Reveal>
             ))}
           </div>
+
+          {/* ── 저작권 등록 — 가상인구 DB + 소프트웨어 (홍보용 신뢰 근거) ──
+              등록증 원본은 회사 홈페이지(omninode)의 이미지/certs 와 동일 파일.
+              문구는 등록증 기재사항만 쓴다 — 등록은 '권리 등록'이지 성능 심사·인증이
+              아니므로 "국가가 성능을 인정" 류의 표현은 넣지 않는다. */}
+          <Reveal delay={200}>
+            <div className="mt-14 sm:mt-16 rounded-3xl border border-slate-200 bg-white p-6 sm:p-9">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-1.5 text-emerald-700 text-xs font-bold uppercase tracking-[.15em] bg-emerald-50 px-3 py-1.5 rounded-full mb-4">
+                  <Shield size={13} /> 한국저작권위원회 등록
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight break-keep">
+                  가상인구도, 소프트웨어도<br className="sm:hidden" /> 등록된 지식재산입니다
+                </h3>
+                <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-2xl mx-auto leading-relaxed break-keep">
+                  Socialtwin이 쓰는 가상인구 데이터베이스와 이를 구동하는 시뮬레이션 소프트웨어는
+                  각각 한국저작권위원회에 권리로 등록되어 있습니다.
+                  어디서 가져온 데이터가 아니라, 저희가 만들고 권리를 보유한 자산입니다.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-5">
+                {[
+                  {
+                    kicker: "데이터베이스제작자권리 등록증",
+                    no: "제 D-2026-000156 호",
+                    title: "Socialtwin 가상인구 데이터베이스",
+                    meta: [
+                      ["제작연월일", "2026.06.09"],
+                      ["등록연월일", "2026.09.03"],
+                      ["근거", "저작권법 제98조"],
+                    ] as const,
+                    thumb: "/certs/cert-db-thumb.jpg",
+                    full: "/certs/cert-db.jpg",
+                    alt: "Socialtwin 가상인구 데이터베이스 제작자권리 등록증",
+                  },
+                  {
+                    kicker: "저작권 등록증",
+                    no: "제 C-2026-042596 호",
+                    title: "Socialtwin 시뮬레이션 S/W",
+                    meta: [
+                      ["창작연월일", "2026.08.20"],
+                      ["등록연월일", "2026.09.01"],
+                      ["근거", "저작권법 제53조"],
+                    ] as const,
+                    thumb: "/certs/cert-copyright-thumb.jpg",
+                    full: "/certs/cert-copyright.jpg",
+                    alt: "Socialtwin 컴퓨터프로그램(시뮬레이션 S/W) 저작권 등록증",
+                  },
+                ].map((c) => (
+                  <div
+                    key={c.no}
+                    className="flex gap-4 sm:gap-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5"
+                  >
+                    <a
+                      href={c.full}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group shrink-0"
+                      aria-label={`${c.alt} 원본 크게 보기`}
+                    >
+                      <Image
+                        src={c.thumb}
+                        alt={c.alt}
+                        width={600}
+                        height={849}
+                        className="w-20 sm:w-24 h-auto rounded-lg border border-slate-200 bg-white shadow-sm transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <span className="mt-1.5 block text-center text-[10px] text-slate-400 group-hover:text-indigo-600">
+                        크게 보기
+                      </span>
+                    </a>
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                        {c.kicker}
+                      </div>
+                      <h4 className="mt-1 text-[15px] font-semibold text-slate-900 break-keep">
+                        {c.title}
+                      </h4>
+                      <div className="mt-0.5 font-mono text-xs text-slate-400">{c.no}</div>
+                      <dl className="mt-3 space-y-1">
+                        {c.meta.map(([k, v]) => (
+                          <div key={k} className="flex gap-2 text-xs">
+                            <dt className="w-16 shrink-0 text-slate-400">{k}</dt>
+                            <dd className="font-medium text-slate-600">{v}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-6 text-center text-xs text-slate-400 break-keep">
+                저작자·데이터베이스제작자 : 주식회사 옴니노드 · 발급 : 한국저작권위원회
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
