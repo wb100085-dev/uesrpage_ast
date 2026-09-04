@@ -1,17 +1,20 @@
 "use client";
 
 /**
- * 결제 연동 준비 안내 모달.
+ * 결제 연동 준비 안내 모달. **2026-09-04 부로 평시에는 뜨지 않는다.**
  *
- * 토스 라이브 키가 아직 발급되지 않아 실결제가 불가능하므로, 일반 사용자에게는
- * 결제창을 띄우지 않고 이 안내를 보여준다. PG사 심사용 테스트 계정
- * (PG_TEST_EMAILS)과 운영진(슈퍼유저/스태프)만 실제 결제창으로 진입한다.
- * → 라이브 키가 들어오면 canOpenCheckout() 이 항상 true 를 반환하도록 바꾸면 된다.
+ * 원래는 토스 라이브 키 발급 전이라 일반 사용자에게 결제창 대신 이 안내를 띄우고,
+ * 운영진(슈퍼유저/스태프)과 PG 심사용 계정만 실결제로 보내는 장치였다.
+ * 라이브 키 적용·실결제 검증이 끝나 canOpenCheckout() 이 항상 true 가 되었으므로,
+ * 지금은 모든 사용자가 결제창으로 바로 진입한다.
+ *
+ * 컴포넌트는 남겨둔다 — 결제를 다시 닫아야 할 상황(PG 장애, 상품 개편 등)에서
+ * canOpenCheckout() 만 false 로 되돌리면 안내 화면이 그대로 살아난다.
  */
 import { X, Phone, Mail, Clock } from "lucide-react";
-import { getCachedUser } from "@/lib/auth-api";
 
-/** PG사 심사용 테스트 계정 — 이 계정으로 로그인하면 실제 결제창이 열린다. */
+/** PG사 심사용 테스트 계정. 전면 개방 이후로는 특별 취급이 없다(전원 결제창 진입).
+ *  결제를 다시 닫을 때 예외 목록으로 되살려 쓸 수 있어 남겨둔다. */
 export const PG_TEST_EMAILS = ["test@tosspayments.co"];
 
 const SUPPORT = {
@@ -21,12 +24,17 @@ const SUPPORT = {
   hours: "평일 10:00 – 17:00 (점심 12:00 – 13:30, 주말·공휴일 휴무)",
 };
 
-/** 지금 이 사용자에게 실제 결제창을 열어도 되는가 */
+/** 지금 이 사용자에게 실제 결제창을 열어도 되는가.
+ *
+ * 라이브 키 적용 완료(2026-09-04, 실결제 1건으로 전 구간 검증)로 전면 개방.
+ * 결제 진입점(/design, /dashboard/user, /checkout)은 모두 로그인 필수이므로
+ * 여기서 별도 로그인 검사를 하지 않아도 결제자 귀속(payments.user_email)이 보장된다.
+ *
+ * 결제를 다시 닫으려면 이 함수만 false 로 되돌리면 된다 — 호출처 4곳이 모두
+ * PaymentPendingDialog 안내로 자동 전환된다.
+ */
 export function canOpenCheckout(): boolean {
-  const u = getCachedUser();
-  const email = (u?.email || "").trim().toLowerCase();
-  if (PG_TEST_EMAILS.includes(email)) return true;
-  return Boolean(u?.is_superuser || u?.is_staff);
+  return true;
 }
 
 export default function PaymentPendingDialog({ onClose }: { onClose: () => void }) {
