@@ -200,28 +200,40 @@ function FeatureVisual4() {
 
 function FeatureVisual5() {
   return (
-    <div className="relative h-48 bg-rose-50 overflow-hidden border-b border-rose-100">
-      <div className="absolute inset-0 p-4 flex flex-col items-center justify-center gap-3">
-        {/* 좌(기존) → 우(Socialtwin) 비교 카드 */}
-        <div className="flex items-stretch gap-2 w-full max-w-[300px]">
-          <div className="flex-1 bg-white rounded-lg px-2 py-2 border border-slate-200 text-center flex flex-col justify-center">
-            <div className="text-[8px] text-slate-400 mb-0.5 uppercase tracking-wider">기존 리서치</div>
-            <div className="text-base font-bold text-slate-400 line-through tabular-nums">₩200만+</div>
+    <div className="relative h-48 bg-rose-50 overflow-hidden border-b border-rose-100 p-4">
+      <div className="h-full max-w-[300px] mx-auto rounded-2xl bg-white border border-rose-100 shadow-sm p-3.5 flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[9px] font-semibold uppercase tracking-[.14em] text-rose-400">Cost comparison</div>
+            <div className="mt-0.5 text-xs font-bold text-slate-700">같은 조사, 달라진 비용</div>
           </div>
-          <div className="flex items-center">
-            <ArrowRight size={14} className="text-rose-400" />
+          <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center">
+            <TrendingUp size={15} className="text-rose-500 rotate-180" />
           </div>
-          <div className="relative flex-1 bg-white rounded-lg px-2 py-2 border border-indigo-200 text-center shadow-sm">
-            <div className="text-[8px] text-indigo-500 mb-0.5 uppercase tracking-wider font-bold">Socialtwin</div>
-            <div className="flex items-center justify-center mt-0.5">
-              <span className="text-base font-extrabold text-slate-900 tabular-nums leading-tight">₩99,000</span>
+        </div>
+        <div className="space-y-2.5">
+          <div>
+            <div className="flex items-center justify-between text-[9px] mb-1">
+              <span className="text-slate-400">기존 리서치</span>
+              <span className="font-semibold text-slate-400 line-through tabular-nums">₩2,000,000+</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-full w-full rounded-full bg-slate-300" />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-[9px] mb-1">
+              <span className="font-bold text-indigo-600">Socialtwin</span>
+              <span className="font-extrabold text-slate-900 tabular-nums">₩99,000</span>
+            </div>
+            <div className="h-2 rounded-full bg-indigo-50 overflow-hidden">
+              <div className="h-full w-[5%] min-w-2 rounded-full bg-gradient-to-r from-indigo-600 to-violet-500" />
             </div>
           </div>
         </div>
-        {/* 절감 배지 */}
-        <div className="inline-flex items-center gap-1.5 bg-emerald-50 rounded-full px-3 py-1 border border-emerald-200">
-          <TrendingUp size={11} className="text-emerald-500" style={{ transform: "rotate(180deg)" }} />
-          <span className="text-emerald-600 text-[10px] font-bold">기존 대비 95% 절감</span>
+        <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-100 px-2.5 py-1.5">
+          <span className="text-[9px] font-medium text-emerald-700">예상 절감 비용</span>
+          <span className="text-xs font-extrabold text-emerald-600">95% 이상</span>
         </div>
       </div>
     </div>
@@ -230,23 +242,41 @@ function FeatureVisual5() {
 
 function FeatureVisualTime() {
   return (
-    <div className="relative h-48 bg-amber-50 overflow-hidden border-b border-amber-100">
-      <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-white rounded-full px-2.5 py-1 border border-slate-200 shadow-sm">
-        <Clock size={11} className="text-amber-500" />
-        <span className="text-slate-600 text-[10px] font-medium">실시간</span>
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-5xl font-extrabold text-slate-900 tracking-tight">
-            ~1<span className="text-2xl font-bold ml-0.5">시간</span>
+    <div className="relative h-48 bg-amber-50 overflow-hidden border-b border-amber-100 p-4">
+      <div className="relative h-full max-w-[300px] mx-auto rounded-2xl bg-white border border-amber-100 shadow-sm px-4 py-3.5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center">
+              <Zap size={15} className="text-amber-500 fill-amber-500" />
+            </div>
+            <div>
+              <div className="text-[9px] text-slate-400">조사 진행 시간</div>
+              <div className="text-xs font-bold text-slate-700">실시간 프로세스</div>
+            </div>
           </div>
-          <div className="text-slate-500 text-sm mt-1">작성부터 결과까지</div>
+          <span className="text-lg font-extrabold text-amber-500 tabular-nums">~1시간</span>
         </div>
-      </div>
-      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-2 text-[10px]">
-        <span className="text-slate-400 line-through">기존 4주 이상</span>
-        <ArrowRight size={10} className="text-emerald-500" />
-        <span className="text-emerald-600 font-semibold">Socialtwin 1시간</span>
+        <div className="relative flex items-start justify-between">
+          <div className="absolute top-3.5 left-4 right-4 h-0.5 bg-amber-100" />
+          {[
+            { label: "설문 설계", time: "5분" },
+            { label: "가상 응답", time: "40분" },
+            { label: "결과 분석", time: "15분" },
+          ].map((step, index) => (
+            <div key={step.label} className="relative z-10 w-1/3 text-center">
+              <div className="w-7 h-7 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[9px] font-bold ring-4 ring-white">
+                {index + 1}
+              </div>
+              <div className="mt-2 text-[9px] font-semibold text-slate-600">{step.label}</div>
+              <div className="text-[9px] text-amber-600">{step.time}</div>
+            </div>
+          ))}
+        </div>
+        <div className="absolute bottom-3 left-4 right-4 flex items-center justify-center gap-2 rounded-full bg-slate-50 py-1 text-[9px]">
+          <span className="text-slate-400 line-through">기존 4주 이상</span>
+          <ArrowRight size={9} className="text-amber-500" />
+          <span className="text-amber-600 font-bold">당일 결과 확인</span>
+        </div>
       </div>
     </div>
   );
@@ -254,37 +284,32 @@ function FeatureVisualTime() {
 
 function FeatureVisualTrust() {
   const metrics = [
-    { label: "분포정합성", value: 94.5, sub: "MAE 5.5%p", num: "text-emerald-600", bar: "bg-emerald-500" },
-    { label: "순위정합성", value: 89.5, sub: "Spearman ρ 0.895", num: "text-teal-600", bar: "bg-teal-500" },
+    { label: "분포 정합성", value: 87.0, sub: "응답 분포 유사도", color: "#10b981", bg: "bg-emerald-50", text: "text-emerald-600" },
+    { label: "순위 정합성", value: 80.8, sub: "선호 순위 일치도", color: "#0d9488", bg: "bg-teal-50", text: "text-teal-600" },
   ];
   return (
-    <div className="relative h-48 bg-emerald-50 overflow-hidden border-b border-emerald-100">
-      <div className="absolute inset-0 p-4 flex flex-col justify-center gap-2.5">
-        {/* 타이틀 — 실제 인간 응답 대비 검증 */}
-        <div className="flex items-center justify-center gap-1.5">
-          <Shield size={12} className="text-emerald-500" />
-          <span className="text-[11px] font-semibold text-emerald-700">실제 인간 응답 대비 검증</span>
+    <div className="relative h-48 bg-emerald-50 overflow-hidden border-b border-emerald-100 p-4">
+      <div className="h-full max-w-[300px] mx-auto rounded-2xl bg-white border border-emerald-100 shadow-sm p-3.5">
+        <div className="flex items-center justify-center gap-1.5 mb-3">
+          <Shield size={13} className="text-emerald-500" />
+          <span className="text-[10px] font-bold text-slate-700">실제 인간 응답과 교차검증</span>
         </div>
-        {/* 정합성 지표 카드 — 분포/순위 */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-3 py-2.5 max-w-[280px] mx-auto w-full flex flex-col gap-2">
-          {metrics.map((m) => (
-            <div key={m.label}>
-              <div className="flex items-baseline justify-between mb-1">
-                <span className="text-[10px] font-medium text-slate-500">{m.label}</span>
-                <span className="flex items-baseline gap-1">
-                  <span className={`text-base font-extrabold tabular-nums leading-none ${m.num}`}>{m.value}%</span>
-                  <span className="text-[8px] text-slate-400">{m.sub}</span>
-                </span>
+        <div className="grid grid-cols-2 gap-2.5">
+          {metrics.map((metric) => (
+            <div key={metric.label} className={`rounded-xl ${metric.bg} px-2 py-2.5 text-center`}>
+              <div
+                className="relative w-16 h-16 mx-auto rounded-full flex items-center justify-center"
+                style={{
+                  background: `conic-gradient(${metric.color} ${metric.value * 3.6}deg, #e2e8f0 0deg)`,
+                }}
+              >
+                <div className="absolute inset-[6px] rounded-full bg-white" />
+                <span className={`relative text-sm font-extrabold tabular-nums ${metric.text}`}>{metric.value.toFixed(1)}%</span>
               </div>
-              <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                <div className={`h-full rounded-full ${m.bar}`} style={{ width: `${m.value}%` }} />
-              </div>
+              <div className="mt-1.5 text-[10px] font-bold text-slate-700">{metric.label}</div>
+              <div className="text-[8px] text-slate-400">{metric.sub}</div>
             </div>
           ))}
-        </div>
-        {/* 캡션 */}
-        <div className="text-center flex items-center justify-center gap-1.5">
-          <span className="text-emerald-600 text-[10px] font-medium">가상패널 응답을 실제 조사집단과 교차검증</span>
         </div>
       </div>
     </div>
@@ -455,7 +480,7 @@ const features = [
   },
   {
     title: "6. 검증된 신뢰도",
-    desc: "생성된 가상인구의 응답을 실제 인간 응답 대비 검증합니다. 분포정합성 94.5%, 순위정합성 89.5%.",
+    desc: "생성된 가상인구의 응답을 실제 인간 응답 대비 검증합니다. 분포 정합성 87.0%, 순위 정합성 80.8%.",
     visual: <FeatureVisualTrust />,
   },
 ];
