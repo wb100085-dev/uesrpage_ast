@@ -16,7 +16,10 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   alternates: { canonical: "/" },
-  verification: { google: "EZQdvFqA8pv9_RzF25F8mEubABDm5nPj2kvcp-y-xzo" },
+  verification: {
+    google: "EZQdvFqA8pv9_RzF25F8mEubABDm5nPj2kvcp-y-xzo",
+    other: { "naver-site-verification": "ebb9df63a0a111f7d3f2ba95fb253b2e8e4f76d6" },
+  },
   openGraph: {
     type: "website",
     url: SITE_URL,
