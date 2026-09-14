@@ -328,7 +328,7 @@ function UserDashboardInner() {
       <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
         <div className="px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <span className="flex-shrink-0"><span className="inline-flex items-center gap-1.5 align-middle"><Image src="/logo-mark.png" alt="" width={72} height={71} className="h-6 md:h-7 w-auto object-contain select-none" /><Image src="/logo-wordmark.png" alt="SocialTwin" width={220} height={33} className="h-6 md:h-7 w-auto object-contain select-none" /></span></span>
+            <span className="flex-shrink-0"><Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-7 md:h-8 w-auto object-contain select-none" /></span>
             <div className="hidden md:block h-5 w-px bg-slate-200" />
             <div className="hidden md:flex items-center gap-1.5">
               <User size={14} className="text-slate-500" />

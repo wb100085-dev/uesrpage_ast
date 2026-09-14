@@ -53,61 +53,23 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
         {/* Logo — appMode(앱 내부 페이지)에서는 클릭 비활성 */}
         {appMode ? (
           <span className="flex items-center">
-            <span className="flex items-center gap-2">
-              <Image
-                src="/logo-mark.png"
-                alt=""
-                width={72}
-                height={71}
-                className="h-9 w-auto object-contain select-none"
-              />
-              <span className="flex flex-col items-start">
-                <Image
-                  src="/logo-wordmark.png"
-                  alt="SocialTwin"
-                  width={220}
-                  height={33}
-                  className="w-[187px] h-auto object-contain select-none"
-                />
-                {/* 로고 PNG 에 박혀 있던 태그라인. 이미지 안에서는 색을 못 바꿔
-                    어두운 배경에서 안 보였다 — 글자로 빼서 배경에 맞춰 칠한다.
-                    폭을 워드마크에 맞춰 두 줄의 오른쪽 끝이 떨어지지 않게 한다. */}
-                <span className={`mt-[3px] w-[187px] text-[8px] leading-none tracking-[-0.02em] whitespace-nowrap ${
-                  dark ? "text-slate-400" : "text-slate-500"
-                }`}>
-                  AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
-                </span>
-              </span>
-            </span>
+            <Image
+              src="/Socialtwin_o2.png"
+              alt="Socialtwin"
+              width={140}
+              height={40}
+              className="h-10 w-auto object-contain select-none"
+            />
           </span>
         ) : (
           <Link href="/" className="flex items-center group">
-            <span className="flex items-center gap-2">
-              <Image
-                src="/logo-mark.png"
-                alt=""
-                width={72}
-                height={71}
-                className="h-9 w-auto object-contain select-none"
-              />
-              <span className="flex flex-col items-start">
-                <Image
-                  src="/logo-wordmark.png"
-                  alt="SocialTwin"
-                  width={220}
-                  height={33}
-                  className="w-[187px] h-auto object-contain select-none"
-                />
-                {/* 로고 PNG 에 박혀 있던 태그라인. 이미지 안에서는 색을 못 바꿔
-                    어두운 배경에서 안 보였다 — 글자로 빼서 배경에 맞춰 칠한다.
-                    폭을 워드마크에 맞춰 두 줄의 오른쪽 끝이 떨어지지 않게 한다. */}
-                <span className={`mt-[3px] w-[187px] text-[8px] leading-none tracking-[-0.02em] whitespace-nowrap ${
-                  dark ? "text-slate-400" : "text-slate-500"
-                }`}>
-                  AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
-                </span>
-              </span>
-            </span>
+            <Image
+              src="/Socialtwin_o2.png"
+              alt="Socialtwin"
+              width={140}
+              height={40}
+              className="h-10 w-auto object-contain"
+            />
           </Link>
         )}
 
