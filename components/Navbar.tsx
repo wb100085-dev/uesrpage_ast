@@ -59,15 +59,25 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 alt=""
                 width={72}
                 height={71}
-                className="h-7 w-auto object-contain select-none"
+                className="h-8 w-auto object-contain select-none"
               />
-              <Image
-                src="/logo-wordmark.png"
-                alt="SocialTwin"
-                width={220}
-                height={33}
-                className="h-7 w-auto object-contain select-none"
-              />
+              <span className="flex flex-col items-start">
+                <Image
+                  src="/logo-wordmark.png"
+                  alt="SocialTwin"
+                  width={220}
+                  height={33}
+                  className="w-[176px] h-auto object-contain select-none"
+                />
+                {/* 로고 PNG 에 박혀 있던 태그라인. 이미지 안에서는 색을 못 바꿔
+                    어두운 배경에서 안 보였다 — 글자로 빼서 배경에 맞춰 칠한다.
+                    폭을 워드마크에 맞춰 두 줄의 오른쪽 끝이 떨어지지 않게 한다. */}
+                <span className={`mt-0.5 w-[176px] text-[8px] leading-none tracking-[-0.02em] whitespace-nowrap ${
+                  dark ? "text-slate-400" : "text-slate-500"
+                }`}>
+                  AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+                </span>
+              </span>
             </span>
           </span>
         ) : (
@@ -78,15 +88,25 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 alt=""
                 width={72}
                 height={71}
-                className="h-7 w-auto object-contain select-none"
+                className="h-8 w-auto object-contain select-none"
               />
-              <Image
-                src="/logo-wordmark.png"
-                alt="SocialTwin"
-                width={220}
-                height={33}
-                className="h-7 w-auto object-contain select-none"
-              />
+              <span className="flex flex-col items-start">
+                <Image
+                  src="/logo-wordmark.png"
+                  alt="SocialTwin"
+                  width={220}
+                  height={33}
+                  className="w-[176px] h-auto object-contain select-none"
+                />
+                {/* 로고 PNG 에 박혀 있던 태그라인. 이미지 안에서는 색을 못 바꿔
+                    어두운 배경에서 안 보였다 — 글자로 빼서 배경에 맞춰 칠한다.
+                    폭을 워드마크에 맞춰 두 줄의 오른쪽 끝이 떨어지지 않게 한다. */}
+                <span className={`mt-0.5 w-[176px] text-[8px] leading-none tracking-[-0.02em] whitespace-nowrap ${
+                  dark ? "text-slate-400" : "text-slate-500"
+                }`}>
+                  AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+                </span>
+              </span>
             </span>
           </Link>
         )}
