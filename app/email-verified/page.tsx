@@ -10,14 +10,26 @@ export default function EmailVerifiedPage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl" />
       </div>
 
-      <Link href="/" className="relative mb-8">
+      <Link href="/" className="relative mb-8 flex items-center gap-3">
         <Image
-          src="/Socialtwin_o2.png"
-          alt="Socialtwin"
-          width={160}
-          height={46}
-          className="h-12 w-auto object-contain brightness-[2] invert"
+          src="/logo-mark.png"
+          alt=""
+          width={72}
+          height={71}
+          className="h-11 w-auto object-contain"
         />
+        <span className="flex flex-col items-start">
+          <Image
+            src="/logo-wordmark.png"
+            alt="SocialTwin"
+            width={220}
+            height={33}
+            className="h-[26px] w-auto object-contain"
+          />
+          <span className="mt-1 text-[11px] tracking-wide text-slate-400">
+            AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+          </span>
+        </span>
       </Link>
 
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
