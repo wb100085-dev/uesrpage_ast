@@ -280,7 +280,7 @@ function AdminDashboardInner() {
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Image src="/Socialtwin_o2.png" alt="Socialtwin" width={120} height={34} className="h-8 w-auto object-contain" />
+              <span className="inline-flex items-center gap-1.5 align-middle"><Image src="/logo-mark.png" alt="" width={72} height={71} className="h-7 w-auto object-contain select-none" /><Image src="/logo-wordmark.png" alt="SocialTwin" width={220} height={33} className="h-7 w-auto object-contain select-none" /></span>
             </Link>
             <div className="h-5 w-px bg-slate-200" />
             <div className="flex items-center gap-1.5">

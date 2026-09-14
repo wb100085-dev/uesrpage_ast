@@ -155,13 +155,22 @@ export default function CheckoutDialog({
         {/* ── 왼쪽: 정보 패널 (보고서 미리보기) ── */}
         <div className="md:w-[46%] shrink-0 bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-700 text-white p-6 sm:p-7 flex flex-col">
           <div className="flex items-center justify-between gap-2">
-            <Image
-              src="/socialtwin-logo.png"
-              alt="SocialTwin"
-              width={150}
-              height={42}
-              className="h-7 w-auto object-contain"
-            />
+            <span className="flex items-center gap-1.5">
+              <Image
+                src="/logo-mark.png"
+                alt=""
+                width={72}
+                height={71}
+                className="h-6 w-auto object-contain"
+              />
+              <Image
+                src="/logo-wordmark.png"
+                alt="SocialTwin"
+                width={220}
+                height={33}
+                className="h-6 w-auto object-contain"
+              />
+            </span>
             <span className="shrink-0 text-[11px] font-semibold bg-white/15 px-2 py-0.5 rounded-full">
               {isSubscription ? "30일 무제한 · 보고서 30p" : "30페이지 분량"}
             </span>

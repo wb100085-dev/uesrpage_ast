@@ -53,23 +53,41 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
         {/* Logo — appMode(앱 내부 페이지)에서는 클릭 비활성 */}
         {appMode ? (
           <span className="flex items-center">
-            <Image
-              src="/Socialtwin_o2.png"
-              alt="Socialtwin"
-              width={140}
-              height={40}
-              className="h-10 w-auto object-contain select-none"
-            />
+            <span className="flex items-center gap-2">
+              <Image
+                src="/logo-mark.png"
+                alt=""
+                width={72}
+                height={71}
+                className="h-7 w-auto object-contain select-none"
+              />
+              <Image
+                src="/logo-wordmark.png"
+                alt="SocialTwin"
+                width={220}
+                height={33}
+                className="h-7 w-auto object-contain select-none"
+              />
+            </span>
           </span>
         ) : (
           <Link href="/" className="flex items-center group">
-            <Image
-              src="/Socialtwin_o2.png"
-              alt="Socialtwin"
-              width={140}
-              height={40}
-              className="h-10 w-auto object-contain"
-            />
+            <span className="flex items-center gap-2">
+              <Image
+                src="/logo-mark.png"
+                alt=""
+                width={72}
+                height={71}
+                className="h-7 w-auto object-contain select-none"
+              />
+              <Image
+                src="/logo-wordmark.png"
+                alt="SocialTwin"
+                width={220}
+                height={33}
+                className="h-7 w-auto object-contain select-none"
+              />
+            </span>
           </Link>
         )}
 
