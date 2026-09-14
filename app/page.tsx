@@ -495,6 +495,15 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden mesh-bg noise min-h-[88vh] sm:min-h-[92vh] flex items-center">
+        {/* 브랜드 키비주얼 — 회사 소개서와 같은 결(검정 바탕 + 주황 광선).
+            기존 mesh-bg 를 지우지 않고 그 위에 얹는다. 아래로 갈수록 진하게 덮어
+            흰 제목·본문 대비를 지키고, 바닥은 다음 섹션(흰색)으로 자연스럽게 넘긴다. */}
+        <div aria-hidden className="absolute inset-0">
+          <Image src="/brand-keyvisual.webp" alt="" fill priority sizes="100vw"
+                 className="object-cover object-center opacity-70" />
+          <div className="absolute inset-0 bg-[#080812]/55" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#080812] via-[#080812]/55 to-transparent" />
+        </div>
         <div
           className="absolute inset-0 opacity-[.04]"
           style={{

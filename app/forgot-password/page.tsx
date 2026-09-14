@@ -47,9 +47,9 @@ export default function ForgotPasswordPage() {
             alt="SocialTwin"
             width={220}
             height={33}
-            className="h-[26px] w-auto object-contain"
+            className="w-[188px] h-auto object-contain"
           />
-          <span className="mt-1 text-[11px] tracking-wide text-slate-400">
+          <span className="mt-1 w-[188px] text-[9px] leading-none tracking-[-0.01em] text-slate-400 whitespace-nowrap">
             AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
           </span>
         </span>
