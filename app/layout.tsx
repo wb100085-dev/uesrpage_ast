@@ -27,11 +27,15 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     locale: "ko_KR",
+    // 카카오톡·슬랙 등은 미리보기 박스(약 2:1)에 맞춰 이미지를 "cover"로 잘라낸다.
+    // 로고 원본(1146x318, 3.6:1)을 그대로 쓰면 좌우가 잘리고 투명 배경이 다크모드에서
+    // 검게 깔려 태그라인이 사라진다. 1200x630(1.91:1) 불투명 카드로 고정할 것.
     images: [
       {
-        url: "/Socialtwin_o2.png",
-        width: 1146,
-        height: 318,
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        type: "image/png",
         alt: "Socialtwin — AI 시장조사 플랫폼",
       },
     ],
@@ -40,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    images: ["/Socialtwin_o2.png"],
+    images: ["/og-image.png"],
   },
 };
 
