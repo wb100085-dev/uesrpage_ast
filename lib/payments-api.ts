@@ -70,8 +70,33 @@ export function createOrder(productKey: string, jobId?: string): Promise<CreateO
   });
 }
 
+/** 내 계정에 적용된 상세보고서 무료 쿠폰 한 장 (관리자가 발행한 열람 링크). */
+export type ReportCoupon = {
+  /** once=1회용(한 사람·설문 1건) / multi_single=계정당 설문 1건 / multi_unlim=계정당 무제한 */
+  kind: "once" | "multi_single" | "multi_unlim";
+  per_account: "single" | "unlimited";
+  /** 토큰 뒤 6자 — 같은 종류 쿠폰이 여러 장일 때 구분용 (원문은 서버가 주지 않음) */
+  token_tail: string;
+  expires_at: string | null;
+  expired: boolean;
+  redeemed_at: string | null;
+  /** 계정당 1건 쿠폰을 이미 쓴 조사 (미사용이면 null) */
+  job_id: string | null;
+  /** 아직 새 조사에 쓸 수 있는지 */
+  available: boolean;
+};
+
+export type ReportAccess = {
+  all_access: boolean;
+  job_ids: string[];
+  /** 내 쿠폰 목록 — 구버전 백엔드 호환을 위해 optional */
+  coupons?: ReportCoupon[];
+  /** 관리자 '무료 제공 이메일' 목록에 등록된 계정인지 */
+  free_email?: boolean;
+};
+
 /** 내가 상세보고서를 볼 수 있는 조사 목록 (결제 완료 + 쿠폰 바인딩 + 무제한 권한). */
-export function getReportAccessJobs(): Promise<{ all_access: boolean; job_ids: string[] }> {
+export function getReportAccessJobs(): Promise<ReportAccess> {
   return api("/api/report-access/jobs");
 }
 

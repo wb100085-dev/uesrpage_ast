@@ -11,12 +11,17 @@ import {
   authChangePassword,
   type AuthUser,
 } from "@/lib/auth-api";
-import { getMyDesigns, listDrafts, deleteDraft, deleteMyDesign, type SurveyDraft } from "@/lib/survey-api";
+import {
+  getMyDesigns, listDrafts, deleteDraft, deleteMyDesign,
+  redeemPendingReportToken, type SurveyDraft,
+} from "@/lib/survey-api";
 import {
   getReportAccessJobs,
   getMySubscription,
   SUBSCRIPTION_PRODUCT_KEY,
   type Subscription,
+  type ReportAccess,
+  type ReportCoupon,
 } from "@/lib/payments-api";
 import CheckoutDialog from "@/components/CheckoutDialog";
 import PaymentPendingDialog, { canOpenCheckout } from "@/components/PaymentPendingDialog";
@@ -27,14 +32,14 @@ import {
   CheckCircle2, AlertCircle, RefreshCw, Construction,
   User, Users, ArrowRight, Zap, Save,
   Lock, Mail, UserCog, FileEdit, Trash2, MessageSquare,
-  Info, LayoutDashboard,
+  Info, LayoutDashboard, Ticket,
 } from "lucide-react";
 
 /* ─── 상수 ─────────────────────────────────── */
 
 /* ─── 타입 ─────────────────────────────────── */
 type SideMenu = "entrant" | "analysis" | "account";
-type AnalysisTab = "home" | "history" | "drafts" | "subscription";
+type AnalysisTab = "home" | "history" | "drafts" | "subscription" | "coupons";
 
 type HistoryItem = {
   id: string;
@@ -109,6 +114,103 @@ function StatusBadge({ status }: { status: HistoryItem["status"] }) {
   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium"><AlertCircle size={10} />오류</span>;
 }
 
+/* ─── 무료 쿠폰 ─────────────────────────────── */
+/** 관리자가 발행한 쿠폰 종류별 한 줄 설명 (관리자 화면의 3분류와 동일). */
+const COUPON_LABEL: Record<ReportCoupon["kind"], string> = {
+  once: "1회용 무료 쿠폰",
+  multi_single: "무료 쿠폰",
+  multi_unlim: "무제한 무료 쿠폰",
+};
+const COUPON_SCOPE: Record<ReportCoupon["kind"], string> = {
+  once: "상세보고서 1건 무료 열람",
+  multi_single: "상세보고서 1건 무료 열람",
+  multi_unlim: "상세보고서 무제한 무료 열람",
+};
+
+/**
+ * 내 무료 권한 카드 — 쿠폰을 가진 계정에만 노출.
+ * 쿠폰이 어떤 조사에 쓰였는지는 히스토리 제목으로 보여준다(계정당 1건 쿠폰).
+ */
+function CouponCard({
+  coupons,
+  freeEmail,
+  history,
+}: {
+  coupons: ReportCoupon[];
+  freeEmail: boolean;
+  history: HistoryItem[];
+}) {
+  const titleOf = (jobId: string) =>
+    history.find((h) => String(h.job_id) === jobId)?.title ?? "지난 조사";
+  return (
+    <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Ticket size={16} className="text-emerald-600" />
+        <h3 className="text-sm font-bold text-slate-900">내 무료 쿠폰</h3>
+      </div>
+      <p className="text-xs text-slate-500 mb-4 leading-relaxed break-keep">
+        조사를 완료하면 결제 없이 상세보고서를 열람할 수 있습니다.
+      </p>
+      {coupons.length === 0 && !freeEmail && (
+        <p className="text-sm text-slate-400 py-6 text-center">보유한 쿠폰이 없습니다.</p>
+      )}
+      <div className="space-y-2">
+        {freeEmail && (
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-emerald-800">무료 제공 계정</p>
+              <p className="text-xs text-emerald-700 mt-0.5">상세보고서 무제한 무료 열람</p>
+            </div>
+            <span className="flex-shrink-0 text-[11px] font-bold px-2 py-1 rounded-full bg-emerald-600 text-white">
+              사용 가능
+            </span>
+          </div>
+        )}
+        {coupons.map((c, i) => {
+          const usable = c.available && !c.expired;
+          return (
+            <div
+              key={`${c.token_tail}-${i}`}
+              className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 ${
+                usable ? "border-emerald-100 bg-emerald-50/60" : "border-slate-100 bg-slate-50"
+              }`}
+            >
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold ${usable ? "text-emerald-800" : "text-slate-500"}`}>
+                  {COUPON_LABEL[c.kind]}
+                  <span className="ml-1.5 font-mono text-[11px] font-normal text-slate-400">
+                    ···{c.token_tail}
+                  </span>
+                </p>
+                <p className={`text-xs mt-0.5 ${usable ? "text-emerald-700" : "text-slate-400"}`}>
+                  {COUPON_SCOPE[c.kind]}
+                  {c.expires_at ? ` · ${fmtDay(c.expires_at)}까지` : " · 유효기간 없음"}
+                </p>
+                {c.job_id && (
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    사용한 조사: {titleOf(c.job_id)}
+                  </p>
+                )}
+              </div>
+              <span
+                className={`flex-shrink-0 text-[11px] font-bold px-2 py-1 rounded-full ${
+                  c.expired
+                    ? "bg-amber-100 text-amber-700"
+                    : usable
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-200 text-slate-500"
+                }`}
+              >
+                {c.expired ? "기간 만료" : usable ? "사용 가능" : "사용 완료"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════ */
 /*  메인                                        */
 /* ═══════════════════════════════════════════ */
@@ -131,11 +233,19 @@ function UserDashboardInner() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
-  // 상세보고서 열람 권한 (결제·쿠폰·무료권한) — 히스토리 '결과 보기' 라우팅에 사용
-  const [reportAccess, setReportAccess] = useState<{ all_access: boolean; job_ids: string[] } | undefined>(undefined);
+  // 상세보고서 열람 권한 (결제·쿠폰·무료권한) — 히스토리 '결과 보기' 라우팅 + 쿠폰 표기에 사용
+  const [reportAccess, setReportAccess] = useState<ReportAccess | undefined>(undefined);
 
   useEffect(() => {
-    getReportAccessJobs().then(setReportAccess).catch(() => {});
+    // 무료 쿠폰 링크로 들어와 보관된 토큰이 있으면 먼저 계정에 귀속시킨다.
+    // (쿠폰 링크 → 가입 → 대시보드 경로에서는 /design 을 거치지 않아 리딤될 기회가 없었다.)
+    let cancelled = false;
+    redeemPendingReportToken()
+      .catch(() => false)
+      .then(() => getReportAccessJobs())
+      .then((v) => { if (!cancelled) setReportAccess(v); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -311,6 +421,11 @@ function UserDashboardInner() {
     }
   }
 
+  /* 배지에 쓸 '아직 쓸 수 있는 쿠폰' 장수 — 만료·사용완료 쿠폰은 세지 않는다. */
+  const usableCoupons = (reportAccess?.coupons ?? []).filter((c) => c.available && !c.expired).length;
+  /* 쿠폰 탭 노출 여부 — 사용 완료·만료 쿠폰도 이력으로 보여주므로 '한 장이라도 있으면' 기준. */
+  const hasCoupons = (reportAccess?.coupons?.length ?? 0) > 0 || Boolean(reportAccess?.free_email);
+
   /* 30일권 상태 — 배지·남은 기간·결제 버튼 노출에 사용. 자동갱신 없음(선불 이용권) */
   const [sub, setSub] = useState<Subscription | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -403,6 +518,12 @@ function UserDashboardInner() {
             <div className="max-w-3xl mx-auto">
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 <h1 className="text-xl font-bold text-slate-900">분석 대시보드</h1>
+                {/* 무료 쿠폰 배지 — 쓸 수 있는 쿠폰이 남아 있을 때만 노출 */}
+                {usableCoupons > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                    <Ticket size={12} /> 무료 쿠폰 {usableCoupons}장
+                  </span>
+                )}
                 {/* 30일권 배지 — 이용권이 살아 있을 때만 노출 */}
                 {sub?.active && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
@@ -448,6 +569,18 @@ function UserDashboardInner() {
                       </span>
                     )}
                   </button>
+                  {/* 내 무료 쿠폰 — 쿠폰(또는 무료 제공 계정 권한)이 있을 때만 노출 */}
+                  {hasCoupons && (
+                    <button onClick={() => setAnalysisTab("coupons")}
+                      className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-all flex-shrink-0 ${analysisTab === "coupons" ? "bg-indigo-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"}`}>
+                      <Ticket size={14} /> 내 무료 쿠폰
+                      {usableCoupons > 0 && (
+                        <span className={`ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${analysisTab === "coupons" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"}`}>
+                          {usableCoupons}
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -727,6 +860,17 @@ function UserDashboardInner() {
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* ── 내 무료 쿠폰 탭 ── */}
+              {analysisTab === "coupons" && (
+                <div className="space-y-5">
+                  <CouponCard
+                    coupons={reportAccess?.coupons ?? []}
+                    freeEmail={Boolean(reportAccess?.free_email)}
+                    history={history}
+                  />
                 </div>
               )}
 
