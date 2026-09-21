@@ -290,8 +290,18 @@ export async function authGetMe(): Promise<AuthUser | null> {
 }
 
 /** 소셜 로그인 시작 URL. 브라우저를 이 URL로 이동시키면 백엔드 → OAuth → 프론트 콜백 흐름이 시작됩니다. */
-export function authSocialLoginUrl(provider: "google" | "kakao" | "naver"): string {
-  return `${API_BASE.replace(/\/$/, "")}/accounts/${provider}/login/?process=login`;
+export function authSocialLoginUrl(
+  provider: "google" | "kakao" | "naver",
+  /** 무료 열람 쿠폰 토큰 — 주면 백엔드가 세션에 담아 뒀다가 가입/로그인 시 계정에 귀속한다. */
+  coupon?: string,
+): string {
+  const base = API_BASE.replace(/\/$/, "");
+  // 쿠폰이 있을 때만 시작 브릿지를 경유한다. 없으면 기존 경로 그대로 —
+  // 소셜로그인 진입 경로를 바꾸는 범위를 쿠폰 사용자로 한정하기 위함.
+  if (coupon) {
+    return `${base}/api/auth/social-start/${provider}?coupon=${encodeURIComponent(coupon)}`;
+  }
+  return `${base}/accounts/${provider}/login/?process=login`;
 }
 
 /** Access 토큰을 refresh로 갱신. SimpleJWT 표준 /api/auth/token/refresh/. 성공 시 새 access 반환, 실패 시 null. */

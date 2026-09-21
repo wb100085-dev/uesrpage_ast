@@ -140,7 +140,11 @@ function LoginInner() {
   function startSocialLogin(provider: "google" | "kakao" | "naver") {
     setError(null);
     setLoading(true);
-    window.location.href = authSocialLoginUrl(provider);
+    // 무료 쿠폰 링크로 들어와 보관된 토큰이 있으면 함께 넘긴다 — 소셜 가입은 회원가입
+    // 요청을 안 타므로, 백엔드가 세션에 담아 뒀다가 가입/로그인 시점에 귀속시킨다.
+    let coupon = "";
+    try { coupon = localStorage.getItem(FREE_REPORT_PASS_KEY) || ""; } catch { /* noop */ }
+    window.location.href = authSocialLoginUrl(provider, coupon || undefined);
   }
 
   async function handleEmailSubmit(e: React.FormEvent) {

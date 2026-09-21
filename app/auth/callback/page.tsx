@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, Sparkles } from "lucide-react";
 import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
 import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
+import { redeemPendingReportToken } from "@/lib/survey-api";
 
 /**
  * 소셜 로그인 콜백 페이지.
@@ -72,6 +73,9 @@ function AuthCallbackInner() {
       } catch {
         // 무시 — 토큰만 있어도 대시보드는 동작
       }
+      // 무료 쿠폰 링크로 들어와 보관된 토큰이 있으면 여기서 계정에 귀속시킨다.
+      // (백엔드 세션 경유 귀속의 보험 — 이동 목적지가 대시보드가 아닐 수도 있다.)
+      await redeemPendingReportToken().catch(() => false);
       // 비로그인 때 체험후기를 누른 사용자라면 후기 설문으로 복원, 아니면 대시보드.
       router.replace(hasPendingReview() ? PENDING_REVIEW_NEXT : "/dashboard/user");
     })();

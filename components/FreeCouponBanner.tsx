@@ -61,7 +61,8 @@ export default function FreeCouponBanner() {
           <>
             <p className="text-sm text-slate-200">
               <span className="font-semibold text-white">상세보고서 무료 쿠폰</span>이 확인되었습니다.
-              <span className="text-slate-400"> 로그인(또는 무료 가입)하시면 계정에 자동으로 적용됩니다.</span>
+              <br />
+              <span className="text-slate-400">로그인(또는 무료 가입)하시면 계정에 자동으로 적용됩니다.</span>
             </p>
             <Link
               href="/login?next=%2Fdesign"
