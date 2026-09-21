@@ -24,6 +24,7 @@ import {
   getRefreshToken,
 } from "@/lib/auth-api";
 import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
+import { redeemPendingReportToken, FREE_REPORT_PASS_KEY } from "@/lib/survey-api";
 
 // 슈퍼유저/스태프가 사용자 프론트에서 로그인하면 관리자 콘솔로 자동 핸드오프.
 // URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
@@ -124,6 +125,11 @@ function LoginInner() {
     } catch {
       // 사용자 정보 조회 실패 시 일반 사용자 흐름으로 폴백
     }
+    // 무료 쿠폰 링크(/free-report?pass=)로 들어와 보관된 토큰이 있으면 로그인 직후 계정에 귀속.
+    // design/dashboard 마운트에도 같은 리딤이 있지만, 이동 경로가 그 둘이 아닐 때도
+    // 쿠폰이 유실되지 않게 여기서 한 번 처리한다. (토큰 없으면 즉시 false 반환)
+    await redeemPendingReportToken().catch(() => false);
+
     // 우선순위: 명시적 next → 보류 중인 체험후기(이메일 인증으로 next가 유실된 경우) → 대시보드
     const next = getSafeNext();
     if (next) { router.push(next); return; }
@@ -147,11 +153,18 @@ function LoginInner() {
         if (password !== password2) {
           throw new Error("비밀번호가 일치하지 않습니다.");
         }
+        // 무료 열람 링크로 들어와 보관된 쿠폰이 있으면 가입 요청에 실어 보낸다.
+        // 서버가 계정 생성 시 귀속하므로, 인증 메일을 다른 기기에서 열어도 유실되지 않는다.
+        let coupon = "";
+        try { coupon = localStorage.getItem(FREE_REPORT_PASS_KEY) || ""; } catch { /* noop */ }
         const res = await authRegister({
           email,
           password1: password,
           password2: password2 || password,
+          ...(coupon ? { coupon } : {}),
         });
+        // 토큰은 지우지 않는다 — 배포 시차로 백엔드가 아직 coupon 필드를 모를 수 있어,
+        // 로그인 후 리딤 경로를 보험으로 남겨 둔다. 같은 계정의 재리딤은 무소모다.
         // 토큰이 발급되었으면 검증 비활성 환경 → 즉시 대시보드 이동
         // 토큰 없이 detail만 왔으면 mandatory → 인증 안내 화면
         const access = res.access ?? res.access_token ?? res.key;

@@ -134,10 +134,13 @@ const COUPON_SCOPE: Record<ReportCoupon["kind"], string> = {
 function CouponCard({
   coupons,
   freeEmail,
+  freeOnce,
   history,
 }: {
   coupons: ReportCoupon[];
   freeEmail: boolean;
+  /** 관리자 '1회 무료 제공 이메일' 권한 — 없으면 null */
+  freeOnce: { available: boolean; job_id: string | null } | null;
   history: HistoryItem[];
 }) {
   const titleOf = (jobId: string) =>
@@ -151,7 +154,7 @@ function CouponCard({
       <p className="text-xs text-slate-500 mb-4 leading-relaxed break-keep">
         조사를 완료하면 결제 없이 상세보고서를 열람할 수 있습니다.
       </p>
-      {coupons.length === 0 && !freeEmail && (
+      {coupons.length === 0 && !freeEmail && !freeOnce && (
         <p className="text-sm text-slate-400 py-6 text-center">보유한 쿠폰이 없습니다.</p>
       )}
       <div className="space-y-2">
@@ -163,6 +166,28 @@ function CouponCard({
             </div>
             <span className="flex-shrink-0 text-[11px] font-bold px-2 py-1 rounded-full bg-emerald-600 text-white">
               사용 가능
+            </span>
+          </div>
+        )}
+        {freeOnce && (
+          <div className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 ${
+            freeOnce.available ? "border-emerald-100 bg-emerald-50/60" : "border-slate-100 bg-slate-50"
+          }`}>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${freeOnce.available ? "text-emerald-800" : "text-slate-500"}`}>
+                무료 제공 계정 (1회)
+              </p>
+              <p className={`text-xs mt-0.5 ${freeOnce.available ? "text-emerald-700" : "text-slate-400"}`}>
+                상세보고서 1건 무료 열람
+              </p>
+              {freeOnce.job_id && (
+                <p className="text-xs text-slate-400 mt-0.5 truncate">사용한 조사: {titleOf(freeOnce.job_id)}</p>
+              )}
+            </div>
+            <span className={`flex-shrink-0 text-[11px] font-bold px-2 py-1 rounded-full ${
+              freeOnce.available ? "bg-emerald-600 text-white" : "bg-slate-200 text-slate-500"
+            }`}>
+              {freeOnce.available ? "사용 가능" : "사용 완료"}
             </span>
           </div>
         )}
@@ -422,9 +447,11 @@ function UserDashboardInner() {
   }
 
   /* 배지에 쓸 '아직 쓸 수 있는 쿠폰' 장수 — 만료·사용완료 쿠폰은 세지 않는다. */
-  const usableCoupons = (reportAccess?.coupons ?? []).filter((c) => c.available && !c.expired).length;
+  const usableCoupons = (reportAccess?.coupons ?? []).filter((c) => c.available && !c.expired).length
+    + (reportAccess?.free_once?.available ? 1 : 0);
   /* 쿠폰 탭 노출 여부 — 사용 완료·만료 쿠폰도 이력으로 보여주므로 '한 장이라도 있으면' 기준. */
-  const hasCoupons = (reportAccess?.coupons?.length ?? 0) > 0 || Boolean(reportAccess?.free_email);
+  const hasCoupons = (reportAccess?.coupons?.length ?? 0) > 0
+    || Boolean(reportAccess?.free_email) || Boolean(reportAccess?.free_once);
 
   /* 30일권 상태 — 배지·남은 기간·결제 버튼 노출에 사용. 자동갱신 없음(선불 이용권) */
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -869,6 +896,7 @@ function UserDashboardInner() {
                   <CouponCard
                     coupons={reportAccess?.coupons ?? []}
                     freeEmail={Boolean(reportAccess?.free_email)}
+                    freeOnce={reportAccess?.free_once ?? null}
                     history={history}
                   />
                 </div>

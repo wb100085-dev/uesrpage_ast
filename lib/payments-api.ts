@@ -91,8 +91,10 @@ export type ReportAccess = {
   job_ids: string[];
   /** 내 쿠폰 목록 — 구버전 백엔드 호환을 위해 optional */
   coupons?: ReportCoupon[];
-  /** 관리자 '무료 제공 이메일' 목록에 등록된 계정인지 */
+  /** 관리자 '무료 제공 이메일' 목록에 등록된 계정인지 (무제한) */
   free_email?: boolean;
+  /** 관리자 '1회 무료 제공 이메일' 권한 — 등록되지 않은 계정이면 null */
+  free_once?: { available: boolean; job_id: string | null; claimed_at: string | null } | null;
 };
 
 /** 내가 상세보고서를 볼 수 있는 조사 목록 (결제 완료 + 쿠폰 바인딩 + 무제한 권한). */

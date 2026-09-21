@@ -11,6 +11,7 @@ import CtaLink from "@/components/CtaLink";
 import SiteFooter from "@/components/SiteFooter";
 import StartCtaButtons from "@/components/StartCtaButtons";
 import HeroVideo from "@/components/HeroVideo";
+import FreeCouponBanner from "@/components/FreeCouponBanner";
 
 /* ─────────────────────────────────────────
    How it works — mini screen mockups
@@ -492,6 +493,8 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Navbar dark />
+      {/* 무료 쿠폰 링크로 들어온 방문자에게만 보이는 안내 (보관 토큰 없으면 렌더 안 함) */}
+      <FreeCouponBanner />
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden mesh-bg noise min-h-[88vh] sm:min-h-[92vh] flex items-center">

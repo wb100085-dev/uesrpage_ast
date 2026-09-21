@@ -230,10 +230,17 @@ export async function authLogin(input: {
  *  - 이메일 검증이 mandatory면 토큰 없이 {"detail":"Verification e-mail sent."} 반환
  *  - 검증 비활성/optional이면 access/refresh 즉시 발급
  */
+/**
+ * 회원가입. `coupon`(무료 열람 링크 토큰)을 함께 보내면 서버가 계정 생성 직후
+ * 그 계정에 귀속시킨다 — 인증 메일을 다른 기기/브라우저에서 열어도 쿠폰이 살아남는다.
+ * (localStorage 는 기기별로 따로 놀기 때문에 로그인 후 리딤만으로는 유실될 수 있다.)
+ * 쿠폰이 만료·소진·무효여도 가입 자체는 정상 진행된다.
+ */
 export async function authRegister(input: {
   email: string;
   password1: string;
   password2: string;
+  coupon?: string;
 }): Promise<LoginResponse & { detail?: string }> {
   clearAuth();
   try {
