@@ -9,6 +9,7 @@ import {
 import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
 import QuestionResultCard from "@/components/QuestionResultCard";
+import PanelInterview from "@/components/PanelInterview";
 import { trackEvent } from "@/lib/analytics";
 import {
   getSurveyResults,
@@ -46,6 +47,9 @@ function ResultsPageInner() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   // 상세분석(상세보고서) 생성 상태 — 결제 후 결과 진입 시 자동 트리거·폴링.
   const [detailStatus, setDetailStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+
+  // 우측 패널 탭 — 전체 분석(집계 요약 챗) / 심층 인터뷰(개별 응답자 1인칭)
+  const [panelTab, setPanelTab] = useState<"analysis" | "interview">("analysis");
 
   // 가상인구 패널에게 질문 (챗)
   const [messages, setMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
@@ -318,14 +322,40 @@ function ResultsPageInner() {
           {/* 우 — 가상인구 패널에게 질문 (스티키) */}
           <aside className="lg:sticky lg:top-20 self-start">
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[32rem] lg:h-[calc(100vh-7rem)]">
-              <div className="px-5 py-4 border-b border-slate-100">
+              <div className="px-5 pt-4 pb-0 border-b border-slate-100">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 할 수 있습니다.
+                <p className="mt-0.5 mb-3 text-xs text-slate-400">
+                  {panelTab === "analysis"
+                    ? "설문 결과 전체를 기준으로 궁금한 점을 물어볼 수 있습니다."
+                    : "설문에 참여한 응답자 본인에게 인터뷰하듯 직접 물어볼 수 있습니다."}
                 </p>
+                {/* 탭 — 집계 요약 답변 / 개인 응답자 1인칭 답변 */}
+                <div className="flex gap-4 -mb-px">
+                  {([
+                    { key: "analysis", label: "전체 분석" },
+                    { key: "interview", label: "심층 인터뷰" },
+                  ] as const).map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setPanelTab(t.key)}
+                      className={`pb-2 text-xs font-medium border-b-2 transition ${
+                        panelTab === t.key
+                          ? "border-indigo-500 text-indigo-600"
+                          : "border-transparent text-slate-400 hover:text-slate-600"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {panelTab === "interview" ? (
+                <PanelInterview jobId={jobId} />
+              ) : (
+              <>
 
               {/* 메시지 */}
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
@@ -400,6 +430,8 @@ function ResultsPageInner() {
                   </button>
                 </form>
               </div>
+              </>
+              )}
             </div>
           </aside>
         </div>

@@ -310,6 +310,61 @@ export function askPanel(jobId: string, question: string): Promise<{ answer: str
   });
 }
 
+// ─── 가상인구 패널 심층 인터뷰 (개인 응답자 1:N) ──────────────
+// askPanel(집계 요약)과 달리, 설문에 실제 참여한 개인 가상인구가 1인칭으로 답한다.
+// 성별×연령 층화로 뽑은 최대 5명이 한 질문에 각자 답변 (FGI 형태). 유료 전용.
+
+export interface InterviewMember {
+  id: string;
+  name: string;
+  /** "여 · 30대 · 서울특별시 강남구" */
+  label: string;
+  gender: string;
+  age: string;
+  region: string;
+  job: string;
+  education: string;
+  income: string;
+  n_answers: number;
+}
+
+export interface InterviewAnswer {
+  id: string;
+  name: string;
+  label: string;
+  answer: string;
+  ok: boolean;
+}
+
+/** 인터뷰 대화 1턴 — 질문 1개 + 패널 각자의 답변 (다음 질문에 맥락으로 되돌려 보낸다) */
+export interface InterviewTurn {
+  question: string;
+  answers: InterviewAnswer[];
+}
+
+export function getInterviewPanel(
+  jobId: string,
+): Promise<{ members: InterviewMember[]; n_respondents: number; sido: string }> {
+  return apiFetch(`/api/survey/${jobId}/interview-panel`);
+}
+
+export function askInterviewPanel(
+  jobId: string,
+  question: string,
+  history: InterviewTurn[] = [],
+  memberIds?: string[],
+): Promise<{ question: string; answers: InterviewAnswer[] }> {
+  return apiFetch(`/api/survey/${jobId}/interview`, {
+    method: "POST",
+    body: JSON.stringify({
+      question,
+      // 각 패널이 자기 앞선 발언만 기억하도록 턴 단위로 되돌려 보낸다 (서버는 무상태)
+      history: history.slice(-4),
+      ...(memberIds && memberIds.length ? { member_ids: memberIds } : {}),
+    }),
+  });
+}
+
 // ─── 파일 다운로드 (Blob, Bearer 첨부) ────────────────────────
 
 async function apiBlob(path: string): Promise<Blob> {
