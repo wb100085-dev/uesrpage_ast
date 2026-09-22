@@ -34,9 +34,9 @@ export default function CtaLink({
     <Link
       href={isUser ? dashboardHref : loginHref}
       className={className}
-      // GA4 이벤트명은 백엔드 analytics_dashboard_views.py 화이트리스트와
-      // 관리자 TrafficDashboard 가 같은 키를 참조하므로 바꾸지 않는다(버튼 라벨만 변경됨).
-      onClick={() => trackEvent("무료체험_클릭", { 로그인여부: isUser ? "로그인" : "비로그인" })}
+      // GA4 이벤트명은 백엔드 analytics_dashboard_views.py 의 TRACKED_EVENTS·FUNNEL_STEPS 와
+      // 같은 키를 써야 한다. 옛 이름(무료체험_클릭)은 퍼널이 병행해 읽으므로 과거 데이터는 유지된다.
+      onClick={() => trackEvent("조사시작하기_클릭", { 로그인여부: isUser ? "로그인" : "비로그인" })}
     >
       {children}
     </Link>

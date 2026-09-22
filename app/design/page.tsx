@@ -1204,6 +1204,12 @@ function DesignPageInner() {
         return;
       }
     }
+    // 트래픽 퍼널의 '무료체험' 단계 — 결제 게이트를 통과해 무료 구간(10명)으로 실제
+    // 실행에 들어간 시점에만 보낸다. 유료 조사는 결제완료 이벤트가 따로 집계한다.
+    if (!panelProductKey(panelSize)) {
+      trackEvent("무료체험_실행", { 패널수: panelSize });
+    }
+
     const selected = [...selectedHypotheses].sort((a, b) => a - b).map((i) => hypothesisTexts[i]);
     const hyps = (selected.length > 0 ? selected : hypothesisTexts).filter((h) => h && h.trim());
 

@@ -1,10 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
+import TrackEventOnce from "@/components/TrackEventOnce";
 
 export default function EmailVerifiedPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center px-4 py-12">
+      {/* 트래픽 퍼널의 '회원가입' 단계 — 이메일 인증까지 끝나야 가입 완료다. */}
+      <TrackEventOnce name="회원가입" params={{ 방식: "이메일" }} />
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl" />

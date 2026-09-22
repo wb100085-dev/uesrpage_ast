@@ -6,6 +6,7 @@ import { AlertCircle, Sparkles } from "lucide-react";
 import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
 import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
 import { redeemPendingReportToken } from "@/lib/survey-api";
+import { trackEvent } from "@/lib/analytics";
 
 /**
  * 소셜 로그인 콜백 페이지.
@@ -64,6 +65,12 @@ function AuthCallbackInner() {
     setAuthTokens(access, refresh);
     if (username) {
       setCachedUser({ username, email: "" });
+    }
+
+    // 트래픽 퍼널의 '회원가입' 단계 — 소셜은 가입과 로그인이 같은 콜백으로 돌아오므로,
+    // 백엔드(social_finish)가 방금 가입한 경우에만 signup=1 을 붙여 준다.
+    if (params.get("signup") === "1") {
+      trackEvent("회원가입", { 방식: "소셜" });
     }
 
     // 사용자 상세를 백엔드에서 조회해 캐시 갱신 후 대시보드로 이동
