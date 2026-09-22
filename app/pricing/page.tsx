@@ -143,7 +143,9 @@ export default function PricingPage() {
               가상인구 <strong className="text-slate-700 font-semibold">10명</strong>까지는 무료로 체험할 수 있습니다.
               그 다음부터는 조사 규모에 맞춰 건당 결제하거나, 자주 조사하신다면 30일권을 선택하세요.
               <br className="hidden sm:block" />
-              <strong className="text-slate-700 font-semibold">정기 구독(자동결제) 상품은 판매하지 않습니다</strong> — 모든 상품은 결제한 그 건에만 적용되는 선불 방식입니다.
+              <strong className="text-slate-700 font-semibold">정기 구독(자동결제) 상품은 판매하지 않습니다.</strong>
+              <br />
+              모든 상품은 결제한 그 건에만 적용되는 선불 방식입니다.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-500">
