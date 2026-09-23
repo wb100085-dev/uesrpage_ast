@@ -10,7 +10,9 @@ import Navbar from "@/components/Navbar";
 import RequireAuth from "@/components/RequireAuth";
 import QuestionResultCard from "@/components/QuestionResultCard";
 import PanelInterview from "@/components/PanelInterview";
+import PaidLockNotice from "@/components/PaidLockNotice";
 import { trackEvent } from "@/lib/analytics";
+import { getReportAccessJobs } from "@/lib/payments-api";
 import {
   getSurveyResults,
   startDetail,
@@ -56,6 +58,23 @@ function ResultsPageInner() {
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  // 전체 분석 챗도 유료 전용이다(서버 가드와 동일 기준). 로드 시 한 번 확인해
+  // 무료 이용자에게는 입력창 대신 안내를 띄운다 — 질문을 다 쓴 뒤 403 을 만나지 않도록.
+  const [chatLocked, setChatLocked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await getReportAccessJobs();
+        if (!cancelled) setChatLocked(!(r.all_access || (r.job_ids ?? []).includes(jobId)));
+      } catch {
+        // 조회 실패 시 잠그지 않는다 — 실제 차단은 서버가 하고, 여기서 막으면
+        // 일시적 네트워크 오류로 유료 이용자가 기능을 잃는다.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [jobId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,7 +164,13 @@ function ResultsPageInner() {
       const { answer } = await askPanel(jobId, q);
       setMessages((m) => [...m, { role: "panel", text: answer }]);
     } catch (e) {
-      setChatError(e instanceof Error ? e.message : "답변을 받지 못했습니다.");
+      const msg = e instanceof Error ? e.message : "답변을 받지 못했습니다.";
+      if (/^API 오류 403\b/.test(msg)) {
+        setChatLocked(true);
+        setMessages((m) => m.slice(0, -1)); // 보낸 질문 되돌리기
+      } else {
+        setChatError(msg);
+      }
     } finally {
       setChatSending(false);
     }
@@ -354,6 +379,11 @@ function ResultsPageInner() {
 
               {panelTab === "interview" ? (
                 <PanelInterview jobId={jobId} />
+              ) : chatLocked ? (
+                <PaidLockNotice
+                  title="설문 결과 분석 질문은 유료 이용자 전용입니다"
+                  desc="결제 또는 30일권을 이용하시면 이 조사 결과에 대해 자유롭게 질문할 수 있습니다."
+                />
               ) : (
               <>
 

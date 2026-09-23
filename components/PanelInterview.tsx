@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, Users, Lock, RefreshCw } from "lucide-react";
+import { Send, Users, RefreshCw } from "lucide-react";
+import PaidLockNotice from "@/components/PaidLockNotice";
 import {
   getInterviewPanel,
   askInterviewPanel,
@@ -109,21 +110,10 @@ export default function PanelInterview({ jobId }: { jobId: string }) {
 
   if (locked) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-10">
-        <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-          <Lock size={18} className="text-slate-400" />
-        </div>
-        <p className="text-sm font-medium text-slate-700 mb-1.5">심층 인터뷰는 유료 이용자 전용입니다</p>
-        <p className="text-xs text-slate-400 leading-relaxed max-w-[15rem]">
-          결제 또는 30일권을 이용하시면 이 설문에 참여한 가상인구와 직접 대화할 수 있습니다.
-        </p>
-        <a
-          href="/pricing"
-          className="mt-4 inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white hover:bg-indigo-700 transition"
-        >
-          이용권 안내 보기
-        </a>
-      </div>
+      <PaidLockNotice
+        title="심층 인터뷰는 유료 이용자 전용입니다"
+        desc="결제 또는 30일권을 이용하시면 이 설문에 참여한 가상인구와 직접 대화할 수 있습니다."
+      />
     );
   }
 
