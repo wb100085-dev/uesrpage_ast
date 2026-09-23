@@ -3,8 +3,9 @@ import { getMySubscription } from "./payments-api";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// 기본 AI 모델 — GPT-5.5 (최고급). 백엔드 ai_router 가 요청별 model 오버라이드로 사용.
-export const DEFAULT_AI_MODEL = "gpt-5.5";
+// 기본 AI 모델 — 관리자 설정(/api/settings) 조회에 실패했을 때만 쓰는 폴백이다.
+// 백엔드 utils/openai_client.DEFAULT_MODEL·api/settings_views._DEFAULTS 와 같은 값을 둔다.
+export const DEFAULT_AI_MODEL = "gpt-6-sol";
 // 가상인구 추출 기본 표본 수 (설정 API 실패 시 폴백 — 평소엔 관리자 대시보드 값을 따름)
 export const DEFAULT_SAMPLE_SIZE = 100;
 // 조사 실행 기본 지역 (설정 API 실패 시 폴백)
