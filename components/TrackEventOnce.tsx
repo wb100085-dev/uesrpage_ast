@@ -25,12 +25,18 @@ export default function TrackEventOnce({
     if (once) {
       try {
         if (localStorage.getItem(flag)) return;
-        localStorage.setItem(flag, "1");
       } catch {
         // 시크릿 모드·저장소 차단 — 중복 방지는 포기하고 이벤트는 보낸다
       }
     }
-    trackEvent(name, params);
+    // '보냄' 표시는 실제로 전송된 뒤에만 남긴다 — 먼저 남기면 gtag 가 없어 버려진
+    // 이벤트가 새로고침해도 다시 전송되지 않는다.
+    if (!trackEvent(name, params) || !once) return;
+    try {
+      localStorage.setItem(flag, "1");
+    } catch {
+      // 저장소 차단 — 무시
+    }
     // params 는 렌더마다 새 객체일 수 있어 의존성에서 제외한다(이벤트는 마운트 1회만).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, once]);

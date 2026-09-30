@@ -58,10 +58,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           strategy="afterInteractive"
         />
-        <Script id="ga4-init" strategy="afterInteractive">
+        {/* gtag 큐는 페이지 코드보다 먼저 준비돼야 한다(beforeInteractive). afterInteractive 면
+            마운트 즉시 보내는 이벤트(/email-verified 의 회원가입 등)가 gtag 없음으로 버려진다. */}
+        <Script id="ga4-init" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
             gtag('js', new Date());
             // 내부자(직원) 트래픽 표시 — /?internal=1 로 1회 접속하면 이 브라우저의
             // 모든 방문이 traffic_type=internal 로 전송되어 GA4 통계에서 제외된다.
