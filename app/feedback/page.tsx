@@ -6,10 +6,12 @@ import { MessageSquare, Loader2, CheckCircle2, AlertCircle, ArrowRight, ArrowLef
 import {
   SURVEY_SERVICE_REVIEW,
   SURVEY_REPORT_QUALITY,
+  surveyHeader,
   type ReviewSurvey,
 } from "@/lib/review-survey";
-import { SurveyForm, buildAnswers, validate } from "@/components/ReviewSurveyForm";
+import { SurveyForm, buildAnswers, validate, type BiMsg } from "@/components/ReviewSurveyForm";
 import { submitReviewResponse } from "@/lib/survey-api";
+import { useLang, useT } from "@/lib/i18n";
 
 type Step = 1 | 2 | "done";
 
@@ -20,6 +22,8 @@ type Step = 1 | 2 | "done";
  * 백엔드 리뷰 응답 저장소(관리자 대시보드 "설문결과" 탭)에 그대로 기록됩니다.
  */
 export default function FeedbackPage() {
+  const lang = useLang();
+  const t = useT();
   const [step, setStep] = useState<Step>(1);
 
   // 응답 상태 (설문별 분리)
@@ -31,7 +35,8 @@ export default function FeedbackPage() {
   const [text2, setText2] = useState<Record<string, string>>({});
 
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // 백엔드 에러는 원문 문자열 그대로, 프론트 안내는 [한, 영] 쌍
+  const [error, setError] = useState<string | BiMsg | null>(null);
 
   async function submitSurvey(
     survey: ReviewSurvey,
@@ -55,19 +60,25 @@ export default function FeedbackPage() {
       setStep(next);
       if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "응답 저장에 실패했습니다.");
+      setError(err instanceof Error ? err.message : ["응답 저장에 실패했습니다.", "Failed to save your response."]);
     } finally {
       setSubmitting(false);
     }
   }
 
+  const h1 = surveyHeader(SURVEY_SERVICE_REVIEW, lang);
+  const h2 = surveyHeader(SURVEY_REPORT_QUALITY, lang);
   const headerByStep: Record<string, { sub: string; title: string; meta: string }> = {
     // 공개 링크에는 다운로드 리워드가 없으므로 설문1의 "무료 다운로드" 안내 문구는 빼고 표기
-    1: { sub: SURVEY_SERVICE_REVIEW.subtitle, title: SURVEY_SERVICE_REVIEW.title, meta: "소요 시간 약 3~5분 · 총 14문항" },
-    2: { sub: SURVEY_REPORT_QUALITY.subtitle, title: SURVEY_REPORT_QUALITY.title, meta: SURVEY_REPORT_QUALITY.meta },
-    done: { sub: "완료", title: "감사합니다", meta: "소중한 의견 감사합니다 · SocialTwin" },
+    1: { sub: h1.subtitle, title: h1.title, meta: t("소요 시간 약 3~5분 · 총 14문항", "About 3–5 minutes · 14 questions") },
+    2: { sub: h2.subtitle, title: h2.title, meta: h2.meta },
+    done: t(
+      { sub: "완료", title: "감사합니다", meta: "소중한 의견 감사합니다 · SocialTwin" },
+      { sub: "Complete", title: "Thank you", meta: "Thanks for your feedback · Socialtwin" },
+    ),
   };
   const h = headerByStep[String(step)];
+  const errorText = error == null ? null : typeof error === "string" ? error : t(error[0], error[1]);
 
   return (
     <main className="min-h-screen mesh-bg flex items-center justify-center px-4 py-10">
@@ -108,17 +119,17 @@ export default function FeedbackPage() {
               <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
                 <CheckCircle2 size={28} className="text-emerald-500" />
               </div>
-              <h2 className="text-base font-bold text-slate-900 mb-1">참여해 주셔서 감사합니다</h2>
-              <p className="text-xs text-slate-500 leading-relaxed">남겨주신 의견은 서비스 개선에 소중히 활용하겠습니다.</p>
+              <h2 className="text-base font-bold text-slate-900 mb-1">{t("참여해 주셔서 감사합니다", "Thank you for participating")}</h2>
+              <p className="text-xs text-slate-500 leading-relaxed">{t("남겨주신 의견은 서비스 개선에 소중히 활용하겠습니다.", "We'll use your feedback to improve the service.")}</p>
             </div>
           )}
         </div>
 
         {/* 에러 */}
-        {error && (
+        {errorText && (
           <div className="mx-6 mb-2 flex items-start gap-2 text-[11px] text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
             <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span>{errorText}</span>
           </div>
         )}
 
@@ -130,26 +141,26 @@ export default function FeedbackPage() {
               disabled={submitting}
               className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-400 transition-all disabled:opacity-60"
             >
-              {submitting ? <><Loader2 size={14} className="animate-spin" /> 제출 중…</> : <>다음 설문으로 <ArrowRight size={14} /></>}
+              {submitting ? <><Loader2 size={14} className="animate-spin" /> {t("제출 중…", "Submitting…")}</> : <>{t("다음 설문으로", "Next survey")} <ArrowRight size={14} /></>}
             </button>
           )}
           {step === 2 && (
             <>
               <button onClick={() => { setError(null); setStep(1); }} className="flex items-center justify-center gap-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-all">
-                <ArrowLeft size={14} /> 이전
+                <ArrowLeft size={14} /> {t("이전", "Back")}
               </button>
               <button
                 onClick={() => submitSurvey(SURVEY_REPORT_QUALITY, single2, multi2, text2, "done")}
                 disabled={submitting}
                 className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-400 transition-all disabled:opacity-60"
               >
-                {submitting ? <><Loader2 size={14} className="animate-spin" /> 제출 중…</> : <>평가 제출</>}
+                {submitting ? <><Loader2 size={14} className="animate-spin" /> {t("제출 중…", "Submitting…")}</> : <>{t("평가 제출", "Submit review")}</>}
               </button>
             </>
           )}
           {step === "done" && (
             <Link href="/" className="flex-1 text-center py-3 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-all">
-              SocialTwin 홈으로
+              {t("SocialTwin 홈으로", "Go to Socialtwin home")}
             </Link>
           )}
         </div>

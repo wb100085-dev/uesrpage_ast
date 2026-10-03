@@ -9,6 +9,7 @@ import {
   parseJwtExp,
   authRefreshToken,
 } from "@/lib/auth-api";
+import { useT } from "@/lib/i18n";
 
 /**
  * 세션 만료 가드 (방식 B: 활동 기반 자동 갱신 + 비활동 시 팝업).
@@ -38,6 +39,7 @@ function currentPath(): string {
 export default function SessionGuard() {
   const router = useRouter();
   const pathname = usePathname();
+  const t = useT();
   const [showWarn, setShowWarn] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -186,7 +188,10 @@ export default function SessionGuard() {
 
   const mins = Math.floor(countdown / 60);
   const secs = countdown % 60;
-  const timeText = `${mins}분 ${String(secs).padStart(2, "0")}초`;
+  const timeText = t(
+    `${mins}분 ${String(secs).padStart(2, "0")}초`,
+    `${mins}:${String(secs).padStart(2, "0")}`,
+  );
 
   return (
     <div
@@ -202,12 +207,20 @@ export default function SessionGuard() {
           </div>
           <div>
             <h2 id="session-warn-title" className="text-base font-bold text-slate-900">
-              세션이 곧 만료됩니다
+              {t("세션이 곧 만료됩니다", "Your session is about to expire")}
             </h2>
             <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-              비활동 상태가 길어졌어요.{" "}
-              <b className="text-slate-700 tabular-nums">{timeText}</b> 후 자동
-              로그아웃됩니다.
+              {t(
+                <>
+                  비활동 상태가 길어졌어요.{" "}
+                  <b className="text-slate-700 tabular-nums">{timeText}</b> 후 자동
+                  로그아웃됩니다.
+                </>,
+                <>
+                  You&apos;ve been inactive for a while. You&apos;ll be logged out automatically in{" "}
+                  <b className="text-slate-700 tabular-nums">{timeText}</b>.
+                </>,
+              )}
             </p>
           </div>
         </div>
@@ -216,7 +229,7 @@ export default function SessionGuard() {
             onClick={handleLogoutNow}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200 transition-colors"
           >
-            <LogOut size={14} /> 지금 로그아웃
+            <LogOut size={14} /> {t("지금 로그아웃", "Log out now")}
           </button>
           <button
             onClick={handleExtend}
@@ -224,7 +237,7 @@ export default function SessionGuard() {
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-60 transition-colors"
           >
             <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            {refreshing ? "연장 중…" : "연장하기"}
+            {refreshing ? t("연장 중…", "Extending…") : t("연장하기", "Stay logged in")}
           </button>
         </div>
       </div>

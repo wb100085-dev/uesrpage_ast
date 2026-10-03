@@ -31,6 +31,8 @@ import { trackEvent } from "@/lib/analytics";
 import SocialTwinLoader from "@/components/SocialTwinLoader";
 import AttachmentSection, { type SurveyAttachment } from "@/components/AttachmentSection";
 import { getAccessToken, getCachedUser } from "@/lib/auth-api";
+import { useLang, useT, type Lang } from "@/lib/i18n";
+import { useLabel } from "@/lib/i18n-labels";
 import {
   createDraft as apiCreateDraft,
   updateDraft as apiUpdateDraft,
@@ -92,11 +94,12 @@ function fileToDataUrl(file: File): Promise<string> {
 /* ─────────────────────────────────────────
    상수
 ───────────────────────────────────────── */
-const TRADE_TYPES: { code: string; en: string; ko: string; desc: string; icon: string }[] = [
-  { code: "B2C", en: "Business-to-Consumer", ko: "기업 → 소비자", desc: "일반 소비자에게 직접 판매", icon: "🛍️" },
-  { code: "B2B", en: "Business-to-Business", ko: "기업 → 기업", desc: "다른 기업에 납품·판매", icon: "🏢" },
-  { code: "B2G", en: "Business-to-Government", ko: "기업 → 정부·공공", desc: "정부·공공기관에 납품", icon: "🏛️" },
-  { code: "기타", en: "Others", ko: "그외 거래방식 혹은 해당없음", desc: "C2C·D2C·B2B2C 등", icon: "🧩" },
+// code·en 은 백엔드로 그대로 간다([거래방식] 머리말). 화면 표시는 언어별로 ko/koEn·desc/descEn.
+const TRADE_TYPES: { code: string; en: string; ko: string; koEn: string; desc: string; descEn: string; icon: string }[] = [
+  { code: "B2C", en: "Business-to-Consumer", ko: "기업 → 소비자", koEn: "To consumers", desc: "일반 소비자에게 직접 판매", descEn: "Sell directly to consumers", icon: "🛍️" },
+  { code: "B2B", en: "Business-to-Business", ko: "기업 → 기업", koEn: "To businesses", desc: "다른 기업에 납품·판매", descEn: "Supply or sell to other companies", icon: "🏢" },
+  { code: "B2G", en: "Business-to-Government", ko: "기업 → 정부·공공", koEn: "To the public sector", desc: "정부·공공기관에 납품", descEn: "Supply government and public agencies", icon: "🏛️" },
+  { code: "기타", en: "Others", ko: "그외 거래방식 혹은 해당없음", koEn: "Other / not applicable", desc: "C2C·D2C·B2B2C 등", descEn: "C2C, D2C, B2B2C, etc.", icon: "🧩" },
 ];
 
 const QUESTION_TYPES = ["객관식", "복수선택", "리커트 5점", "리커트 7점", "순위형", "주관식"];
@@ -111,12 +114,13 @@ const SIDO_OPTIONS = [
   "충청남도", "전라북도", "전라남도", "경상북도", "경상남도", "제주특별자치도",
 ];
 
+// options 는 백엔드로 보내는 값(한국어 원문). 영어 화면은 useLabel() 로 표시만 바꾼다.
 const PANEL_AXES = [
-  { key: "genders", label: "성별", options: ["남자", "여자"] },
-  { key: "age_bands", label: "연령대", options: ["10대 이하", "20대", "30대", "40대", "50대", "60대", "70대 이상"] },
-  { key: "economic_activities", label: "경제활동", options: ["경제활동", "비경제활동"] },
-  { key: "education_levels", label: "교육정도", options: ["중졸이하", "고졸", "대졸이상"] },
-  { key: "income_levels", label: "가구소득", options: ["200만원 미만", "200~400만원", "400~600만원", "600만원 이상"] },
+  { key: "genders", label: "성별", labelEn: "Gender", options: ["남자", "여자"] },
+  { key: "age_bands", label: "연령대", labelEn: "Age group", options: ["10대 이하", "20대", "30대", "40대", "50대", "60대", "70대 이상"] },
+  { key: "economic_activities", label: "경제활동", labelEn: "Economic activity", options: ["경제활동", "비경제활동"] },
+  { key: "education_levels", label: "교육정도", labelEn: "Education", options: ["중졸이하", "고졸", "대졸이상"] },
+  { key: "income_levels", label: "가구소득", labelEn: "Household income", options: ["200만원 미만", "200~400만원", "400~600만원", "600만원 이상"] },
 ] as const;
 type AxisKey = (typeof PANEL_AXES)[number]["key"];
 
@@ -128,9 +132,9 @@ const PANEL_SIZE_BY_PRODUCT: Record<string, number> = { survey_100: 100, survey_
 
 /* 패널 수 — 요금제와 1:1. 30일권 이용자는 100명으로 고정된다. */
 const PANEL_SIZES = [
-  { size: 10, name: "무료 체험", price: "무료", desc: "결제 없이 전체 흐름을 확인해보세요." },
-  { size: 100, name: "스탠다드", price: "99,000원", desc: "의사결정에 바로 쓰는 표준 조사 1건.", note: "건당 · 부가세 포함" },
-  { size: 500, name: "프로", price: "300,000원", desc: "표본을 키워 세부 집단까지 나눠 봅니다.", note: "건당 · 부가세 포함" },
+  { size: 10, name: "무료 체험", nameEn: "Free trial", price: "무료", priceEn: "Free", desc: "결제 없이 전체 흐름을 확인해보세요.", descEn: "Try the full flow without paying." },
+  { size: 100, name: "스탠다드", nameEn: "Standard", price: "99,000원", priceEn: "₩99,000", desc: "의사결정에 바로 쓰는 표준 조사 1건.", descEn: "One standard study, ready for decision-making.", note: "건당 · 부가세 포함", noteEn: "per study · VAT incl." },
+  { size: 500, name: "프로", nameEn: "Pro", price: "300,000원", priceEn: "₩300,000", desc: "표본을 키워 세부 집단까지 나눠 봅니다.", descEn: "A larger sample to break results down by subgroup.", note: "건당 · 부가세 포함", noteEn: "per study · VAT incl." },
 ] as const;
 
 const STEPS: Step[] = ["input", "hyp_designing", "hyp_review", "survey_designing", "survey_review", "panel", "result", "survey_running", "survey_result"];
@@ -141,6 +145,7 @@ const STEP_TO_NUM: Record<Step, number> = {
   survey_review: 5, panel: 7, result: 6, survey_running: 7, survey_result: 8,
 };
 const STEP_LABELS = ["질문 입력", "가설 설계", "가설 검토", "설문 생성", "설문 검토", "패널 설정", "최종 검토", "설문 진행", "결과"];
+const STEP_LABELS_EN = ["Brief", "Draft hypotheses", "Review hypotheses", "Draft survey", "Review survey", "Panel setup", "Final review", "Run survey", "Results"];
 const STEP_ICONS = [MessageSquare, Sparkles, Lightbulb, Wand2, ListChecks, SlidersHorizontal, BarChart2, Users, PieChart];
 
 const BACK_MAP: Partial<Record<Step, Step>> = {
@@ -154,31 +159,48 @@ const BACK_MAP: Partial<Record<Step, Step>> = {
   survey_result: "result",
 };
 
+// tag 는 결합 텍스트(정의·목적)의 머리말로 AI 에 전달된다 — 백엔드가 파싱하지 않으므로
+// 영어 화면에서는 tagEn 을 붙여 영어 프롬프트 맥락을 맞춘다.
 const PRODUCT_QUESTIONS = [
   {
     tag: "[대상]",
     label: "1. [대상] 이 제품(서비스)은 정확히 '누구'의 문제를 해결합니까?",
     hint: "단순한 인구통계학적 구분을 넘어, 어떤 상황에 처해 있거나 어떤 고충(Pain Point)을 겪고 있는 사람인지 정의합니다.",
+    tagEn: "[Target]",
+    labelEn: "1. [Target] Exactly whose problem does this product (or service) solve?",
+    hintEn: "Go beyond basic demographics: describe the situation these people are in or the pain points they face.",
   },
   {
     tag: "[본질]",
     label: "2. [본질] 고객이 겪고 있는 문제 중 '어떤 핵심적인 어려움'을 해결합니까?",
     hint: "제공자가 생각하는 기능 중심이 아니라, 고객이 느끼는 가장 가렵고 아픈 부분이 무엇인지에 집중하여 정의합니다.",
+    tagEn: "[Core problem]",
+    labelEn: "2. [Core problem] Which core difficulty in your customers' problem does it solve?",
+    hintEn: "Focus on what customers find most frustrating or painful, not on the features you consider important.",
   },
   {
     tag: "[방법]",
     label: "3. [방법] 그 문제를 해결하기 위한 '결정적인 솔루션'은 무엇입니까?",
     hint: "기술적 메커니즘이나 서비스의 핵심 프로세스를 설명합니다. 어떤 방식으로 고객의 문제를 해소하는지 정의합니다.",
+    tagEn: "[Solution]",
+    labelEn: "3. [Solution] What is the decisive solution to that problem?",
+    hintEn: "Explain the technical mechanism or the core service process — how exactly it resolves the customer's problem.",
   },
   {
     tag: "[차별화]",
     label: "4. [차별화] 기존의 대안(경쟁사 혹은 관습)들과 비교했을 때 무엇이 '다릅니까'?",
     hint: "왜 고객이 다른 서비스가 아닌 이 제품을 선택해야 하는지, 우리만의 독보적인 강점이나 차별적 접근법을 정의합니다.",
+    tagEn: "[Differentiation]",
+    labelEn: "4. [Differentiation] How is it different from existing alternatives (competitors or the status quo)?",
+    hintEn: "Describe your unique strengths or approach — why customers should choose this product over other options.",
   },
   {
     tag: "[결과]",
     label: "5. [결과] 고객이 이 서비스를 이용한 후 얻게 되는 '최종적인 변화'는 무엇입니까?",
     hint: "단순한 결과물이 아니라, 고객의 삶이나 업무 효율성, 감정적 만족도 등에서 일어나는 실질적인 변화(Before & After)를 정의합니다.",
+    tagEn: "[Outcome]",
+    labelEn: "5. [Outcome] What ultimate change do customers experience after using it?",
+    hintEn: "Not just the deliverable — describe the real change in their daily life, work efficiency, or emotional satisfaction (before & after).",
   },
 ];
 
@@ -187,26 +209,41 @@ const PURPOSE_QUESTIONS = [
     tag: "[조사 목적]",
     label: "1. [조사 목적] 이번 시장조사를 통해 의사결정을 내려야 하는 '당면 과제'는 무엇입니까?",
     hint: "신제품 출시 여부, 가격 책정, 브랜드 인지도 파악 등 조사가 끝난 후 즉시 실행에 옮겨야 할 구체적인 목표를 확인합니다.",
+    tagEn: "[Research goal]",
+    labelEn: "1. [Research goal] What immediate decision does this market research need to support?",
+    hintEn: "Pin down the concrete goal you'll act on as soon as the study ends — e.g., whether to launch a new product, how to price it, or how well your brand is known.",
   },
   {
     tag: "[가설 검증]",
     label: "2. [가설 검증] 현재 내부적으로 추측하고 있는 '가장 핵심적인 가설'은 무엇입니까?",
     hint: "\"우리의 주 고객은 30대일 것이다\" 혹은 \"기존 제품의 가격이 비싸서 안 팔릴 것이다\"와 같이, 맞는지 틀린지 확인하고 싶은 전제를 파악합니다.",
+    tagEn: "[Hypothesis]",
+    labelEn: "2. [Hypothesis] What is the key hypothesis your team currently assumes?",
+    hintEn: "Capture the premise you want to confirm or refute, e.g., \"Our main customers are in their 30s\" or \"Our current product isn't selling because it's too expensive.\"",
   },
   {
     tag: "[타겟 상세]",
     label: "3. [타겟 상세] 어떤 특성을 가진 사람들에게 질문했을 때 가장 '신뢰할 만한 답변'을 얻을 수 있습니까?",
     hint: "단순 연령/성별을 넘어 실제 사용자, 잠재 고객, 혹은 경쟁사 이용자 등 응답자의 조건(Screening)을 구체화합니다.",
+    tagEn: "[Target profile]",
+    labelEn: "3. [Target profile] Which respondents would give you the most reliable answers?",
+    hintEn: "Go beyond age and gender — specify respondent criteria (screening), such as current users, prospects, or competitors' customers.",
   },
   {
     tag: "[핵심 지표]",
     label: "4. [핵심 지표] 조사 결과에서 가장 먼저 확인하고 싶은 '핵심 수치'는 무엇입니까?",
     hint: "예) '제품을 사겠다고 답한 응답자 비율', '적정 가격이라 답한 가격대의 평균', '경쟁사 대비 만족도 점수'. 의사결정의 근거가 될 단 하나의 숫자/지표를 적어주세요.",
+    tagEn: "[Key metric]",
+    labelEn: "4. [Key metric] Which number do you want to see first in the results?",
+    hintEn: "E.g., 'share of respondents who say they would buy', 'average price range rated as fair', 'satisfaction score vs. competitors'. Name the one number or metric your decision will rest on.",
   },
   {
     tag: "[활용 계획]",
     label: "5. [활용 계획] 조사 결과가 나온 뒤, 이 데이터를 어떤 '목적'으로 활용하실 예정입니까?",
     hint: "마케팅 캠페인 전략 수립, 투자 유치용 IR 자료, 제품 기능 개선 등 활용처에 따라 설문의 톤앤매너와 분석의 깊이를 조절하기 위함입니다.",
+    tagEn: "[Use of results]",
+    labelEn: "5. [Use of results] How do you plan to use the data once the results are in?",
+    hintEn: "E.g., planning a marketing campaign, investor (IR) materials, or product improvements — this sets the survey's tone and the depth of analysis.",
   },
 ];
 
@@ -226,15 +263,20 @@ function StepBar({
   isLoggedIn: boolean;
   onDashboardBlocked: () => void;
 }) {
+  const t = useT();
+  const lang = useLang();
+  const stepLabels = lang === "en" ? STEP_LABELS_EN : STEP_LABELS;
+  // 영문 라벨이 길어 데스크톱 단계 바가 넘치지 않도록 연결선만 짧게
+  const connectorW = lang === "en" ? "sm:w-6" : "sm:w-12";
   const idx = STEPS.indexOf(step);
-  const activeLabel = STEP_LABELS[idx];
+  const activeLabel = stepLabels[idx];
   return (
     <div className="mb-6 sm:mb-10">
       {/* 모바일 전용 — 현재 단계 배지 (라벨 숨김 대신 정보 제공) */}
       <div className="sm:hidden flex justify-center mb-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100">
           <span className="text-[11px] font-bold text-indigo-600">{activeLabel}</span>
-          <span className="text-[10px] text-indigo-400 tabular-nums">{idx + 1}/{STEP_LABELS.length}</span>
+          <span className="text-[10px] text-indigo-400 tabular-nums">{idx + 1}/{stepLabels.length}</span>
         </div>
       </div>
 
@@ -247,31 +289,31 @@ function StepBar({
             <Link
               href="/dashboard/user"
               className="flex flex-col items-center gap-1.5 group cursor-pointer"
-              title="내 대시보드로 이동"
+              title={t("내 대시보드로 이동", "Go to my dashboard")}
             >
               <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-indigo-300 ring-2 ring-indigo-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:ring-indigo-400 group-hover:bg-indigo-50">
                 <LayoutDashboard className="text-indigo-500 w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
-              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">대시보드</span>
+              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-indigo-500 group-hover:underline underline-offset-4">{t("대시보드", "Dashboard")}</span>
             </Link>
           ) : (
             <button
               type="button"
               onClick={onDashboardBlocked}
               className="flex flex-col items-center gap-1.5 group cursor-pointer"
-              title="대시보드는 로그인 후 이용할 수 있습니다"
-              aria-label="대시보드 (로그인 필요)"
+              title={t("대시보드는 로그인 후 이용할 수 있습니다", "Log in to use the dashboard")}
+              aria-label={t("대시보드 (로그인 필요)", "Dashboard (login required)")}
             >
               <div className="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center bg-white border-2 border-slate-300 ring-2 ring-slate-100 ring-offset-2 ring-offset-slate-50 transition-all group-hover:scale-110 group-hover:border-slate-400">
                 <LayoutDashboard className="text-slate-400 w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </div>
-              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-400 group-hover:underline underline-offset-4">대시보드</span>
+              <span className="hidden sm:inline text-[10px] font-semibold tracking-wide whitespace-nowrap text-slate-400 group-hover:underline underline-offset-4">{t("대시보드", "Dashboard")}</span>
             </button>
           )}
-          <div className="w-2.5 sm:w-12 h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full bg-slate-200" />
+          <div className={`w-2.5 ${connectorW} h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full bg-slate-200`} />
         </div>
 
-        {STEP_LABELS.map((label, i) => {
+        {stepLabels.map((label, i) => {
           const Icon = STEP_ICONS[i];
           const done = i < idx;
           const active = i === idx;
@@ -323,7 +365,7 @@ function StepBar({
                   type="button"
                   onClick={() => onJump(targetStep)}
                   className="flex flex-col items-center gap-1.5 group focus:outline-none cursor-pointer"
-                  title={`${label}(으)로 이동`}
+                  title={t(`${label}(으)로 이동`, `Go to ${label}`)}
                 >
                   {circle}
                   {labelEl}
@@ -331,14 +373,18 @@ function StepBar({
               ) : (
                 <div
                   className="flex flex-col items-center gap-1.5"
-                  title={active ? `현재 단계: ${label}` : done ? `${label} (이동할 수 없는 단계)` : `${label} (아직 도달하지 않은 단계)`}
+                  title={active
+                    ? t(`현재 단계: ${label}`, `Current step: ${label}`)
+                    : done
+                      ? t(`${label} (이동할 수 없는 단계)`, `${label} (not available)`)
+                      : t(`${label} (아직 도달하지 않은 단계)`, `${label} (not reached yet)`)}
                 >
                   {circle}
                   {labelEl}
                 </div>
               )}
-              {i < STEP_LABELS.length - 1 && (
-                <div className={`w-2.5 sm:w-12 h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full transition-all duration-300 ${
+              {i < stepLabels.length - 1 && (
+                <div className={`w-2.5 ${connectorW} h-0.5 mb-0 sm:mb-5 mx-0.5 sm:mx-1.5 rounded-full transition-all duration-300 ${
                   i < idx ? "bg-indigo-400" : "bg-slate-200"
                 }`} />
               )}
@@ -349,7 +395,10 @@ function StepBar({
 
         {/* 프로세스 안내 — 대시보드 노드 기준 왼쪽 정렬 */}
         <p className="mt-4 text-left text-[11px] sm:text-xs text-slate-400 break-keep">
-          하단의 임시저장 버튼을 클릭하시면 자동저장 되며, 저장 후에는 네비게이션으로 이동 가능합니다.
+          {t(
+            "하단의 임시저장 버튼을 클릭하시면 자동저장 되며, 저장 후에는 네비게이션으로 이동 가능합니다.",
+            "Click Save draft at the bottom to save your progress. Once saved, you can move between steps using the navigation above.",
+          )}
         </p>
         </div>
       </div>
@@ -361,9 +410,10 @@ function StepBar({
    공용 컴포넌트
 ───────────────────────────────────────── */
 function CharCount({ len }: { len: number }) {
-  if (len === 0) return <span className="text-xs text-slate-300">0자</span>;
-  if (len >= 300) return <span className="text-xs text-emerald-500 font-medium">{len}자 ✓</span>;
-  return <span className="text-xs text-amber-400 font-medium">{len}자 · {300 - len}자 더 필요</span>;
+  const t = useT();
+  if (len === 0) return <span className="text-xs text-slate-300">{t("0자", "0 characters")}</span>;
+  if (len >= 300) return <span className="text-xs text-emerald-500 font-medium">{t(`${len}자 ✓`, `${len} characters ✓`)}</span>;
+  return <span className="text-xs text-amber-400 font-medium">{t(`${len}자 · ${300 - len}자 더 필요`, `${len} characters · ${300 - len} more needed`)}</span>;
 }
 
 function FieldLabel({ children, required, hint }: { children: React.ReactNode; required?: boolean; hint?: string }) {
@@ -390,58 +440,123 @@ function ErrorMsg({ msg }: { msg: string }) {
 // 각 주제(제품/서비스, 시장조사 목적)에 요구하는 최소 작성 글자수.
 const MIN_CHARS = 300;
 
+type ContentIssue = "same_char" | "low_variety" | "repeat_phrase" | "repeat_words" | "word_run" | "symbols" | "jamo";
+
+const CONTENT_ISSUE_MSG: Record<ContentIssue, Record<Lang, string>> = {
+  same_char: {
+    ko: "같은 문자를 여러 번 반복해서 입력하신 것 같습니다.",
+    en: "It looks like the same character was typed many times in a row.",
+  },
+  low_variety: {
+    ko: "같은 문자를 반복하거나 붙여넣어 채우신 것 같습니다.",
+    en: "It looks like the text was filled with repeated or pasted characters.",
+  },
+  repeat_phrase: {
+    ko: "같은 내용을 반복해서 붙여넣으신 것 같습니다.",
+    en: "It looks like the same content was pasted more than once.",
+  },
+  repeat_words: {
+    ko: "같은 단어를 반복해서 입력하신 것 같습니다.",
+    en: "It looks like the same words are repeated over and over.",
+  },
+  word_run: {
+    ko: "같은 단어를 연속해서 입력하신 것 같습니다.",
+    en: "It looks like the same word was typed several times in a row.",
+  },
+  symbols: {
+    ko: "의미를 알기 어려운 글자·기호가 많습니다.",
+    en: "There are too many meaningless characters or symbols.",
+  },
+  jamo: {
+    ko: "완성되지 않은 자음·모음이 많습니다.",
+    en: "There are too many incomplete Korean consonants or vowels.",
+  },
+};
+
 // 글자 수는 충분하나 의미 없는 입력(문자 도배·같은 단어 반복·같은 구절 반복
 // 붙여넣기·완성되지 않은 자모/기호 나열 등)을 걸러낸다.
-// 문제가 있으면 사유 문구를, 정상이면 null을 반환한다.
-function contentIssue(text: string): string | null {
+// 문제가 있으면 사유 문구(lang 기준)를, 정상이면 null을 반환한다.
+//
+// 휴리스틱은 UI 언어가 아니라 '입력 텍스트의 문자 체계'로 고른다. 영문(라틴 문자) 위주 입력은
+// 알파벳이 26자뿐이고 the·and·to 같은 기능어가 자연스럽게 반복되므로, 한글 기준의
+// 2) 문자 다양성 비율·4) 단어 다양성 비율을 그대로 쓰면 정상적인 영어 서술도 걸린다.
+// 한글 위주 입력은 기존 기준을 그대로 적용한다.
+function contentIssue(text: string, lang: Lang = "ko"): string | null {
+  const msg = (k: ContentIssue) => CONTENT_ISSUE_MSG[k][lang];
   const raw = text.trim();
   const compact = raw.replace(/\s+/g, "");
   const len = compact.length;
   if (len < 30) return null; // 짧은 입력은 글자 수 검증이 담당
 
+  const hangulCount = (compact.match(/[가-힣ㄱ-ㅣ]/g) || []).length;
+  const latinCount = (compact.match(/[a-zA-Z]/g) || []).length;
+  const latin = latinCount > hangulCount;
+
   // 1) 동일 문자 장기 반복: ㅁㅁㅁㅁ…, aaaaaaaaa, ……
-  if (/(.)\1{9,}/u.test(raw)) return "같은 문자를 여러 번 반복해서 입력하신 것 같습니다.";
+  if (/(.)\1{9,}/u.test(raw)) return msg("same_char");
 
   // 2) 문자 다양성 부족: 소수의 문자로만 채워 넣음
-  const uniqChars = new Set(compact).size;
-  if (uniqChars / len < 0.12) return "같은 문자를 반복하거나 붙여넣어 채우신 것 같습니다.";
+  if (latin) {
+    // 영문 정상 서술은 300자 기준 20종 이상의 글자를 쓴다 — 대소문자 무시 12종 미만이면 도배
+    if (new Set(compact.toLowerCase()).size < 12) return msg("low_variety");
+  } else {
+    const uniqChars = new Set(compact).size;
+    if (uniqChars / len < 0.12) return msg("low_variety");
+  }
 
   // 3) 같은 구절 반복 붙여넣기: 이중 문자열 기법으로 최소 반복 주기 탐지
   if ((compact + compact).indexOf(compact, 1) < compact.length) {
-    return "같은 내용을 반복해서 붙여넣으신 것 같습니다.";
+    return msg("repeat_phrase");
   }
 
   // 4) 단어 반복: 동일 단어가 과도하게 반복되거나 연속됨
   const words = raw.split(/\s+/).filter((w) => w.length > 0);
   if (words.length >= 8) {
-    const uniqWords = new Set(words).size;
-    if (uniqWords / words.length < 0.3) return "같은 단어를 반복해서 입력하신 것 같습니다.";
+    if (latin) {
+      // 영문: 대소문자·문장부호를 무시하고 4자 이상 단어(기능어 제외 효과)만으로 다양성을 본다
+      const content = words
+        .map((w) => w.toLowerCase().replace(/[^a-z0-9\u00C0-\u024F]/g, ""))
+        .filter((w) => w.length >= 4);
+      if (content.length >= 8 && new Set(content).size / content.length < 0.3) return msg("repeat_words");
+    } else {
+      const uniqWords = new Set(words).size;
+      if (uniqWords / words.length < 0.3) return msg("repeat_words");
+    }
+    const seq = latin ? words.map((w) => w.toLowerCase()) : words;
     let run = 1;
     let maxRun = 1;
-    for (let i = 1; i < words.length; i++) {
-      run = words[i] === words[i - 1] ? run + 1 : 1;
+    for (let i = 1; i < seq.length; i++) {
+      run = seq[i] === seq[i - 1] ? run + 1 : 1;
       if (run > maxRun) maxRun = run;
     }
-    if (maxRun >= 6) return "같은 단어를 연속해서 입력하신 것 같습니다.";
+    if (maxRun >= 6) return msg("word_run");
   }
 
   // 5) 의미를 알기 어려운 글자·기호 나열 (예: ㅁㄴㅇㄹ, ㅋㅋㅋ, !!!!, 특수문자 도배)
-  const meaningful = (raw.match(/[가-힣a-zA-Z0-9]/g) || []).length; // 완성형 한글·영문·숫자
+  // 완성형 한글·영문·숫자 + 라틴 확장(é·ü 등 악센트 문자)
+  const meaningful = (raw.match(/[가-힣a-zA-Z0-9\u00C0-\u024F]/g) || []).length;
   const jamo = (raw.match(/[ㄱ-ㅣ]/g) || []).length; // 홑자음·홑모음 ㄱ-ㅣ
-  if (meaningful / len < 0.55) return "의미를 알기 어려운 글자·기호가 많습니다.";
-  if (jamo / len > 0.3) return "완성되지 않은 자음·모음이 많습니다.";
+  if (meaningful / len < 0.55) return msg("symbols");
+  if (jamo / len > 0.3) return msg("jamo");
 
   return null;
 }
 
 // 주제별 입력 상태를 하나의 안내 문구로 변환한다. 정상이면 null.
-function fieldErrorMsg(topic: string, len: number, text: string): string | null {
+// 최소 글자 수(MIN_CHARS)는 언어와 무관하게 같다 — 영문 300자 ≈ 50단어.
+function fieldErrorMsg(topic: string, len: number, text: string, lang: Lang = "ko"): string | null {
   if (len < MIN_CHARS) {
-    if (len === 0) return `${topic}을(를) 입력해주세요.`;
-    return `글자 수가 부족합니다. 설문의 정확성을 높이기 위해 자세한 작성을 부탁드립니다. (현재 ${len}자 / 최소 ${MIN_CHARS}자)`;
+    if (len === 0) return lang === "en" ? `Please enter your ${topic}.` : `${topic}을(를) 입력해주세요.`;
+    return lang === "en"
+      ? `Too short. Please add more detail so the survey can be more accurate. (${len} / minimum ${MIN_CHARS} characters)`
+      : `글자 수가 부족합니다. 설문의 정확성을 높이기 위해 자세한 작성을 부탁드립니다. (현재 ${len}자 / 최소 ${MIN_CHARS}자)`;
   }
-  const issue = contentIssue(text);
-  if (issue) return `${issue} 설문의 정확성을 높이기 위해 의미 있는 내용으로 수정 부탁드립니다.`;
+  const issue = contentIssue(text, lang);
+  if (issue) {
+    return lang === "en"
+      ? `${issue} Please revise it with meaningful content so the survey can be more accurate.`
+      : `${issue} 설문의 정확성을 높이기 위해 의미 있는 내용으로 수정 부탁드립니다.`;
+  }
   return null;
 }
 
@@ -461,6 +576,9 @@ export default function DesignPage() {
 }
 
 function DesignPageInner() {
+  const t = useT();
+  const lang = useLang();
+  const L = useLabel();
   const router = useRouter();
   const searchParams = useSearchParams();
   const draftIdFromUrl = searchParams.get("draft");
@@ -482,7 +600,13 @@ function DesignPageInner() {
   function detectTradeMismatch(): string | null {
     if (tradeType !== "B2C" && tradeType !== "기타") return null;
     const text = `${productDef} ${researchPurpose}`.toLowerCase();
-    const signals = ["b2b", "비투비", "기업 대상", "기업을 대상", "기업 고객", "실무자", "의사결정권자", "구매 담당", "도입 여부", "공공기관", "지자체", "관공서", "조달", "b2g"];
+    const signals = [
+      "b2b", "비투비", "기업 대상", "기업을 대상", "기업 고객", "실무자", "의사결정권자", "구매 담당", "도입 여부", "공공기관", "지자체", "관공서", "조달", "b2g",
+      // 영문 입력용 신호
+      "corporate client", "corporate customer", "enterprise client", "enterprise customer", "business customer", "business client",
+      "procurement", "purchasing manager", "public sector", "public agency", "public agencies", "government agency", "government agencies",
+      "public institution", "local government",
+    ];
     return signals.find((k) => text.includes(k)) ?? null;
   }
   const [productMode, setProductMode] = useState<"structured" | "free" | null>(null);
@@ -504,13 +628,13 @@ function DesignPageInner() {
 
   // 활성 모드에서 결합 텍스트 도출 (모드 미선택 시 빈 문자열)
   const productDef = productMode === "structured"
-    ? productAnswers.map((a, i) => a.trim() ? `${PRODUCT_QUESTIONS[i].tag}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
+    ? productAnswers.map((a, i) => a.trim() ? `${t(PRODUCT_QUESTIONS[i].tag, PRODUCT_QUESTIONS[i].tagEn)}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
     : productMode === "free"
     ? productFree
     : "";
 
   const researchPurpose = purposeMode === "structured"
-    ? purposeAnswers.map((a, i) => a.trim() ? `${PURPOSE_QUESTIONS[i].tag}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
+    ? purposeAnswers.map((a, i) => a.trim() ? `${t(PURPOSE_QUESTIONS[i].tag, PURPOSE_QUESTIONS[i].tagEn)}\n${a.trim()}` : "").filter(Boolean).join("\n\n")
     : purposeMode === "free"
     ? purposeFree
     : "";
@@ -541,8 +665,8 @@ function DesignPageInner() {
     : "";
 
   // 주제별 안내 문구 (미작성·글자수 부족·의미 없는 내용 모두 포함). 정상이면 null.
-  const productErr = fieldErrorMsg("제품/서비스 정의", productLen, productText);
-  const purposeErr = fieldErrorMsg("시장조사 목적", purposeLen, purposeText);
+  const productErr = fieldErrorMsg(t("제품/서비스 정의", "product or service definition"), productLen, productText, lang);
+  const purposeErr = fieldErrorMsg(t("시장조사 목적", "research objective"), purposeLen, purposeText, lang);
 
   // 단계
   const [step, setStep] = useState<Step>("input");
@@ -709,7 +833,7 @@ function DesignPageInner() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   async function handleResultDownload(kind: string) {
-    if (!runJobId) { setResultDownloadError("조사 작업 정보가 없어 다운로드할 수 없습니다."); return; }
+    if (!runJobId) { setResultDownloadError(t("조사 작업 정보가 없어 다운로드할 수 없습니다.", "Can't download — this study's job information is missing.")); return; }
     setResultDownloading(kind);
     setResultDownloadError(null);
     try {
@@ -722,7 +846,7 @@ function DesignPageInner() {
         await downloadReportPdf(runJobId);
       }
     } catch (err) {
-      setResultDownloadError(err instanceof Error ? err.message : "다운로드에 실패했습니다.");
+      setResultDownloadError(err instanceof Error ? err.message : t("다운로드에 실패했습니다.", "Download failed."));
     } finally {
       setResultDownloading(null);
     }
@@ -763,7 +887,7 @@ function DesignPageInner() {
       const r = await startDetail(runJobId);
       setDetailStatus(r.detail_status ?? "running");
     } catch (e) {
-      setResultDownloadError(e instanceof Error ? e.message : "상세보고서 생성을 시작하지 못했습니다.");
+      setResultDownloadError(e instanceof Error ? e.message : t("상세보고서 생성을 시작하지 못했습니다.", "Couldn't start generating the detailed report."));
     } finally {
       setDetailStarting(false);
     }
@@ -786,7 +910,7 @@ function DesignPageInner() {
       const { answer } = await askPanel(runJobId, q);
       setPanelMessages((m) => [...m, { role: "panel", text: answer }]);
     } catch (e) {
-      setPanelError(e instanceof Error ? e.message : "답변을 받지 못했습니다.");
+      setPanelError(e instanceof Error ? e.message : t("답변을 받지 못했습니다.", "Couldn't get an answer."));
     } finally {
       setPanelSending(false);
     }
@@ -962,7 +1086,7 @@ function DesignPageInner() {
     const titleSrc = (productFree.trim()
       || productAnswers.find((a) => a.trim())
       || tradeType
-      || "(제목 없음)").trim();
+      || t("(제목 없음)", "(Untitled)")).trim();
     const title = titleSrc.slice(0, 30);
     const payload: SurveyDraftPatch = {
       title,
@@ -1041,8 +1165,8 @@ function DesignPageInner() {
     const startedAt = Date.now();
     let li = 0;
     timerRef.current = setInterval(() => {
-      const t = Date.now() - startedAt;
-      const p = 97 * (1 - Math.exp(-t / (expectedMs * 0.55)));
+      const elapsed = Date.now() - startedAt;
+      const p = 97 * (1 - Math.exp(-elapsed / (expectedMs * 0.55)));
       setProgress(Math.min(97, Math.round(p * 10) / 10));
       const nextLi = Math.min(Math.floor(p / (100 / labels.length)), labels.length - 1);
       if (nextLi !== li) { li = nextLi; setProgressLabel(labels[li]); }
@@ -1068,7 +1192,7 @@ function DesignPageInner() {
   /* ── Step 1→2: 가설 설계 API 호출 ── */
   // 거래방식을 정의 본문 앞에 명시해 AI가 컨텍스트로 활용 (가설·문항 생성 공용)
   function buildDefinitionPayload() {
-    const tradeFull = TRADE_TYPES.find((t) => t.code === tradeType);
+    const tradeFull = TRADE_TYPES.find((tr) => tr.code === tradeType);
     const tradeLine = tradeFull ? `[거래방식] ${tradeFull.code} (${tradeFull.en})` : "";
     // 복원·재실행 시 정의에 이미 박힌 [거래방식] 머리말을 모두 제거해 중복 표기를 방지
     const cleanDef = productDef.replace(/\[거래방식\][^\n\[]*/g, "").trim();
@@ -1092,10 +1216,12 @@ function DesignPageInner() {
       const hit = detectTradeMismatch();
       if (hit) {
         tradeMismatchAck.current = true;
-        setTradeMismatchWarning(
+        setTradeMismatchWarning(t(
           `조사 목적·정의에 기업/기관 대상 표현("${hit}")이 있습니다. 거래방식이 ${tradeType}로 선택되어 있는데 맞나요? ` +
-          `B2B/B2G 조사라면 거래방식을 바꿔야 직장인·기관 실무자 중심으로 응답자가 구성됩니다. 지금 선택이 맞다면 'AI 설계 시작'을 한 번 더 눌러주세요.`
-        );
+          `B2B/B2G 조사라면 거래방식을 바꿔야 직장인·기관 실무자 중심으로 응답자가 구성됩니다. 지금 선택이 맞다면 'AI 설계 시작'을 한 번 더 눌러주세요.`,
+          `Your research objective or definition mentions businesses or institutions ("${hit}"), but the business model is set to ${L(tradeType)}. Is that right? ` +
+          `For a B2B/B2G study, change the business model so the panel is built around employees and public-sector staff. If your current choice is correct, click 'Start AI design' again.`
+        ));
         tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
@@ -1105,7 +1231,10 @@ function DesignPageInner() {
     setStep("hyp_designing");
 
     const finish = startAnimation(
-      ["입력 내용 분석 중...", "시장 컨텍스트 파악 중...", "가설 도출 중...", "검토 중..."],
+      t(
+        ["입력 내용 분석 중...", "시장 컨텍스트 파악 중...", "가설 도출 중...", "검토 중..."],
+        ["Analyzing your input...", "Understanding the market context...", "Deriving hypotheses...", "Reviewing..."],
+      ),
       () => setStep("hyp_review"),
       5000,
       15000
@@ -1129,7 +1258,7 @@ function DesignPageInner() {
       finish();
     } catch (err) {
       stopTimer();
-      setApiError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setApiError(err instanceof Error ? err.message : t("알 수 없는 오류가 발생했습니다.", "An unknown error occurred."));
       setStep("input");
     }
   }
@@ -1138,13 +1267,16 @@ function DesignPageInner() {
   async function handleSurveyDesign() {
     const hyps = hypothesisTexts.filter((h) => h.trim());
     if (hyps.length === 0) {
-      setApiError("가설을 먼저 작성·검토해 주세요.");
+      setApiError(t("가설을 먼저 작성·검토해 주세요.", "Please write and review your hypotheses first."));
       return;
     }
     setApiError("");
     setStep("survey_designing");
     const finish = startAnimation(
-      ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "생성된 설문 비판 검토 중...", "검토 의견 반영해 문항 다듬는 중..."],
+      t(
+        ["가설 분석 중...", "설문 문항 구성 중...", "응답 옵션 생성 중...", "생성된 설문 비판 검토 중...", "검토 의견 반영해 문항 다듬는 중..."],
+        ["Analyzing hypotheses...", "Structuring survey questions...", "Generating answer options...", "Critically reviewing the draft survey...", "Refining questions based on the review..."],
+      ),
       () => setStep("survey_review"),
       5000,
       50000
@@ -1159,7 +1291,7 @@ function DesignPageInner() {
       finish();
     } catch (err) {
       stopTimer();
-      setApiError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setApiError(err instanceof Error ? err.message : t("알 수 없는 오류가 발생했습니다.", "An unknown error occurred."));
       setStep("hyp_review");
     }
   }
@@ -1172,7 +1304,10 @@ function DesignPageInner() {
     // 거래방식 필수 — 미선택 상태로 실행되면 패널 구성이 조사 목적과 어긋난다
     if (!tradeType) {
       setSubmitted(true);
-      setRunError("거래방식을 선택해주세요. 질문 입력 단계에서 주된 거래 대상을 골라야 조사를 실행할 수 있습니다.");
+      setRunError(t(
+        "거래방식을 선택해주세요. 질문 입력 단계에서 주된 거래 대상을 골라야 조사를 실행할 수 있습니다.",
+        "Please select a business model. Choose your main customer type in the Brief step before running the study.",
+      ));
       setStep("input");
       setTimeout(() => tradeTypeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
       return;
@@ -1197,10 +1332,12 @@ function DesignPageInner() {
       const hit = detectTradeMismatch();
       if (hit) {
         runMismatchAck.current = true;
-        setRunError(
+        setRunError(t(
           `거래방식 확인: 조사 목적에 기업/기관 대상 표현("${hit}")이 있는데 거래방식이 ${tradeType}입니다. ` +
-          `B2B/B2G 조사라면 1단계에서 거래방식을 바꿔주세요. 지금 그대로 진행하려면 '조사 실행하기'를 한 번 더 눌러주세요.`
-        );
+          `B2B/B2G 조사라면 1단계에서 거래방식을 바꿔주세요. 지금 그대로 진행하려면 '조사 실행하기'를 한 번 더 눌러주세요.`,
+          `Check your business model: your research objective mentions businesses or institutions ("${hit}"), but the business model is ${L(tradeType)}. ` +
+          `For a B2B/B2G study, change the business model in step 1. To proceed as is, click 'Run study' again.`
+        ));
         return;
       }
     }
@@ -1217,7 +1354,7 @@ function DesignPageInner() {
     setInfographic(null);
     setRunMeta(null);
     setProgress(0);
-    setProgressLabel("조사 실행 준비 중...");
+    setProgressLabel(t("조사 실행 준비 중...", "Preparing to run the study..."));
     setStep("survey_running");
 
     // 패널 설정에서 고른 수를 로딩 화면(사람 아이콘·응답 카운터)에 그대로 반영
@@ -1252,7 +1389,7 @@ function DesignPageInner() {
           }
           if (st.status === "error") {
             stopPolling();
-            setRunError(st.error || "조사 실행 중 오류가 발생했습니다.");
+            setRunError(st.error || t("조사 실행 중 오류가 발생했습니다.", "An error occurred while running the study."));
             setStep("result");
             return;
           }
@@ -1266,7 +1403,7 @@ function DesignPageInner() {
               setSurveyResults(res.results ?? []);
               setStep("survey_result");
             } else {
-              setRunError(res.error || "결과 요약을 생성하지 못했습니다. 다시 시도해 주세요.");
+              setRunError(res.error || t("결과 요약을 생성하지 못했습니다. 다시 시도해 주세요.", "Couldn't generate the results summary. Please try again."));
               setStep("result");
             }
           }
@@ -1274,14 +1411,14 @@ function DesignPageInner() {
           // 일시적 네트워크 오류는 다음 폴링에서 재시도 — 404(잡 소실)만 중단
           if (err instanceof Error && err.message.includes("404")) {
             stopPolling();
-            setRunError("조사 작업을 찾을 수 없습니다. 다시 실행해 주세요.");
+            setRunError(t("조사 작업을 찾을 수 없습니다. 다시 실행해 주세요.", "The study job could not be found. Please run it again."));
             setStep("result");
           }
         }
       }, 3000);
     } catch (err) {
       stopPolling();
-      setRunError(err instanceof Error ? err.message : "조사 실행에 실패했습니다.");
+      setRunError(err instanceof Error ? err.message : t("조사 실행에 실패했습니다.", "Failed to run the study."));
       setStep("result");
     }
   }
@@ -1289,8 +1426,8 @@ function DesignPageInner() {
   const hasOptions = (q: ApiQuestion) =>
     (q.type === "객관식" || q.type === "복수선택" || q.type === "순위형") && q.options?.length > 0;
 
-  const isOptionType = (t: string | undefined) =>
-    t === "객관식" || t === "복수선택" || t === "순위형";
+  const isOptionType = (qt: string | undefined) =>
+    qt === "객관식" || qt === "복수선택" || qt === "순위형";
 
   /* ── 문항 추가/삭제/일괄수정 ── */
   const blankQuestion = (): ApiQuestion => ({ type: "객관식", title: "", question: "", options: ["", ""] });
@@ -1345,17 +1482,17 @@ function DesignPageInner() {
           onClick={handleSaveDraft}
           disabled={saving || draftLoading}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 transition-all"
-          title={draftId ? "임시저장한 작업에 덮어쓰기" : "임시저장"}
+          title={draftId ? t("임시저장한 작업에 덮어쓰기", "Overwrite your saved draft") : t("임시저장", "Save draft")}
         >
           {saving
-            ? <><RefreshCw size={12} className="animate-spin" /> 저장 중…</>
+            ? <><RefreshCw size={12} className="animate-spin" /> {t("저장 중…", "Saving…")}</>
             : draftLoading
-              ? <><RefreshCw size={12} className="animate-spin" /> 불러오는 중…</>
-              : <><Save size={12} /> 임시저장</>}
+              ? <><RefreshCw size={12} className="animate-spin" /> {t("불러오는 중…", "Loading…")}</>
+              : <><Save size={12} /> {t("임시저장", "Save draft")}</>}
         </button>
         {savedAt && !saving && (
           <span className="text-[10px] text-slate-400">
-            마지막 저장 {new Date(savedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}
+            {t("마지막 저장 ", "Last saved ")}{new Date(savedAt).toLocaleTimeString(lang === "en" ? "en-US" : "ko-KR", { hour: "2-digit", minute: "2-digit" })}
           </span>
         )}
         {saveError && (
@@ -1374,8 +1511,12 @@ function DesignPageInner() {
           <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-lg shadow-amber-100/60">
             <AlertCircle size={16} className="shrink-0 text-amber-500" />
             <p className="text-sm text-slate-700">
-              대시보드는 <span className="font-semibold text-slate-900">로그인이 필요합니다.</span>
-              <span className="hidden sm:inline text-slate-500"> 로그인 후 이용해 주세요.</span>
+              {t(
+                <>대시보드는 <span className="font-semibold text-slate-900">로그인이 필요합니다.</span>
+              <span className="hidden sm:inline text-slate-500"> 로그인 후 이용해 주세요.</span></>,
+                <>The dashboard <span className="font-semibold text-slate-900">requires login.</span>
+                <span className="hidden sm:inline text-slate-500"> Please log in to use it.</span></>,
+              )}
             </p>
           </div>
         </div>
@@ -1388,71 +1529,76 @@ function DesignPageInner() {
         {step === "input" && (
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              <Sparkles size={12} /> AI 시장조사 설계
+              <Sparkles size={12} /> {t("AI 시장조사 설계", "AI research design")}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">어떤 시장조사가 필요하신가요?</h1>
-            <p className="text-sm sm:text-base text-slate-500">입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-2">{t("어떤 시장조사가 필요하신가요?", "What would you like to research?")}</h1>
+            <p className="text-sm sm:text-base text-slate-500">{t("입력 내용을 바탕으로 AI가 가설과 설문 문항을 자동으로 설계합니다.", "Based on your input, AI designs the hypotheses and survey questions for you.")}</p>
           </div>
         )}
         {(step === "hyp_designing" || step === "survey_designing" || step === "survey_running") && (
           <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-8">
-            <ArrowLeft size={15} /> 이전으로
+            <ArrowLeft size={15} /> {t("이전으로", "Back")}
           </button>
         )}
         {step === "hyp_review" && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
             <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-              <ArrowLeft size={15} /> 이전으로
+              <ArrowLeft size={15} /> {t("이전으로", "Back")}
             </button>
             <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 가설 검토</h2>
-              <p className="text-xs text-slate-400 mt-0.5">조사에 사용할 가설을 선택하고 필요시 수정하세요</p>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{t("AI 생성 가설 검토", "Review AI-generated hypotheses")}</h2>
+              <p className="text-xs text-slate-400 mt-0.5">{t("조사에 사용할 가설을 선택하고 필요시 수정하세요", "Select the hypotheses to test and edit them if needed")}</p>
             </div>
             <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-violet-50 text-violet-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-100">
-              <Lightbulb size={12} /> 가설 {hypothesisTexts.length}개 생성
+              <Lightbulb size={12} /> {t(`가설 ${hypothesisTexts.length}개 생성`, `${hypothesisTexts.length} hypotheses generated`)}
             </div>
           </div>
         )}
         {step === "survey_review" && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-7">
             <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-              <ArrowLeft size={15} /> 이전으로
+              <ArrowLeft size={15} /> {t("이전으로", "Back")}
             </button>
             <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">AI 생성 설문 검토</h2>
-              <p className="text-xs text-slate-400 mt-0.5">문항을 확인하고 필요시 수정하세요</p>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{t("AI 생성 설문 검토", "Review AI-generated survey")}</h2>
+              <p className="text-xs text-slate-400 mt-0.5">{t("문항을 확인하고 필요시 수정하세요", "Check the questions and edit them if needed")}</p>
             </div>
             <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-600 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-100">
-              <ListChecks size={12} /> {surveyQuestions.length}문항 생성
+              <ListChecks size={12} /> {t(`${surveyQuestions.length}문항 생성`, `${surveyQuestions.length} questions generated`)}
             </div>
           </div>
         )}
         {step === "result" && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-              <ArrowLeft size={15} /> 이전으로
+              <ArrowLeft size={15} /> {t("이전으로", "Back")}
             </button>
             <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 설계 요약</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{t("조사 설계 요약", "Study design summary")}</h2>
             </div>
             <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
-              <Sparkles size={11} /> 설계 완료
+              <Sparkles size={11} /> {t("설계 완료", "Design complete")}
             </div>
           </div>
         )}
         {step === "survey_result" && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
             <button onClick={goBack} className="order-1 flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600">
-              <ArrowLeft size={15} /> 이전으로
+              <ArrowLeft size={15} /> {t("이전으로", "Back")}
             </button>
             <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 text-center">
-              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">조사 결과</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{t("조사 결과", "Study results")}</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {runMeta ? `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답` : ""}
+                {runMeta
+                  ? t(
+                      `${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명 응답`,
+                      `${L(runMeta.sido) || "—"} · ${runMeta.n.toLocaleString()} virtual respondents`,
+                    )
+                  : ""}
               </p>
             </div>
             <div className="order-2 sm:order-3 inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-md shadow-indigo-200">
-              <PieChart size={11} /> 조사 완료
+              <PieChart size={11} /> {t("조사 완료", "Study complete")}
             </div>
           </div>
         )}
@@ -1470,7 +1616,7 @@ function DesignPageInner() {
               <div className="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
                 <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-red-700">오류가 발생했습니다</p>
+                  <p className="text-sm font-semibold text-red-700">{t("오류가 발생했습니다", "Something went wrong")}</p>
                   <p className="text-xs text-red-500 mt-0.5">{apiError}</p>
                 </div>
               </div>
@@ -1480,20 +1626,20 @@ function DesignPageInner() {
               {/* 거래방식 */}
               <div ref={tradeTypeRef} className="px-5 sm:px-8 pt-6 sm:pt-7 pb-5 border-b border-slate-100">
                 <FieldLabel required>
-                  거래방식
-                  <span className="ml-1.5 text-slate-400 text-xs font-normal">(주된 거래 대상 — 하나를 선택하세요)</span>
+                  {t("거래방식", "Business model")}
+                  <span className="ml-1.5 text-slate-400 text-xs font-normal">{t("(주된 거래 대상 — 하나를 선택하세요)", "(your main customer type — select one)")}</span>
                 </FieldLabel>
                 <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                  {TRADE_TYPES.map((t) => {
-                    const selected = tradeType === t.code;
+                  {TRADE_TYPES.map((tr) => {
+                    const selected = tradeType === tr.code;
                     const dimmed = tradeType !== "" && !selected;
                     return (
                       <button
-                        key={t.code}
+                        key={tr.code}
                         type="button"
-                        onClick={() => setTradeType(selected ? "" : t.code)}
+                        onClick={() => setTradeType(selected ? "" : tr.code)}
                         aria-pressed={selected}
-                        title={`${t.code} (${t.en})`}
+                        title={`${L(tr.code)} (${tr.en})`}
                         className={`relative flex flex-col items-center text-center rounded-xl border-2 px-1.5 sm:px-2.5 py-4 transition-all duration-150 ${
                           selected
                             ? "border-indigo-500 bg-indigo-50 shadow-sm"
@@ -1507,16 +1653,16 @@ function DesignPageInner() {
                             <Check size={11} className="text-white" strokeWidth={3} />
                           </span>
                         )}
-                        <span className="text-3xl mb-1.5 leading-none" aria-hidden>{t.icon}</span>
-                        <span className="text-sm font-bold text-slate-800">{t.code}</span>
-                        <span className="hidden sm:block text-[10px] text-slate-400 leading-tight mb-1.5">{t.en}</span>
-                        <span className="text-[11px] font-semibold text-slate-600 mt-1 sm:mt-0">{t.ko}</span>
-                        <span className="hidden sm:block text-[11px] text-slate-400 leading-snug mt-0.5">{t.desc}</span>
+                        <span className="text-3xl mb-1.5 leading-none" aria-hidden>{tr.icon}</span>
+                        <span className="text-sm font-bold text-slate-800">{L(tr.code)}</span>
+                        <span className="hidden sm:block text-[10px] text-slate-400 leading-tight mb-1.5">{tr.en}</span>
+                        <span className="text-[11px] font-semibold text-slate-600 mt-1 sm:mt-0">{t(tr.ko, tr.koEn)}</span>
+                        <span className="hidden sm:block text-[11px] text-slate-400 leading-snug mt-0.5">{t(tr.desc, tr.descEn)}</span>
                       </button>
                     );
                   })}
                 </div>
-                {errTradeType && <ErrorMsg msg="거래방식을 선택해주세요." />}
+                {errTradeType && <ErrorMsg msg={t("거래방식을 선택해주세요.", "Please select a business model.")} />}
                 {tradeMismatchWarning && (
                   <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
                     <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
@@ -1529,7 +1675,7 @@ function DesignPageInner() {
               <div className="px-5 sm:px-8 py-6 border-b border-slate-100">
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-sm font-semibold text-slate-700">
-                    제품 / 서비스 정의 <span className="text-red-400">*</span>
+                    {t("제품 / 서비스 정의", "Product / service definition")} <span className="text-red-400">*</span>
                   </label>
                   <div className="flex items-center gap-0.5 bg-slate-100 p-1 rounded-lg">
                     {(["structured", "free"] as const).map((m) => (
@@ -1542,7 +1688,7 @@ function DesignPageInner() {
                             : "text-slate-400 hover:text-slate-600"
                         }`}
                       >
-                        {m === "structured" ? "질문형" : "자유형"}
+                        {m === "structured" ? t("질문형", "Guided") : t("자유형", "Free-form")}
                       </button>
                     ))}
                   </div>
@@ -1550,19 +1696,26 @@ function DesignPageInner() {
 
                 {productMode === null ? (
                   <div className={`rounded-xl border border-dashed ${errProduct ? "border-red-300 bg-red-50/30" : "border-slate-200 bg-slate-50/60"} px-5 py-8 text-center`}>
-                    <p className="text-sm font-semibold text-slate-600 mb-1">입력 방식을 먼저 선택해주세요</p>
+                    <p className="text-sm font-semibold text-slate-600 mb-1">{t("입력 방식을 먼저 선택해주세요", "Choose an input style first")}</p>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      <span className="font-medium text-indigo-500">질문형</span>은 항목별 가이드 질문에 답하는 방식이고,{" "}
-                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 직접 서술하는 방식입니다.
+                      {t(
+                        <><span className="font-medium text-indigo-500">질문형</span>은 항목별 가이드 질문에 답하는 방식이고,{" "}
+                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 직접 서술하는 방식입니다.</>,
+                        <><span className="font-medium text-indigo-500">Guided</span> walks you through a question for each item;{" "}
+                        <span className="font-medium text-indigo-500">Free-form</span> lets you write everything in one place.</>,
+                      )}
                     </p>
                   </div>
                 ) : productMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">{t(
+                      <>각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</>,
+                      <>Answer each item in as much detail as you can — the more specific, the more accurate the AI&apos;s hypotheses.<br />You may skip items that are hard to answer, but your answers must total at least 300 characters.</>,
+                    )}</p>
                     {PRODUCT_QUESTIONS.map((q, i) => (
                       <div key={i}>
-                        <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
-                        <p className="text-xs text-slate-400 mb-2 leading-relaxed">{q.hint}</p>
+                        <p className="text-sm font-semibold text-slate-700 mb-1">{t(q.label, q.labelEn)}</p>
+                        <p className="text-xs text-slate-400 mb-2 leading-relaxed">{t(q.hint, q.hintEn)}</p>
                         <textarea
                           className="w-full h-12 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-300 resize-none outline-none leading-relaxed bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
                           value={productAnswers[i]}
@@ -1580,13 +1733,16 @@ function DesignPageInner() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs text-amber-500 font-medium">300자 이상 작성해주세요. 내용이 구체적일수록 조사 품질이 높아집니다.</p>
+                    <p className="text-xs text-amber-500 font-medium">{t("300자 이상 작성해주세요. 내용이 구체적일수록 조사 품질이 높아집니다.", "Please write at least 300 characters. The more specific, the better the study.")}</p>
                     <div className={`rounded-xl border overflow-hidden transition-all ${
                       errProduct ? "border-red-300" : "border-slate-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-400/20"
                     }`}>
                       <textarea
                         className="w-full h-44 px-4 pt-4 text-sm text-slate-800 placeholder:text-slate-300 resize-none outline-none leading-relaxed bg-white"
-                        placeholder="제품의 핵심 기능, 가치, 시장 내 위치 등을 상세히 작성해주세요.&#10;&#10;예) 우리 제품은 00시장에서 ..."
+                        placeholder={t(
+                          "제품의 핵심 기능, 가치, 시장 내 위치 등을 상세히 작성해주세요.\n\n예) 우리 제품은 00시장에서 ...",
+                          "Describe your product's core features, value, and market position in detail.\n\ne.g., A plant-based protein snack brand from the US planning to launch in Korean convenience stores ...",
+                        )}
                         value={productFree}
                         onChange={(e) => setProductFree(e.target.value)}
                       />
@@ -1603,7 +1759,7 @@ function DesignPageInner() {
               <div className="px-5 sm:px-8 py-6">
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-sm font-semibold text-slate-700">
-                    시장조사 목적 <span className="text-red-400">*</span>
+                    {t("시장조사 목적", "Research objective")} <span className="text-red-400">*</span>
                   </label>
                   <div className="flex items-center gap-0.5 bg-slate-100 p-1 rounded-lg">
                     {(["structured", "free"] as const).map((m) => (
@@ -1616,7 +1772,7 @@ function DesignPageInner() {
                             : "text-slate-400 hover:text-slate-600"
                         }`}
                       >
-                        {m === "structured" ? "질문형" : "자유형"}
+                        {m === "structured" ? t("질문형", "Guided") : t("자유형", "Free-form")}
                       </button>
                     ))}
                   </div>
@@ -1624,19 +1780,26 @@ function DesignPageInner() {
 
                 {purposeMode === null ? (
                   <div className={`rounded-xl border border-dashed ${errPurpose ? "border-red-300 bg-red-50/30" : "border-slate-200 bg-slate-50/60"} px-5 py-8 text-center`}>
-                    <p className="text-sm font-semibold text-slate-600 mb-1">입력 방식을 먼저 선택해주세요</p>
+                    <p className="text-sm font-semibold text-slate-600 mb-1">{t("입력 방식을 먼저 선택해주세요", "Choose an input style first")}</p>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      <span className="font-medium text-indigo-500">질문형</span>은 5개 가이드 질문에 답하는 방식이고,{" "}
-                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 자유롭게 서술하는 방식입니다.
+                      {t(
+                        <><span className="font-medium text-indigo-500">질문형</span>은 5개 가이드 질문에 답하는 방식이고,{" "}
+                      <span className="font-medium text-indigo-500">자유형</span>은 한 곳에 자유롭게 서술하는 방식입니다.</>,
+                        <><span className="font-medium text-indigo-500">Guided</span> has you answer 5 guiding questions;{" "}
+                        <span className="font-medium text-indigo-500">Free-form</span> lets you write freely in one place.</>,
+                      )}
                     </p>
                   </div>
                 ) : purposeMode === "structured" ? (
                   <div className="flex flex-col gap-5">
-                    <p className="text-xs text-indigo-500 font-medium -mb-1">각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</p>
+                    <p className="text-xs text-indigo-500 font-medium -mb-1">{t(
+                      <>각 항목에 최대한 상세하게 작성해주세요. 구체적일수록 AI가 더 정확한 가설을 도출합니다.<br />답변이 힘든 부분은 생략하셔도 되나, 전체 답변 합계는 300자 이상이어야 합니다.</>,
+                      <>Answer each item in as much detail as you can — the more specific, the more accurate the AI&apos;s hypotheses.<br />You may skip items that are hard to answer, but your answers must total at least 300 characters.</>,
+                    )}</p>
                     {PURPOSE_QUESTIONS.map((q, i) => (
                       <div key={i}>
-                        <p className="text-sm font-semibold text-slate-700 mb-1">{q.label}</p>
-                        <p className="text-xs text-slate-400 mb-2 leading-relaxed">{q.hint}</p>
+                        <p className="text-sm font-semibold text-slate-700 mb-1">{t(q.label, q.labelEn)}</p>
+                        <p className="text-xs text-slate-400 mb-2 leading-relaxed">{t(q.hint, q.hintEn)}</p>
                         <textarea
                           className="w-full h-12 px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-300 resize-none outline-none leading-relaxed bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
                           value={purposeAnswers[i]}
@@ -1654,13 +1817,16 @@ function DesignPageInner() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs text-amber-500 font-medium">300자 이상 작성해주세요. 내용이 구체적일수록 조사 품질이 높아집니다.</p>
+                    <p className="text-xs text-amber-500 font-medium">{t("300자 이상 작성해주세요. 내용이 구체적일수록 조사 품질이 높아집니다.", "Please write at least 300 characters. The more specific, the better the study.")}</p>
                     <div className={`rounded-xl border overflow-hidden transition-all ${
                       errPurpose ? "border-red-300" : "border-slate-200 focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-400/20"
                     }`}>
                       <textarea
                         className="w-full h-44 px-4 pt-4 text-sm text-slate-800 placeholder:text-slate-300 resize-none outline-none leading-relaxed bg-white"
-                        placeholder="이번 조사를 통해 무엇을 알고 싶으신가요?&#10;&#10;예) 타겟 유저의 가격 저항선, 경쟁사 대비 강점 ..."
+                        placeholder={t(
+                          "이번 조사를 통해 무엇을 알고 싶으신가요?\n\n예) 타겟 유저의 가격 저항선, 경쟁사 대비 강점 ...",
+                          "What do you want to learn from this study?\n\ne.g., Whether Korean shoppers in their 20s–30s would pay ₩3,000 per bar, and how we compare with local protein snack brands ...",
+                        )}
                         value={purposeFree}
                         onChange={(e) => setPurposeFree(e.target.value)}
                       />
@@ -1681,7 +1847,7 @@ function DesignPageInner() {
                   onClick={handleDesign}
                   className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99]"
                 >
-                  <Sparkles size={15} /> AI 설계 시작 <ArrowRight size={15} />
+                  <Sparkles size={15} /> {t("AI 설계 시작", "Start AI design")} <ArrowRight size={15} />
                 </button>
               </div>
             </div>
@@ -1696,7 +1862,7 @@ function DesignPageInner() {
           <div>
             <SocialTwinLoader
               screen="hypothesis"
-              title="작성한 정보를 바탕으로 가설을 설계 중입니다"
+              title={t("작성한 정보를 바탕으로 가설을 설계 중입니다", "Designing hypotheses from your input")}
               subtitle={`“${researchPurpose.slice(0, 60)}${researchPurpose.length > 60 ? "..." : ""}”`}
               progress={progress}
             />
@@ -1736,10 +1902,10 @@ function DesignPageInner() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-[11px] font-bold text-violet-500 bg-violet-50 px-2 py-0.5 rounded-full border border-violet-100">
-                            가설 {i + 1}
+                            {t(`가설 ${i + 1}`, `Hypothesis ${i + 1}`)}
                           </span>
                           {isSelected && (
-                            <span className="text-[10px] font-semibold text-violet-400">선택됨</span>
+                            <span className="text-[10px] font-semibold text-violet-400">{t("선택됨", "Selected")}</span>
                           )}
                         </div>
                         <p className="text-sm text-slate-700 leading-relaxed">{hyp}</p>
@@ -1765,7 +1931,7 @@ function DesignPageInner() {
                           autoFocus
                         />
                         <div className="flex justify-end gap-2 px-5 pb-4">
-                          <button onClick={() => setEditingHypIdx(null)} className="px-3.5 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg">취소</button>
+                          <button onClick={() => setEditingHypIdx(null)} className="px-3.5 py-1.5 text-xs text-slate-500 hover:bg-slate-100 rounded-lg">{t("취소", "Cancel")}</button>
                           <button
                             onClick={() => {
                               const u = [...hypothesisTexts]; u[i] = hypDraft;
@@ -1773,7 +1939,7 @@ function DesignPageInner() {
                               setSurveyQuestions([]); // 가설 수정 → 기존 문항 무효화(재생성 강제)
                             }}
                             className="px-3.5 py-1.5 text-xs font-semibold bg-violet-600 text-white rounded-lg hover:bg-violet-500"
-                          >저장</button>
+                          >{t("저장", "Save")}</button>
                         </div>
                       </div>
                     )}
@@ -1786,16 +1952,16 @@ function DesignPageInner() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  {selectedHypotheses.size}개 가설 선택됨
+                  {t(`${selectedHypotheses.size}개 가설 선택됨`, `${selectedHypotheses.size} ${selectedHypotheses.size === 1 ? "hypothesis" : "hypotheses"} selected`)}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">선택한 가설을 기반으로 설문을 생성합니다</p>
+                <p className="text-xs text-slate-400 mt-0.5">{t("선택한 가설을 기반으로 설문을 생성합니다", "We'll generate the survey from the selected hypotheses")}</p>
               </div>
               <button
                 onClick={handleSurveyDesign}
                 disabled={selectedHypotheses.size === 0}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Wand2 size={15} /> AI 설문 생성 <ArrowRight size={15} />
+                <Wand2 size={15} /> {t("AI 설문 생성", "Generate survey")} <ArrowRight size={15} />
               </button>
             </div>
             {saveDraftBlock}
@@ -1809,8 +1975,11 @@ function DesignPageInner() {
           <div>
             <SocialTwinLoader
               screen="generate"
-              title="가설을 바탕으로 설문을 생성 중입니다"
-              subtitle={`${selectedHypotheses.size}개 가설 기반으로 설문 문항을 구성하고 있습니다`}
+              title={t("가설을 바탕으로 설문을 생성 중입니다", "Generating the survey from your hypotheses")}
+              subtitle={t(
+                `${selectedHypotheses.size}개 가설 기반으로 설문 문항을 구성하고 있습니다`,
+                `Building survey questions from ${selectedHypotheses.size} ${selectedHypotheses.size === 1 ? "hypothesis" : "hypotheses"}`,
+              )}
               progress={progress}
             />
             {saveDraftBlock}
@@ -1829,8 +1998,8 @@ function DesignPageInner() {
                   <div className="w-7 h-7 rounded-lg bg-violet-100 flex items-center justify-center">
                     <Lightbulb size={13} className="text-violet-600" />
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-800">선택된 가설</h3>
-                  <span className="ml-auto text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{selectedHypotheses.size}개</span>
+                  <h3 className="text-sm font-semibold text-slate-800">{t("선택된 가설", "Selected hypotheses")}</h3>
+                  <span className="ml-auto text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{t(`${selectedHypotheses.size}개`, `${selectedHypotheses.size}`)}</span>
                 </div>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   {[...selectedHypotheses].sort().map((i) => (
@@ -1845,8 +2014,8 @@ function DesignPageInner() {
               {/* 2분할: 왼쪽 설문지 직접 업로드 / 오른쪽 설문지 수정 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                  <p className="text-xs font-semibold text-slate-500 mb-1">설문지 직접 업로드 <span className="font-normal text-slate-400">(선택)</span></p>
-                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed">조사하고 싶은 설문지가 있는 경우에는 업로드하시면 자동으로 문항을 인식합니다.</p>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">{t("설문지 직접 업로드", "Upload your own questionnaire")} <span className="font-normal text-slate-400">{t("(선택)", "(optional)")}</span></p>
+                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed">{t("조사하고 싶은 설문지가 있는 경우에는 업로드하시면 자동으로 문항을 인식합니다.", "If you already have a questionnaire, upload it and we'll recognize the questions automatically.")}</p>
                   <input ref={pdfInputRef} type="file" accept=".pdf" className="hidden"
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) setUploadedPdf(f.name); }} />
                   {uploadedPdf ? (
@@ -1862,13 +2031,13 @@ function DesignPageInner() {
                       onClick={() => pdfInputRef.current?.click()}
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 text-xs hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50/40 transition-all"
                     >
-                      <Upload size={13} /> PDF 설문지 업로드
+                      <Upload size={13} /> {t("PDF 설문지 업로드", "Upload PDF questionnaire")}
                     </button>
                   )}
                 </div>
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col">
-                  <p className="text-xs font-semibold text-slate-500 mb-1">설문지 수정</p>
-                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed flex-1">아래 전체 설문 문항을 한 화면에서 한꺼번에 수정할 수 있습니다. 수정이 끝나면 수정 완료를 누르세요.</p>
+                  <p className="text-xs font-semibold text-slate-500 mb-1">{t("설문지 수정", "Edit questionnaire")}</p>
+                  <p className="text-[11px] text-slate-400 mb-2 break-keep leading-relaxed flex-1">{t("아래 전체 설문 문항을 한 화면에서 한꺼번에 수정할 수 있습니다. 수정이 끝나면 수정 완료를 누르세요.", "Edit all the survey questions below on a single screen. Click Done editing when you're finished.")}</p>
                   <button
                     onClick={() => {
                       if (editAllMode) { finishEditAll(); }
@@ -1880,7 +2049,7 @@ function DesignPageInner() {
                         : "border-2 border-dashed border-indigo-200 text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/40"
                     }`}
                   >
-                    {editAllMode ? <><Check size={13} /> 수정 완료</> : <><Pencil size={13} /> 설문지 수정 (전체 문항 한번에)</>}
+                    {editAllMode ? <><Check size={13} /> {t("수정 완료", "Done editing")}</> : <><Pencil size={13} /> {t("설문지 수정 (전체 문항 한번에)", "Edit questionnaire (all questions at once)")}</>}
                   </button>
                 </div>
               </div>
@@ -1903,36 +2072,36 @@ function DesignPageInner() {
                           <select
                             value={q.type}
                             onChange={(e) => {
-                              const t = e.target.value;
-                              updateQ(i, { type: t, options: isOptionType(t) && !(q.options?.length) ? ["", ""] : q.options });
+                              const qt = e.target.value;
+                              updateQ(i, { type: qt, options: isOptionType(qt) && !(q.options?.length) ? ["", ""] : q.options });
                             }}
                             className="flex-1 appearance-none bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none"
                           >
-                            {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                            {QUESTION_TYPES.map((qt) => <option key={qt} value={qt}>{L(qt)}</option>)}
                           </select>
                           <button
                             onClick={() => deleteQuestion(i)}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                            title="문항 삭제"
+                            title={t("문항 삭제", "Delete question")}
                           >
                             <Trash2 size={13} />
                           </button>
                         </div>
                         <input
                           className="w-full px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
-                          placeholder="제목"
+                          placeholder={t("제목", "Title")}
                           value={q.title}
                           onChange={(e) => updateQ(i, { title: e.target.value })}
                         />
                         <textarea
                           className="w-full h-16 px-3 py-2.5 text-sm bg-white border border-indigo-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 leading-relaxed"
-                          placeholder="질문 내용"
+                          placeholder={t("질문 내용", "Question text")}
                           value={q.question}
                           onChange={(e) => updateQ(i, { question: e.target.value })}
                         />
                         {isOptionType(q.type) && (
                           <div className="flex flex-col gap-1.5">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">보기 항목</p>
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("보기 항목", "Answer options")}</p>
                             {(q.options ?? []).map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-1.5">
                                 <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 text-[10px] font-bold text-slate-400 flex items-center justify-center flex-shrink-0">
@@ -1940,14 +2109,14 @@ function DesignPageInner() {
                                 </span>
                                 <input
                                   className="flex-1 px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
-                                  placeholder={`보기 ${oi + 1}`}
+                                  placeholder={t(`보기 ${oi + 1}`, `Option ${oi + 1}`)}
                                   value={opt}
                                   onChange={(e) => updateQ(i, { options: (q.options ?? []).map((o, j) => (j === oi ? e.target.value : o)) })}
                                 />
                                 <button
                                   onClick={() => updateQ(i, { options: (q.options ?? []).filter((_, j) => j !== oi) })}
                                   className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"
-                                  title="보기 삭제"
+                                  title={t("보기 삭제", "Remove option")}
                                 >
                                   <X size={12} />
                                 </button>
@@ -1957,7 +2126,7 @@ function DesignPageInner() {
                               onClick={() => updateQ(i, { options: [...(q.options ?? []), ""] })}
                               className="self-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-indigo-200 text-[11px] text-indigo-500 hover:bg-indigo-50 transition-colors"
                             >
-                              <Plus size={12} /> 보기 추가
+                              <Plus size={12} /> {t("보기 추가", "Add option")}
                             </button>
                           </div>
                         )}
@@ -1980,7 +2149,7 @@ function DesignPageInner() {
                                 : q.type.includes("리커트")
                                 ? "bg-amber-50 text-amber-600 border border-amber-100"
                                 : "bg-slate-100 text-slate-500"
-                            }`}>{q.type}</span>
+                            }`}>{L(q.type)}</span>
                           </div>
                           <p className="text-xs text-slate-500 leading-relaxed">{q.question}</p>
                           {/* 문항 이미지(선택) */}
@@ -1988,19 +2157,19 @@ function DesignPageInner() {
                             {q.image ? (
                               <div className="relative">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={q.image} alt="문항 이미지" className="h-14 w-14 object-cover rounded-lg border border-slate-200" />
+                                <img src={q.image} alt={t("문항 이미지", "Question image")} className="h-14 w-14 object-cover rounded-lg border border-slate-200" />
                                 <button
                                   type="button"
                                   onClick={() => setSurveyQuestions((prev) => prev.map((sq, si) => (si === i ? { ...sq, image: null } : sq)))}
                                   className="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full w-5 h-5 flex items-center justify-center text-rose-500 hover:bg-rose-50"
-                                  title="이미지 제거"
+                                  title={t("이미지 제거", "Remove image")}
                                 >
                                   <X size={11} />
                                 </button>
                               </div>
                             ) : (
                               <label className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] text-slate-500 cursor-pointer hover:border-indigo-300 hover:text-indigo-500 transition-colors">
-                                <ImagePlus size={12} /> 이미지 추가 <span className="text-slate-300">(선택)</span>
+                                <ImagePlus size={12} /> {t("이미지 추가", "Add image")} <span className="text-slate-300">{t("(선택)", "(optional)")}</span>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -2024,14 +2193,14 @@ function DesignPageInner() {
                               else { setQDraft({ title: q.title, question: q.question, type: q.type, options: [...(q.options ?? [])] }); setEditingQIdx(i); }
                             }}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 transition-colors"
-                            title={isEditingQ ? "편집 취소" : "문항 수정"}
+                            title={isEditingQ ? t("편집 취소", "Cancel editing") : t("문항 수정", "Edit question")}
                           >
                             {isEditingQ ? <X size={13} /> : <Pencil size={13} />}
                           </button>
                           <button
                             onClick={() => deleteQuestion(i)}
                             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                            title="문항 삭제"
+                            title={t("문항 삭제", "Delete question")}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -2041,7 +2210,7 @@ function DesignPageInner() {
                       {/* 객관식 보기 항목 — 항상 펼쳐서 표시 (편집 중에는 편집 폼에서 수정) */}
                       {!isEditingQ && canExpand && (
                         <div className="px-5 pb-4 border-t border-slate-50">
-                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-3 mb-2">보기 항목</p>
+                          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-3 mb-2">{t("보기 항목", "Answer options")}</p>
                           <div className="flex flex-col gap-1.5">
                             {q.options.map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
@@ -2060,36 +2229,36 @@ function DesignPageInner() {
                         <div className="px-5 pb-4 border-t border-indigo-50 bg-indigo-50/20 flex flex-col gap-2 pt-4">
                           <input
                             className="w-full px-3 py-2 text-sm bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
-                            placeholder="제목"
+                            placeholder={t("제목", "Title")}
                             value={qDraft.title ?? ""}
                             onChange={(e) => setQDraft((d) => ({ ...d, title: e.target.value }))}
                             autoFocus
                           />
                           <textarea
                             className="w-full h-20 px-3 py-2.5 text-sm bg-white border border-indigo-200 rounded-lg resize-none outline-none focus:ring-2 focus:ring-indigo-400/30 leading-relaxed"
-                            placeholder="질문 내용"
+                            placeholder={t("질문 내용", "Question text")}
                             value={qDraft.question ?? ""}
                             onChange={(e) => setQDraft((d) => ({ ...d, question: e.target.value }))}
                           />
                           <select
                             value={qDraft.type ?? ""}
                             onChange={(e) => {
-                              const t = e.target.value;
+                              const qt = e.target.value;
                               setQDraft((d) => ({
                                 ...d,
-                                type: t,
+                                type: qt,
                                 // 보기형 유형으로 바꿨는데 보기가 없으면 빈 보기 2개 시드
-                                options: isOptionType(t) && !(d.options?.length) ? ["", ""] : d.options,
+                                options: isOptionType(qt) && !(d.options?.length) ? ["", ""] : d.options,
                               }));
                             }}
                             className="w-full appearance-none bg-white border border-indigo-200 rounded-lg px-3 py-2 text-xs text-slate-700 outline-none"
                           >
-                            {QUESTION_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                            {QUESTION_TYPES.map((qt) => <option key={qt} value={qt}>{L(qt)}</option>)}
                           </select>
                           {/* 보기 편집 — 객관식·복수선택·순위형 */}
                           {isOptionType(qDraft.type) && (
                             <div className="flex flex-col gap-1.5">
-                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">보기 항목</p>
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{t("보기 항목", "Answer options")}</p>
                               {(qDraft.options ?? []).map((opt, oi) => (
                                 <div key={oi} className="flex items-center gap-1.5">
                                   <span className="w-5 h-5 rounded-full bg-white border border-indigo-100 text-[10px] font-bold text-slate-400 flex items-center justify-center flex-shrink-0">
@@ -2097,7 +2266,7 @@ function DesignPageInner() {
                                   </span>
                                   <input
                                     className="flex-1 px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-400/30"
-                                    placeholder={`보기 ${oi + 1}`}
+                                    placeholder={t(`보기 ${oi + 1}`, `Option ${oi + 1}`)}
                                     value={opt}
                                     onChange={(e) => setQDraft((d) => ({
                                       ...d,
@@ -2110,7 +2279,7 @@ function DesignPageInner() {
                                       options: (d.options ?? []).filter((_, j) => j !== oi),
                                     }))}
                                     className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-rose-500 hover:bg-rose-50 flex-shrink-0"
-                                    title="보기 삭제"
+                                    title={t("보기 삭제", "Remove option")}
                                   >
                                     <X size={12} />
                                   </button>
@@ -2120,12 +2289,12 @@ function DesignPageInner() {
                                 onClick={() => setQDraft((d) => ({ ...d, options: [...(d.options ?? []), ""] }))}
                                 className="self-start inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-indigo-200 text-[11px] text-indigo-500 hover:bg-indigo-50 transition-colors"
                               >
-                                <Plus size={12} /> 보기 추가
+                                <Plus size={12} /> {t("보기 추가", "Add option")}
                               </button>
                             </div>
                           )}
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setEditingQIdx(null)} className="px-3 py-2 text-xs text-slate-500 hover:bg-slate-100 rounded-lg border border-slate-200 bg-white">취소</button>
+                            <button onClick={() => setEditingQIdx(null)} className="px-3 py-2 text-xs text-slate-500 hover:bg-slate-100 rounded-lg border border-slate-200 bg-white">{t("취소", "Cancel")}</button>
                             <button
                               onClick={() => {
                                 const opts = isOptionType(qDraft.type)
@@ -2137,7 +2306,7 @@ function DesignPageInner() {
                                 setEditingQIdx(null);
                               }}
                               className="px-3 py-2 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-500"
-                            >저장</button>
+                            >{t("저장", "Save")}</button>
                           </div>
                         </div>
                       )}
@@ -2148,7 +2317,7 @@ function DesignPageInner() {
                       onClick={() => insertQuestion(i)}
                       className="self-center inline-flex items-center gap-1 px-3 py-1 rounded-full border border-dashed border-slate-200 text-[11px] text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 transition-all"
                     >
-                      <Plus size={11} /> 문항 추가
+                      <Plus size={11} /> {t("문항 추가", "Add question")}
                     </button>
                     </div>
                   );
@@ -2159,7 +2328,7 @@ function DesignPageInner() {
                     onClick={addQuestion}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-indigo-200 text-indigo-500 text-sm font-medium hover:bg-indigo-50/60 hover:border-indigo-300 transition-all"
                   >
-                    <Plus size={15} /> 문항 추가
+                    <Plus size={15} /> {t("문항 추가", "Add question")}
                   </button>
                 )}
 
@@ -2167,7 +2336,7 @@ function DesignPageInner() {
                   onClick={() => { if (editAllMode) finishEditAll(); setStep("panel"); }}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99] mt-2"
                 >
-                  패널 설정 <ArrowRight size={15} />
+                  {t("패널 설정", "Panel setup")} <ArrowRight size={15} />
                 </button>
               </div>
             </div>
@@ -2186,10 +2355,14 @@ function DesignPageInner() {
                   <SlidersHorizontal size={16} className="text-indigo-600" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-base font-bold text-slate-900">패널 설정</h2>
+                  <h2 className="text-base font-bold text-slate-900">{t("패널 설정", "Panel setup")}</h2>
                   <p className="mt-0.5 text-xs text-slate-500 leading-relaxed break-keep">
-                    설문에 응답할 가상인구를 고릅니다. 조건을 좁히지 않으면(전체) 조사 목적에 맞는
-                    응답자 구성을 AI가 자동으로 잡아줍니다.
+                    {t(
+                      <>설문에 응답할 가상인구를 고릅니다. 조건을 좁히지 않으면(전체) 조사 목적에 맞는
+                    응답자 구성을 AI가 자동으로 잡아줍니다.</>,
+                      <>Choose the virtual population that will answer your survey. If you don&apos;t narrow it down (All),
+                      AI automatically builds a respondent mix that fits your research objective.</>,
+                    )}
                   </p>
                 </div>
               </div>
@@ -2199,10 +2372,10 @@ function DesignPageInner() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-1">
                 <MapPin size={15} className="text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-900">시도</h3>
-                <span className="text-[11px] text-slate-400">복수 선택 가능</span>
+                <h3 className="text-sm font-bold text-slate-900">{t("시도", "Region (province / city)")}</h3>
+                <span className="text-[11px] text-slate-400">{t("복수 선택 가능", "Multiple selection allowed")}</span>
               </div>
-              <p className="text-xs text-slate-600 mb-3">전국을 고르면 모든 시도를 합산합니다.</p>
+              <p className="text-xs text-slate-600 mb-3">{t("전국을 고르면 모든 시도를 합산합니다.", "Nationwide combines all provinces and cities.")}</p>
               <div className="flex flex-wrap gap-2">
                 {SIDO_OPTIONS.map((name) => {
                   const isAll = name === "전국";
@@ -2224,7 +2397,7 @@ function DesignPageInner() {
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                       }`}
                     >
-                      {name}
+                      {L(name)}
                     </button>
                   );
                 })}
@@ -2238,14 +2411,14 @@ function DesignPageInner() {
               return (
                 <div key={axis.key} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
                   <div className="flex items-center justify-between gap-3 mb-3">
-                    <h3 className="text-sm font-bold text-slate-900">{axis.label}</h3>
+                    <h3 className="text-sm font-bold text-slate-900">{t(axis.label, axis.labelEn)}</h3>
                     {!isAll && (
                       <button
                         type="button"
                         onClick={() => setPanelAxes((p) => ({ ...p, [axis.key]: [] }))}
                         className="text-[11px] text-slate-400 hover:text-slate-700"
                       >
-                        전체로 되돌리기
+                        {t("전체로 되돌리기", "Reset to All")}
                       </button>
                     )}
                   </div>
@@ -2259,7 +2432,7 @@ function DesignPageInner() {
                           : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
                       }`}
                     >
-                      전체
+                      {t("전체", "All")}
                     </button>
                     {axis.options.map((opt) => {
                       const checked = picked.includes(opt);
@@ -2274,7 +2447,7 @@ function DesignPageInner() {
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                           }`}
                         >
-                          {opt}
+                          {L(opt)}
                         </button>
                       );
                     })}
@@ -2287,10 +2460,13 @@ function DesignPageInner() {
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-1">
                 <Users size={15} className="text-slate-400" />
-                <h3 className="text-sm font-bold text-slate-900">패널 수</h3>
+                <h3 className="text-sm font-bold text-slate-900">{t("패널 수", "Panel size")}</h3>
               </div>
               <p className="text-xs text-slate-500 mb-4">
-                설문에 응답할 가상인구 수입니다. 많을수록 세부 집단까지 나눠 볼 수 있습니다.
+                {t(
+                  "설문에 응답할 가상인구 수입니다. 많을수록 세부 집단까지 나눠 볼 수 있습니다.",
+                  "The number of virtual respondents who will answer your survey. A larger panel lets you break results down by subgroup.",
+                )}
               </p>
 
               {subActive || reportExempt ? (
@@ -2303,24 +2479,34 @@ function DesignPageInner() {
                       {subActive ? (
                         <>
                           <p className="text-sm font-bold text-slate-900">
-                            30일권 이용 중 — 100명 고정
+                            {t("30일권 이용 중 — 100명 고정", "30-day pass active — fixed at 100 respondents")}
                             <span className="ml-2 text-xs font-semibold text-indigo-600">
-                              {subscription?.days_left}일 남음
+                              {t(`${subscription?.days_left}일 남음`, `${subscription?.days_left} days left`)}
                             </span>
                           </p>
                           <p className="mt-1 text-xs text-slate-600 leading-relaxed break-keep">
-                            30일권은 가상인구 <strong className="font-semibold">100명</strong> 규모로 고정되며,
+                            {t(
+                              <>30일권은 가상인구 <strong className="font-semibold">100명</strong> 규모로 고정되며,
                             이용 기간 동안 <strong className="font-semibold">횟수 제한 없이</strong> 조사하실 수 있습니다.
-                            이 조사는 추가 결제 없이 바로 진행됩니다.
+                            이 조사는 추가 결제 없이 바로 진행됩니다.</>,
+                              <>The 30-day pass is fixed at <strong className="font-semibold">100 virtual respondents</strong>,
+                              and you can run <strong className="font-semibold">unlimited studies</strong> during the pass period.
+                              This study will run right away with no additional payment.</>,
+                            )}
                           </p>
                         </>
                       ) : (
                         <>
-                          <p className="text-sm font-bold text-slate-900">무료 제공 대상 — 100명 고정</p>
+                          <p className="text-sm font-bold text-slate-900">{t("무료 제공 대상 — 100명 고정", "Complimentary access — fixed at 100 respondents")}</p>
                           <p className="mt-1 text-xs text-slate-600 leading-relaxed break-keep">
-                            상세보고서 무료 제공(무료 쿠폰·무료 제공 계정) 대상이라
+                            {t(
+                              <>상세보고서 무료 제공(무료 쿠폰·무료 제공 계정) 대상이라
                             가상인구 <strong className="font-semibold">100명</strong> 규모로 조사합니다.
-                            추가 결제 없이 바로 진행되며, 원본자료(엑셀)와 패널 질문도 이용하실 수 있습니다.
+                            추가 결제 없이 바로 진행되며, 원본자료(엑셀)와 패널 질문도 이용하실 수 있습니다.</>,
+                              <>Your account has complimentary detailed reports (free coupon or complimentary account), so this study
+                              uses <strong className="font-semibold">100 virtual respondents</strong>.
+                              It runs right away with no payment, and raw data (Excel) and panel Q&amp;A are included.</>,
+                            )}
                           </p>
                         </>
                       )}
@@ -2344,7 +2530,7 @@ function DesignPageInner() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className={`text-xs font-bold ${active ? "text-indigo-700" : "text-slate-500"}`}>
-                            {p.name}
+                            {t(p.name, p.nameEn)}
                           </span>
                           <span
                             className={`w-4 h-4 rounded-full border flex items-center justify-center ${
@@ -2355,15 +2541,15 @@ function DesignPageInner() {
                           </span>
                         </div>
                         <p className="mt-2 text-lg font-extrabold text-slate-900 tabular-nums">
-                          {p.size}<span className="text-sm font-bold ml-0.5">명</span>
+                          {p.size}<span className="text-sm font-bold ml-0.5">{t("명", " respondents")}</span>
                         </p>
                         <p className={`mt-0.5 text-sm font-bold ${active ? "text-indigo-700" : "text-slate-700"}`}>
-                          {p.price}
+                          {t(p.price, p.priceEn)}
                         </p>
                         {"note" in p && p.note && (
-                          <p className="text-[11px] text-slate-400">{p.note}</p>
+                          <p className="text-[11px] text-slate-400">{t(p.note, p.noteEn)}</p>
                         )}
-                        <p className="mt-2 text-[11px] text-slate-500 leading-snug break-keep">{p.desc}</p>
+                        <p className="mt-2 text-[11px] text-slate-500 leading-snug break-keep">{t(p.desc, p.descEn)}</p>
                       </button>
                     );
                   })}
@@ -2372,12 +2558,20 @@ function DesignPageInner() {
 
               {!subActive && !reportExempt && (
                 <p className="mt-3 text-[11px] text-slate-400 leading-relaxed break-keep">
-                  무료 체험(10명)은 결제 없이 진행됩니다. 100명·500명은 조사를 진행할 때 결제가 필요하며,
+                  {t(
+                    <>무료 체험(10명)은 결제 없이 진행됩니다. 100명·500명은 조사를 진행할 때 결제가 필요하며,
                   자주 조사하신다면{" "}
                   <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline underline-offset-2">
                     30일권(100명 무제한)
                   </a>
-                  이 유리합니다.
+                  이 유리합니다.</>,
+                    <>The Free trial (10 respondents) needs no payment. 100- and 500-respondent studies require payment when you run them.
+                    If you run studies often, the{" "}
+                    <a href="/pricing" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline underline-offset-2">
+                      30-day pass (unlimited studies at 100 respondents)
+                    </a>{" "}
+                    is the better deal.</>,
+                  )}
                 </p>
               )}
             </div>
@@ -2386,7 +2580,7 @@ function DesignPageInner() {
               onClick={() => setStep("result")}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99]"
             >
-              최종 검토 <ArrowRight size={15} />
+              {t("최종 검토", "Final review")} <ArrowRight size={15} />
             </button>
             {saveDraftBlock}
           </div>
@@ -2400,10 +2594,10 @@ function DesignPageInner() {
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               {[
-                { icon: <Target size={18} />, label: "거래방식", value: tradeType || "—", accent: "indigo" },
-                { icon: <Lightbulb size={18} />, label: "선택 가설", value: `${selectedHypotheses.size}개`, accent: "sky" },
-                { icon: <FileText size={18} />, label: "설문 문항", value: `${surveyQuestions.length}개`, accent: "emerald" },
-                { icon: <Users size={18} />, label: "패널 수", value: `${panelSize}명`, accent: "amber" },
+                { icon: <Target size={18} />, label: t("거래방식", "Business model"), value: (tradeType && L(tradeType)) || "—", accent: "indigo" },
+                { icon: <Lightbulb size={18} />, label: t("선택 가설", "Selected hypotheses"), value: t(`${selectedHypotheses.size}개`, `${selectedHypotheses.size}`), accent: "sky" },
+                { icon: <FileText size={18} />, label: t("설문 문항", "Survey questions"), value: t(`${surveyQuestions.length}개`, `${surveyQuestions.length}`), accent: "emerald" },
+                { icon: <Users size={18} />, label: t("패널 수", "Panel size"), value: t(`${panelSize}명`, `${panelSize}`), accent: "amber" },
               ].map((k) => (
                 <div key={k.label} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${k.accent}-50 text-${k.accent}-500 flex-shrink-0`}>
@@ -2423,32 +2617,32 @@ function DesignPageInner() {
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-[11px] font-bold flex items-center justify-center">1</span>
                   <MessageSquare size={14} className="text-indigo-500" />
-                  <h3 className="text-sm font-semibold text-slate-800">질문 입력</h3>
+                  <h3 className="text-sm font-semibold text-slate-800">{t("질문 입력", "Brief")}</h3>
                 </div>
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
                   <div>
-                    <p className="text-[11px] font-semibold text-slate-400 mb-1">거래방식</p>
+                    <p className="text-[11px] font-semibold text-slate-400 mb-1">{t("거래방식", "Business model")}</p>
                     <p className="text-sm text-slate-700">
                       {tradeType
-                        ? `${tradeType} (${TRADE_TYPES.find((t) => t.code === tradeType)?.en ?? ""})`
-                        : "미선택"}
+                        ? `${L(tradeType)} (${TRADE_TYPES.find((tr) => tr.code === tradeType)?.en ?? ""})`
+                        : t("미선택", "Not selected")}
                     </p>
                   </div>
                   <div className="sm:col-span-2">
-                    <p className="text-[11px] font-semibold text-slate-400 mb-1">업로드 설문지</p>
+                    <p className="text-[11px] font-semibold text-slate-400 mb-1">{t("업로드 설문지", "Uploaded questionnaire")}</p>
                     <p className={`text-sm ${uploadedPdf ? "text-emerald-600 font-medium" : "text-slate-400"}`}>
-                      {uploadedPdf ?? "없음"}
+                      {uploadedPdf ?? t("없음", "None")}
                     </p>
                   </div>
                   {productDef && (
                     <div className="sm:col-span-2">
-                      <p className="text-[11px] font-semibold text-slate-400 mb-1">제품 / 서비스 정의</p>
+                      <p className="text-[11px] font-semibold text-slate-400 mb-1">{t("제품 / 서비스 정의", "Product / service definition")}</p>
                       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{productDef}</p>
                     </div>
                   )}
                   {researchPurpose && (
                     <div className="sm:col-span-2">
-                      <p className="text-[11px] font-semibold text-slate-400 mb-1">시장조사 목적</p>
+                      <p className="text-[11px] font-semibold text-slate-400 mb-1">{t("시장조사 목적", "Research objective")}</p>
                       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{researchPurpose}</p>
                     </div>
                   )}
@@ -2460,12 +2654,12 @@ function DesignPageInner() {
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-violet-100 text-violet-700 text-[11px] font-bold flex items-center justify-center">2</span>
                   <Lightbulb size={14} className="text-violet-500" />
-                  <h3 className="text-sm font-semibold text-slate-800">선택된 가설</h3>
-                  <span className="ml-auto text-[11px] text-slate-400">{selectedHypotheses.size}개 / 총 {hypothesisTexts.length}개</span>
+                  <h3 className="text-sm font-semibold text-slate-800">{t("선택된 가설", "Selected hypotheses")}</h3>
+                  <span className="ml-auto text-[11px] text-slate-400">{t(`${selectedHypotheses.size}개 / 총 ${hypothesisTexts.length}개`, `${selectedHypotheses.size} of ${hypothesisTexts.length}`)}</span>
                 </div>
                 <div className="p-4 flex flex-col gap-2.5">
                   {selectedHypotheses.size === 0 ? (
-                    <p className="text-xs text-slate-400 px-2 py-3">선택된 가설이 없습니다.</p>
+                    <p className="text-xs text-slate-400 px-2 py-3">{t("선택된 가설이 없습니다.", "No hypotheses selected.")}</p>
                   ) : (
                     [...selectedHypotheses].sort((a, b) => a - b).map((i) => (
                       <div key={i} className="flex items-start gap-2.5 p-3 bg-violet-50/60 rounded-xl border border-violet-100">
@@ -2482,12 +2676,12 @@ function DesignPageInner() {
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold flex items-center justify-center">3</span>
                   <FileText size={14} className="text-emerald-500" />
-                  <h3 className="text-sm font-semibold text-slate-800">설문 문항</h3>
-                  <span className="ml-auto text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{surveyQuestions.length}개</span>
+                  <h3 className="text-sm font-semibold text-slate-800">{t("설문 문항", "Survey questions")}</h3>
+                  <span className="ml-auto text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{t(`${surveyQuestions.length}개`, `${surveyQuestions.length}`)}</span>
                 </div>
                 <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto">
                   {surveyQuestions.length === 0 ? (
-                    <p className="text-xs text-slate-400 px-5 py-4">생성된 설문 문항이 없습니다.</p>
+                    <p className="text-xs text-slate-400 px-5 py-4">{t("생성된 설문 문항이 없습니다.", "No survey questions have been generated.")}</p>
                   ) : (
                     surveyQuestions.map((q, i) => (
                       <div key={i} className="flex items-start gap-4 px-5 py-3.5 hover:bg-slate-50/60">
@@ -2507,7 +2701,7 @@ function DesignPageInner() {
                             </ul>
                           )}
                         </div>
-                        <span className="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">{q.type}</span>
+                        <span className="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">{L(q.type)}</span>
                       </div>
                     ))
                   )}
@@ -2519,12 +2713,12 @@ function DesignPageInner() {
                 <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-[11px] font-bold flex items-center justify-center">4</span>
                   <SlidersHorizontal size={14} className="text-amber-500" />
-                  <h3 className="text-sm font-semibold text-slate-800">패널 설정</h3>
+                  <h3 className="text-sm font-semibold text-slate-800">{t("패널 설정", "Panel setup")}</h3>
                   <button
                     onClick={() => setStep("panel")}
                     className="ml-auto text-[11px] font-medium text-indigo-600 hover:underline"
                   >
-                    수정하기
+                    {t("수정하기", "Edit")}
                   </button>
                 </div>
                 <div className="p-5 flex flex-col gap-4">
@@ -2534,29 +2728,38 @@ function DesignPageInner() {
                       <Users size={15} className="text-slate-400" />
                       <div>
                         <p className="text-sm font-bold text-slate-900">
-                          가상인구 {panelSize}명
-                          {subActive && <span className="ml-2 text-xs font-semibold text-indigo-600">30일권 · 고정</span>}
+                          {t(`가상인구 ${panelSize}명`, `${panelSize} virtual respondents`)}
+                          {subActive && <span className="ml-2 text-xs font-semibold text-indigo-600">{t("30일권 · 고정", "30-day pass · fixed")}</span>}
                         </p>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           {subActive
-                            ? `30일권 이용 중 — 추가 결제 없이 진행됩니다 (${subscription?.days_left}일 남음)`
-                            : (PANEL_SIZES.find((p) => p.size === panelSize)?.desc ?? "")}
+                            ? t(
+                                `30일권 이용 중 — 추가 결제 없이 진행됩니다 (${subscription?.days_left}일 남음)`,
+                                `30-day pass active — no additional payment needed (${subscription?.days_left} days left)`,
+                              )
+                            : (() => {
+                                const ps = PANEL_SIZES.find((p) => p.size === panelSize);
+                                return ps ? t(ps.desc, ps.descEn) : "";
+                              })()}
                         </p>
                       </div>
                     </div>
                     <span className={`text-sm font-bold ${subActive ? "text-indigo-600" : "text-slate-800"}`}>
                       {subActive
-                        ? "무제한"
-                        : (PANEL_SIZES.find((p) => p.size === panelSize)?.price ?? "—")}
+                        ? t("무제한", "Unlimited")
+                        : (() => {
+                            const ps = PANEL_SIZES.find((p) => p.size === panelSize);
+                            return ps ? t(ps.price, ps.priceEn) : "—";
+                          })()}
                     </span>
                   </div>
 
                   {/* 조사 지역 */}
                   <div>
-                    <p className="text-xs font-bold text-slate-700 mb-2">조사 지역</p>
+                    <p className="text-xs font-bold text-slate-700 mb-2">{t("조사 지역", "Study region")}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {panelSido.map((name) => (
-                        <span key={name} className="text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded px-2 py-1">{name}</span>
+                        <span key={name} className="text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded px-2 py-1">{L(name)}</span>
                       ))}
                     </div>
                   </div>
@@ -2568,15 +2771,15 @@ function DesignPageInner() {
                       const isAll = picked.length === 0;
                       return (
                         <div key={axis.key}>
-                          <p className="text-xs font-bold text-slate-700 mb-2">{axis.label}</p>
+                          <p className="text-xs font-bold text-slate-700 mb-2">{t(axis.label, axis.labelEn)}</p>
                           {isAll ? (
                             <span className="inline-flex items-center rounded px-2 py-1 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200">
-                              전체
+                              {t("전체", "All")}
                             </span>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
                               {picked.map((v) => (
-                                <span key={v} className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-1">{v}</span>
+                                <span key={v} className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-1">{L(v)}</span>
                               ))}
                             </div>
                           )}
@@ -2589,16 +2792,24 @@ function DesignPageInner() {
                     <div className="flex items-start gap-2.5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
                       <Sparkles size={15} className="mt-0.5 shrink-0 text-violet-500" />
                       <p className="text-xs leading-relaxed break-keep text-violet-900">
-                        <strong className="font-bold">특성 조건을 좁히지 않았습니다</strong> — 조사 목적에 맞는
-                        응답자 구성을 <strong className="font-bold">AI가 자동으로</strong> 잡아줍니다.
+                        {t(
+                          <><strong className="font-bold">특성 조건을 좁히지 않았습니다</strong> — 조사 목적에 맞는
+                        응답자 구성을 <strong className="font-bold">AI가 자동으로</strong> 잡아줍니다.</>,
+                          <><strong className="font-bold">No demographic filters applied</strong> — <strong className="font-bold">AI automatically</strong> builds
+                          a respondent mix that fits your research objective.</>,
+                        )}
                       </p>
                     </div>
                   ) : (
                     <div className="flex items-start gap-2.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
                       <SlidersHorizontal size={15} className="mt-0.5 shrink-0 text-indigo-500" />
                       <p className="text-xs leading-relaxed break-keep text-indigo-900">
-                        <strong className="font-bold">선택한 특성 조건</strong>으로 가상인구를 추출합니다.
-                        선택한 라벨에 균등 비율이 적용됩니다.
+                        {t(
+                          <><strong className="font-bold">선택한 특성 조건</strong>으로 가상인구를 추출합니다.
+                        선택한 라벨에 균등 비율이 적용됩니다.</>,
+                          <>Virtual respondents are drawn using <strong className="font-bold">your selected filters</strong>.
+                          Selected categories are weighted equally.</>,
+                        )}
                       </p>
                     </div>
                   )}
@@ -2608,13 +2819,19 @@ function DesignPageInner() {
               {/* 실행 */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">위 설문문항을 바탕으로 가상인구 대상 조사를 실행합니다.</p>
-                  <p className="text-xs text-slate-400 mt-0.5">가상인구 매칭과 AI 응답 생성에 몇 분 정도 걸릴 수 있습니다.</p>
+                  <p className="text-sm font-semibold text-slate-800">{t("위 설문문항을 바탕으로 가상인구 대상 조사를 실행합니다.", "Run the study with the virtual population using the survey questions above.")}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t("가상인구 매칭과 AI 응답 생성에 몇 분 정도 걸릴 수 있습니다.", "Matching virtual respondents and generating AI responses may take a few minutes.")}</p>
                   {needsPayment() && (
                     <p className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 font-medium">
                       <CreditCard size={13} className="flex-shrink-0 mt-0.5" />
-                      가상인구 {panelSize}명 조사는{" "}
-                      {PANEL_SIZES.find((p) => p.size === panelSize)?.price} 결제 후 진행됩니다.
+                      {(() => {
+                        const ps = PANEL_SIZES.find((p) => p.size === panelSize);
+                        return t(
+                          <>가상인구 {panelSize}명 조사는{" "}
+                      {ps?.price} 결제 후 진행됩니다.</>,
+                          <>A {panelSize}-respondent study runs after a payment of {ps?.priceEn}.</>,
+                        );
+                      })()}
                     </p>
                   )}
                   {runError && (
@@ -2629,8 +2846,8 @@ function DesignPageInner() {
                   className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {needsPayment()
-                    ? <><CreditCard size={15} /> 결제하고 조사 실행하기 <ArrowRight size={15} /></>
-                    : <><Users size={15} /> 조사 실행하기 <ArrowRight size={15} /></>}
+                    ? <><CreditCard size={15} /> {t("결제하고 조사 실행하기", "Pay and run study")} <ArrowRight size={15} /></>
+                    : <><Users size={15} /> {t("조사 실행하기", "Run study")} <ArrowRight size={15} /></>}
                 </button>
               </div>
             </div>
@@ -2644,8 +2861,11 @@ function DesignPageInner() {
           <div>
             <SocialTwinLoader
               screen="survey"
-              title="가상인구 대상 조사를 실행 중입니다"
-              subtitle={`가상인구 패널이 ${surveyQuestions.length}개 문항에 응답하고 있습니다. 몇 분 정도 걸릴 수 있어요`}
+              title={t("가상인구 대상 조사를 실행 중입니다", "Running your study with the virtual population")}
+              subtitle={t(
+                `가상인구 패널이 ${surveyQuestions.length}개 문항에 응답하고 있습니다. 몇 분 정도 걸릴 수 있어요`,
+                `The virtual panel is answering ${surveyQuestions.length} questions. This may take a few minutes.`,
+              )}
               progress={progress}
               progressLabel={progressLabel}
               totalRespondents={sampleSize ?? undefined}
@@ -2663,34 +2883,46 @@ function DesignPageInner() {
                   무료(10명) 조사에서는 Raw Data·상세보고서가 잠긴다. */}
               <div className="rounded-2xl border border-slate-800 bg-slate-900 shadow-lg p-5">
                 <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">
-                  <Download size={15} className="text-slate-300" /> 다운로드
+                  <Download size={15} className="text-slate-300" /> {t("다운로드", "Downloads")}
                 </h3>
                 <div className="mb-3 leading-relaxed">
                   {detailStatus === "idle" ? (
                     <p className="text-[11px] text-slate-400">
-                      상세보고서는 <span className="font-semibold text-amber-300">‘상세보고서 생성하기’</span>를
-                      누르면 만들어집니다. 요약보고서는 지금 바로 내려받을 수 있습니다.
+                      {t(
+                        <>상세보고서는 <span className="font-semibold text-amber-300">‘상세보고서 생성하기’</span>를
+                      누르면 만들어집니다. 요약보고서는 지금 바로 내려받을 수 있습니다.</>,
+                        <>The detailed report is created when you click <span className="font-semibold text-amber-300">‘Generate detailed report’</span>.
+                        The summary report is available to download right now.</>,
+                      )}
                     </p>
                   ) : detailStatus === "running" ? (
                     <>
                       <p className="text-[11px] text-slate-400">
-                        상세보고서를 생성하고 있습니다 — 초안 생성 → 검토 → 수정·보완 과정을 거치며
-                        패널의 수에 따라 약 5~10분 걸립니다.
+                        {t(
+                          <>상세보고서를 생성하고 있습니다 — 초안 생성 → 검토 → 수정·보완 과정을 거치며
+                        패널의 수에 따라 약 5~10분 걸립니다.</>,
+                          <>Generating your detailed report — it goes through drafting → review → revision,
+                          and takes about 5–10 minutes depending on the panel size.</>,
+                        )}
                       </p>
                       <p className="mt-1 text-[11px] font-medium text-indigo-300">
-                        기다리는 동안 우측의 <span className="font-bold text-indigo-200">가상인구 패널</span>에게
-                        궁금한 점을 질문해 보세요.
+                        {t(
+                          <>기다리는 동안 우측의 <span className="font-bold text-indigo-200">가상인구 패널</span>에게
+                        궁금한 점을 질문해 보세요.</>,
+                          <>While you wait, ask the <span className="font-bold text-indigo-200">virtual panel</span> on
+                          the right anything you&apos;d like to know.</>,
+                        )}
                       </p>
                     </>
                   ) : (
-                    <p className="text-[11px] text-slate-400">조사 결과 자료를 내려받으실 수 있습니다.</p>
+                    <p className="text-[11px] text-slate-400">{t("조사 결과 자료를 내려받으실 수 있습니다.", "You can download your study results.")}</p>
                   )}
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { kind: "summary", label: "요약보고서", sub: "PDF", locked: false, pending: false },
-                    { kind: "raw", label: "가상인구 Raw Data", sub: "엑셀(CSV)", locked: !paidTier, pending: false },
-                    { kind: "report", label: "상세보고서", sub: "PDF", locked: false, pending: detailStatus !== "done" && detailStatus !== "idle" },
+                    { kind: "summary", label: t("요약보고서", "Summary report"), sub: "PDF", locked: false, pending: false },
+                    { kind: "raw", label: t("가상인구 Raw Data", "Virtual population raw data"), sub: t("엑셀(CSV)", "Excel (CSV)"), locked: !paidTier, pending: false },
+                    { kind: "report", label: t("상세보고서", "Detailed report"), sub: "PDF", locked: false, pending: detailStatus !== "done" && detailStatus !== "idle" },
                   ].map((d) => (
                     <button
                       key={d.kind}
@@ -2720,9 +2952,9 @@ function DesignPageInner() {
                       <span className="min-w-0">
                         <span className={`block text-sm font-medium truncate ${d.locked ? "text-amber-100" : "text-white"}`}>
                           {resultDownloading === d.kind
-                            ? "준비 중…"
+                            ? t("준비 중…", "Preparing…")
                             : d.kind === "report" && detailStatus === "idle"
-                              ? (detailStarting ? "생성 시작 중…" : "상세보고서 생성하기")
+                              ? (detailStarting ? t("생성 시작 중…", "Starting…") : t("상세보고서 생성하기", "Generate detailed report"))
                               : d.label}
                         </span>
                         <span className={`block text-[11px] ${
@@ -2731,11 +2963,11 @@ function DesignPageInner() {
                           : "text-slate-400"
                         }`}>
                           {d.locked
-                            ? "유료 버전에서 가능"
+                            ? t("유료 버전에서 가능", "Available on paid plans")
                             : d.kind === "report" && detailStatus === "idle"
-                              ? "눌러서 생성 (약 5~10분)"
+                              ? t("눌러서 생성 (약 5~10분)", "Click to generate (about 5–10 min)")
                               : d.pending
-                                ? (detailStatus === "error" ? "생성 실패 — 다시 시도해 주세요" : "생성 중…")
+                                ? (detailStatus === "error" ? t("생성 실패 — 다시 시도해 주세요", "Generation failed — please try again") : t("생성 중…", "Generating…"))
                                 : d.sub}
                         </span>
                       </span>
@@ -2746,11 +2978,18 @@ function DesignPageInner() {
                   <div className="mt-3 flex items-start gap-2.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3">
                     <Info size={15} className="mt-0.5 shrink-0 text-amber-300" />
                     <p className="text-xs leading-relaxed break-keep text-amber-100">
-                      <strong className="font-bold text-amber-200">무료 체험은 가상인구 10명 기준입니다.</strong>{" "}
+                      {t(
+                        <><strong className="font-bold text-amber-200">무료 체험은 가상인구 10명 기준입니다.</strong>{" "}
                       상세보고서는 그대로 받아보실 수 있지만, 모집단이 작아 세부 집단별 비교나 비율 해석은
                       제한적입니다.
                       <br />
-                      의사결정 근거로 쓰시려면 100명 이상 조사를 권합니다.
+                      의사결정 근거로 쓰시려면 100명 이상 조사를 권합니다.</>,
+                        <><strong className="font-bold text-amber-200">The Free trial uses 10 virtual respondents.</strong>{" "}
+                        You still get the detailed report, but with such a small sample, subgroup comparisons and percentages
+                        should be read with caution.
+                        <br />
+                        For decision-making, we recommend a study with 100 or more respondents.</>,
+                      )}
                     </p>
                   </div>
                 )}
@@ -2766,7 +3005,7 @@ function DesignPageInner() {
                     <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
                       <Sparkles size={15} className="text-indigo-300" />
                     </div>
-                    <span className="text-sm font-semibold text-white">AI 핵심 인사이트</span>
+                    <span className="text-sm font-semibold text-white">{t("AI 핵심 인사이트", "Key AI insights")}</span>
                   </div>
                   <div className="space-y-3">
                     {(detailReport!.상세분석 ?? "").split("\n").filter((l) => l.trim()).slice(0, 4).map((line, i) => (
@@ -2786,18 +3025,18 @@ function DesignPageInner() {
                 <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
                     <FileText size={15} className="text-indigo-500" />
-                    <h3 className="text-sm font-semibold text-slate-800">설문 개요</h3>
+                    <h3 className="text-sm font-semibold text-slate-800">{t("설문 개요", "Survey overview")}</h3>
                   </div>
                   <div className="p-5 flex flex-col gap-4">
                     {productDef.trim() && (
                       <div>
-                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">제품/서비스</p>
+                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">{t("제품/서비스", "Product / service")}</p>
                         <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{productDef.trim()}</p>
                       </div>
                     )}
                     {researchPurpose.trim() && (
                       <div className={productDef.trim() ? "border-t border-slate-100 pt-4" : ""}>
-                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">조사 목적·니즈</p>
+                        <p className="text-[11px] font-semibold text-slate-400 mb-1.5">{t("조사 목적·니즈", "Research objective & needs")}</p>
                         <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{researchPurpose.trim()}</p>
                       </div>
                     )}
@@ -2810,7 +3049,7 @@ function DesignPageInner() {
                 <InfographicCard info={infographic} />
               ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center text-sm text-slate-400">
-                  표시할 결과 요약이 없습니다. 요약 단계로 돌아가 조사를 다시 실행해 주세요.
+                  {t("표시할 결과 요약이 없습니다. 요약 단계로 돌아가 조사를 다시 실행해 주세요.", "There's no results summary to show. Go back to the review step and run the study again.")}
                 </div>
               )}
 
@@ -2825,8 +3064,8 @@ function DesignPageInner() {
                 >
                   <Download size={15} />
                   <span className="leading-tight text-center">
-                    상세보고서 무료로 받기
-                    <span className="block text-[11px] font-medium text-indigo-200">무료 쿠폰 적용 중 — 로그인 후 바로 열람됩니다</span>
+                    {t("상세보고서 무료로 받기", "Get the detailed report for free")}
+                    <span className="block text-[11px] font-medium text-indigo-200">{t("무료 쿠폰 적용 중 — 로그인 후 바로 열람됩니다", "Free coupon applied — view it right after you log in")}</span>
                   </span>
                 </button>
               )}
@@ -2835,7 +3074,7 @@ function DesignPageInner() {
               {surveyResults.length > 0 && (
                 <div>
                   <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 mb-4">
-                    <BarChart2 size={15} className="text-indigo-500" /> 문항별 결과
+                    <BarChart2 size={15} className="text-indigo-500" /> {t("문항별 결과", "Results by question")}
                   </h2>
                   <div className="grid md:grid-cols-2 gap-5">
                     {surveyResults.map((r) => (
@@ -2849,18 +3088,25 @@ function DesignPageInner() {
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs leading-relaxed text-slate-600">
-                    더 큰 규모의 조사나 원본자료·상세보고서가 필요하시면{" "}
+                    {t(
+                      <>더 큰 규모의 조사나 원본자료·상세보고서가 필요하시면{" "}
                     <a href="/pricing" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 underline underline-offset-2">
                       요금 안내
                     </a>
-                    를 확인해 주세요.
+                    를 확인해 주세요.</>,
+                      <>Need a larger study, raw data, or detailed reports? See{" "}
+                      <a href="/pricing" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 underline underline-offset-2">
+                        pricing
+                      </a>
+                      .</>,
+                    )}
                   </p>
                   <button
                     type="button"
                     onClick={() => setContactOpen(true)}
                     className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-all hover:border-slate-400 hover:bg-slate-50"
                   >
-                    <MessageSquare size={14} /> 문의하기
+                    <MessageSquare size={14} /> {t("문의하기", "Contact us")}
                   </button>
                 </div>
               </div>
@@ -2875,15 +3121,18 @@ function DesignPageInner() {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[32rem] lg:h-[calc(100vh-7rem)]">
                 <div className="px-5 py-4 border-b border-slate-100">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                    <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
+                    <MessageCircle size={15} className="text-indigo-500" /> {t("가상인구 패널에게 질문", "Ask the virtual panel")}
                     {!paidTier && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5">
-                        <Lock size={9} /> 유료
+                        <Lock size={9} /> {t("유료", "Paid")}
                       </span>
                     )}
                   </h3>
                   <p className="mt-0.5 text-xs text-slate-400">
-                    이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 할 수 있습니다.
+                    {t(
+                      "이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 할 수 있습니다.",
+                      "Ask follow-up questions directly to the virtual panel that took this survey.",
+                    )}
                   </p>
                 </div>
 
@@ -2893,9 +3142,12 @@ function DesignPageInner() {
                       {panelMessages.length === 0 && (
                         <div className="text-center text-sm text-slate-400 py-10">
                           <MessageCircle size={28} className="mx-auto mb-3 text-slate-300" />
-                          궁금한 점을 물어보세요.
+                          {t("궁금한 점을 물어보세요.", "Ask anything you'd like to know.")}
                           <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                            {["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"].map((ex) => (
+                            {t(
+                              ["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"],
+                              ["Why did you choose this product?", "What do you like most about it?", "What makes you hesitate to buy it?"],
+                            ).map((ex) => (
                               <button
                                 key={ex}
                                 onClick={() => setPanelInput(ex)}
@@ -2919,7 +3171,7 @@ function DesignPageInner() {
                       {panelSending && (
                         <div className="flex justify-start">
                           <div className="bg-slate-100 text-slate-400 rounded-2xl px-4 py-2.5 text-sm flex items-center gap-2">
-                            <RefreshCw size={14} className="animate-spin" /> 답변 생성 중…
+                            <RefreshCw size={14} className="animate-spin" /> {t("답변 생성 중…", "Generating answer…")}
                           </div>
                         </div>
                       )}
@@ -2940,14 +3192,14 @@ function DesignPageInner() {
                             }
                           }}
                           rows={1}
-                          placeholder="가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
+                          placeholder={t("가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)", "Ask the virtual panel a question (Enter to send · Shift+Enter for a new line)")}
                           className="flex-1 resize-none rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-400 max-h-32"
                         />
                         <button
                           type="submit"
                           disabled={panelSending || !panelInput.trim()}
                           className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition disabled:opacity-50"
-                          aria-label="전송"
+                          aria-label={t("전송", "Send")}
                         >
                           <Send size={16} />
                         </button>
@@ -2961,13 +3213,19 @@ function DesignPageInner() {
                       className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-left hover:border-amber-300 transition"
                     >
                       <p className="flex items-center gap-1.5 text-sm font-bold text-amber-800">
-                        <Lock size={14} /> 유료 버전에서 가능한 기능입니다
+                        <Lock size={14} /> {t("유료 버전에서 가능한 기능입니다", "Available on paid plans")}
                       </p>
                       <p className="mt-1.5 text-xs text-amber-700 leading-relaxed break-keep">
-                        무료 체험(가상인구 10명)에서는 패널 질문과 원본자료(엑셀) 내려받기가 제공되지 않습니다.
+                        {t(
+                          <>무료 체험(가상인구 10명)에서는 패널 질문과 원본자료(엑셀) 내려받기가 제공되지 않습니다.
                         상세보고서는 무료로도 받아보실 수 있습니다.
                         <br />
-                        100명·500명 조사나 30일권에서 패널 질문과 원본자료까지 이용하실 수 있습니다.
+                        100명·500명 조사나 30일권에서 패널 질문과 원본자료까지 이용하실 수 있습니다.</>,
+                          <>The Free trial (10 virtual respondents) doesn&apos;t include panel Q&amp;A or raw data (Excel) downloads.
+                          You can still get the detailed report for free.
+                          <br />
+                          Panel Q&amp;A and raw data are available with 100- or 500-respondent studies or a 30-day pass.</>,
+                        )}
                       </p>
                     </button>
                   </div>
@@ -2991,8 +3249,11 @@ function DesignPageInner() {
       <ContactDialog
         open={contactOpen}
         onClose={() => setContactOpen(false)}
-        title="문의하기"
-        subtitle="가상패널 질문하기·패널 인구통계·문항별 응답 분포·시사점 보고서·Raw Data가 포함된 상세분석을 받아보려면 담당자에게 문의해주세요."
+        title={t("문의하기", "Contact us")}
+        subtitle={t(
+          "가상패널 질문하기·패널 인구통계·문항별 응답 분포·시사점 보고서·Raw Data가 포함된 상세분석을 받아보려면 담당자에게 문의해주세요.",
+          "Contact our team for an in-depth analysis including virtual panel Q&A, panel demographics, response distributions by question, an implications report, and raw data.",
+        )}
         prefill={[
           runJobId ? `조사 Job ID: ${runJobId}` : null,
           runMeta ? `조사 규모: ${runMeta.sido || "—"} · 가상인구 ${runMeta.n.toLocaleString()}명` : null,
@@ -3020,7 +3281,7 @@ function DesignPageInner() {
           >
             <button
               onClick={() => setUpgradeOpen(false)}
-              aria-label="닫기"
+              aria-label={t("닫기", "Close")}
               className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100"
             >
               <X size={16} />
@@ -3028,19 +3289,25 @@ function DesignPageInner() {
             <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-4">
               <Lock size={24} className="text-amber-500" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">유료 버전에서 가능한 기능입니다</h3>
+            <h3 className="text-base font-bold text-slate-900">{t("유료 버전에서 가능한 기능입니다", "Available on paid plans")}</h3>
             <p className="mt-2 text-xs text-slate-500 leading-relaxed break-keep">
-              무료 체험(가상인구 10명)에서는 <strong className="font-semibold text-slate-700">가상인구 패널 질문</strong>과{" "}
+              {t(
+                <>무료 체험(가상인구 10명)에서는 <strong className="font-semibold text-slate-700">가상인구 패널 질문</strong>과{" "}
               <strong className="font-semibold text-slate-700">원본자료(엑셀)</strong>가 제공되지 않습니다.
               상세보고서는 무료로도 받아보실 수 있지만, 모집단이 10명이라 해석이 제한적입니다.
-              가상인구 100명·500명 조사 또는 30일권에서 전체 기능을 이용하실 수 있습니다.
+              가상인구 100명·500명 조사 또는 30일권에서 전체 기능을 이용하실 수 있습니다.</>,
+                <>The Free trial (10 virtual respondents) doesn&apos;t include <strong className="font-semibold text-slate-700">virtual panel Q&amp;A</strong> or{" "}
+                <strong className="font-semibold text-slate-700">raw data (Excel)</strong>.
+                You can still get the detailed report for free, but with only 10 respondents its findings are limited.
+                Unlock every feature with a 100- or 500-respondent study or a 30-day pass.</>,
+              )}
             </p>
             <div className="mt-5 flex flex-col gap-2">
               <button
                 onClick={() => { setUpgradeOpen(false); setStep("panel"); }}
                 className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-500 transition-all"
               >
-                패널 수 변경하고 다시 조사하기
+                {t("패널 수 변경하고 다시 조사하기", "Change panel size and run again")}
               </button>
               <a
                 href="/pricing"
@@ -3048,7 +3315,7 @@ function DesignPageInner() {
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-all"
               >
-                요금 안내 보기
+                {t("요금 안내 보기", "View pricing")}
               </a>
             </div>
           </div>

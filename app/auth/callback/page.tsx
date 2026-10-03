@@ -7,6 +7,7 @@ import { authGetMe, setAuthTokens, setCachedUser } from "@/lib/auth-api";
 import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
 import { redeemPendingReportToken } from "@/lib/survey-api";
 import { trackEvent } from "@/lib/analytics";
+import { useT } from "@/lib/i18n";
 
 /**
  * 소셜 로그인 콜백 페이지.
@@ -20,11 +21,12 @@ import { trackEvent } from "@/lib/analytics";
  *  4) `?error=...` 가 있으면 로그인 페이지로 되돌림
  */
 function CallbackLoading() {
+  const t = useT();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center px-4">
       <div className="bg-white rounded-3xl shadow-2xl shadow-black/30 px-6 sm:px-10 py-10 sm:py-12 flex flex-col items-center gap-4 max-w-md w-full">
         <Sparkles className="text-indigo-500 animate-pulse" size={28} />
-        <p className="text-sm text-slate-700">로그인 처리 중…</p>
+        <p className="text-sm text-slate-700">{t("로그인 처리 중…", "Logging you in…")}</p>
         <span className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
       </div>
     </div>
@@ -42,7 +44,9 @@ export default function AuthCallbackPage() {
 function AuthCallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
+  const t = useT();
+  // 문구는 렌더 시점에 고른다 — effect 안에서 만든 문자열은 hydration 직후의 언어 전환을 놓친다.
+  const [tokenMissing, setTokenMissing] = useState(false);
 
   useEffect(() => {
     const errorParam = params.get("error");
@@ -57,9 +61,9 @@ function AuthCallbackInner() {
     const username = params.get("username");
 
     if (!access) {
-      setError("토큰을 받지 못했습니다. 다시 시도해주세요.");
-      const t = setTimeout(() => router.replace("/login?error=callback_failed"), 1500);
-      return () => clearTimeout(t);
+      setTokenMissing(true);
+      const timer = setTimeout(() => router.replace("/login?error=callback_failed"), 1500);
+      return () => clearTimeout(timer);
     }
 
     setAuthTokens(access, refresh);
@@ -91,15 +95,17 @@ function AuthCallbackInner() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center px-4">
       <div className="bg-white rounded-3xl shadow-2xl shadow-black/30 px-6 sm:px-10 py-10 sm:py-12 flex flex-col items-center gap-4 max-w-md w-full">
-        {error ? (
+        {tokenMissing ? (
           <>
             <AlertCircle className="text-rose-500" size={32} />
-            <p className="text-sm text-slate-700 text-center whitespace-pre-line">{error}</p>
+            <p className="text-sm text-slate-700 text-center whitespace-pre-line">
+              {t("토큰을 받지 못했습니다. 다시 시도해주세요.", "We couldn't complete your login. Please try again.")}
+            </p>
           </>
         ) : (
           <>
             <Sparkles className="text-indigo-500 animate-pulse" size={28} />
-            <p className="text-sm text-slate-700">로그인 처리 중…</p>
+            <p className="text-sm text-slate-700">{t("로그인 처리 중…", "Logging you in…")}</p>
             <span className="w-6 h-6 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
           </>
         )}

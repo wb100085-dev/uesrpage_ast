@@ -6,8 +6,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { authPasswordResetConfirm } from "@/lib/auth-api";
+import { useT } from "@/lib/i18n";
+import LangToggle from "@/components/LangToggle";
 
 export default function ResetPasswordPage() {
+  const t = useT();
   const router = useRouter();
   const params = useParams<{ uid: string; token: string }>();
   const uid = params?.uid ?? "";
@@ -23,11 +26,11 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (pwd1 !== pwd2) {
-      setError("비밀번호가 일치하지 않습니다.");
+      setError(t("비밀번호가 일치하지 않습니다.", "Passwords do not match."));
       return;
     }
     if (pwd1.length < 8) {
-      setError("비밀번호는 8자 이상이어야 합니다.");
+      setError(t("비밀번호는 8자 이상이어야 합니다.", "Password must be at least 8 characters."));
       return;
     }
     setLoading(true);
@@ -45,7 +48,10 @@ export default function ResetPasswordPage() {
       const msg = err instanceof Error ? err.message : String(err);
       let friendly = msg;
       if (/Invalid value|Invalid token|token/i.test(msg)) {
-        friendly = "재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해주세요.";
+        friendly = t(
+          "재설정 링크가 만료되었거나 유효하지 않습니다. 다시 요청해주세요.",
+          "This reset link is invalid or has expired. Please request a new one.",
+        );
       }
       setError(friendly);
     } finally {
@@ -62,6 +68,7 @@ export default function ResetPasswordPage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl" />
       </div>
 
+      <LangToggle dark className="absolute top-5 right-5 z-10" />
       <Link href="/" className="relative mb-8 flex items-center gap-3">
         <Image
           src="/logo-mark.png"
@@ -79,7 +86,7 @@ export default function ResetPasswordPage() {
             className="w-[188px] h-auto object-contain"
           />
           <span className="mt-1 w-[188px] text-[9px] leading-none tracking-[-0.01em] text-slate-400 whitespace-nowrap">
-            AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+            {t("AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스", "AI virtual-panel market & opinion simulation")}
           </span>
         </span>
       </Link>
@@ -88,17 +95,17 @@ export default function ResetPasswordPage() {
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
 
         <div className="px-6 sm:px-8 pt-7 sm:pt-8 pb-8 sm:pb-10">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">비밀번호 재설정</h2>
-          <p className="text-sm text-slate-500 mb-6">새 비밀번호를 입력하세요.</p>
+          <h2 className="text-xl font-bold text-slate-900 mb-1">{t("비밀번호 재설정", "Reset password")}</h2>
+          <p className="text-sm text-slate-500 mb-6">{t("새 비밀번호를 입력하세요.", "Enter a new password.")}</p>
 
           {!linkValid ? (
             <div className="text-center py-6">
-              <p className="text-sm text-slate-600 mb-4">잘못된 링크입니다.</p>
+              <p className="text-sm text-slate-600 mb-4">{t("잘못된 링크입니다.", "This link is invalid.")}</p>
               <Link
                 href="/forgot-password"
                 className="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500"
               >
-                재설정 메일 다시 요청
+                {t("재설정 메일 다시 요청", "Request a new reset email")}
               </Link>
             </div>
           ) : done ? (
@@ -106,13 +113,13 @@ export default function ResetPasswordPage() {
               <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
                 <CheckCircle2 className="text-emerald-600" size={28} />
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1.5">비밀번호가 변경되었습니다</h3>
-              <p className="text-sm text-slate-600">곧 로그인 페이지로 이동합니다…</p>
+              <h3 className="text-base font-bold text-slate-900 mb-1.5">{t("비밀번호가 변경되었습니다", "Your password has been changed")}</h3>
+              <p className="text-sm text-slate-600">{t("곧 로그인 페이지로 이동합니다…", "Redirecting you to the login page…")}</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">새 비밀번호</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("새 비밀번호", "New password")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -120,7 +127,7 @@ export default function ResetPasswordPage() {
                     required
                     value={pwd1}
                     onChange={(e) => setPwd1(e.target.value)}
-                    placeholder="8자 이상 입력"
+                    placeholder={t("8자 이상 입력", "At least 8 characters")}
                     minLength={8}
                     autoComplete="new-password"
                     className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
@@ -133,11 +140,11 @@ export default function ResetPasswordPage() {
                     {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
-                <p className="mt-1.5 text-xs text-slate-400">영문·숫자 포함 8자 이상을 권장합니다.</p>
+                <p className="mt-1.5 text-xs text-slate-400">{t("영문·숫자 포함 8자 이상을 권장합니다.", "We recommend at least 8 characters, including letters and numbers.")}</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">새 비밀번호 확인</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("새 비밀번호 확인", "Confirm new password")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -145,7 +152,7 @@ export default function ResetPasswordPage() {
                     required
                     value={pwd2}
                     onChange={(e) => setPwd2(e.target.value)}
-                    placeholder="다시 입력"
+                    placeholder={t("다시 입력", "Re-enter your password")}
                     minLength={8}
                     autoComplete="new-password"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
@@ -167,7 +174,7 @@ export default function ResetPasswordPage() {
               >
                 {loading
                   ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  : "비밀번호 변경"}
+                  : t("비밀번호 변경", "Change password")}
               </button>
             </form>
           )}

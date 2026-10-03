@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, FlaskConical, Lightbulb, ListChecks, PenLine, Users } from "lucide-react";
+import { useLang, useT } from "@/lib/i18n";
 
 /* ─────────────────────────────────────────
    SocialTwinLoader — 작업 대기 로딩 화면
@@ -70,6 +71,66 @@ const SCREENS: Record<LoaderScreen, ScreenConfig> = {
     steps: ["파일럿 표본 구성 중", "파일럿 응답 수집 중", "문항 품질 점검 중", "설문 보정 중"],
   },
 };
+
+/* 영문 화면용 문구 — SCREENS 와 같은 구조(시각 요소·아이콘은 SCREENS 것을 쓴다) */
+const SCREENS_EN: Record<LoaderScreen, Pick<ScreenConfig, "title" | "subtitle" | "captions" | "steps">> = {
+  hypothesis: {
+    title: "Designing hypotheses from your input",
+    subtitle: "Mapping out the variables and relationships that fit your study goal",
+    captions: [
+      "Analyzing your input",
+      "Understanding the market context",
+      "Mapping variable relationships to derive hypotheses",
+      "Refining the wording of the hypotheses",
+    ],
+  },
+  generate: {
+    title: "Generating your survey from the hypotheses",
+    subtitle: "Building questions and response scales that fit your hypotheses",
+    captions: [
+      "Drafting questions for each hypothesis",
+      "Refining answer options and scales",
+      "Critically reviewing the generated survey",
+      "Revising questions based on the review",
+    ],
+  },
+  survey: {
+    title: "Running your study with virtual respondents",
+    subtitle: "A virtual population panel synthesized from statistics is answering your survey",
+    steps: ["Matching the virtual panel", "Generating AI persona responses", "Aggregating response data", "Writing the results summary"],
+  },
+  pilot: {
+    title: "Generating a survey pilot",
+    subtitle: "Checking question quality with a small sample before the main study",
+    steps: ["Building the pilot sample", "Collecting pilot responses", "Checking question quality", "Calibrating the survey"],
+  },
+};
+
+/**
+ * 백엔드 진행 단계 문구(progress.stage, 한국어) → 영문 표시.
+ * 출처: backend api/survey_design_views.py 의 update_job(..., "stage": ...) 값.
+ * 모르는 한국어 문구면 null — 호출부가 일반 영문 문구로 대체한다. 한글이 없으면 원문 그대로.
+ */
+function stageLabelEn(stage: string): string | null {
+  const s = stage.trim();
+  if (!/[가-힣]/.test(s)) return s;
+  const gen = s.match(/^AI 응답 생성 중\s*[—-]\s*(\d+)\s*\/\s*(\d+)\s*명$/);
+  if (gen) return `Generating AI responses — ${gen[1]}/${gen[2]}`;
+  const known: Record<string, string> = {
+    "패널 로드": "Loading panel",
+    "AI 응답 생성": "Generating AI responses",
+    "AI 응답 생성 중": "Generating AI responses",
+    "결과 집계": "Aggregating results",
+    "결과 집계 (객관식 분포 + 주관식 키워드)": "Aggregating results (choice distributions + open-ended keywords)",
+    "AI 인포그래픽 요약 생성": "Generating AI summary",
+    "인포그래픽": "Generating AI summary",
+    "대기": "Waiting",
+    "진행 중...": "In progress...",
+  };
+  if (known[s]) return known[s];
+  if (s.startsWith("완료")) return "Done";
+  return null;
+}
 
 /* 화면에 그리는 사람 아이콘 최대 개수 (표본이 더 크면 아이콘 1개가 여러 명을 대표) */
 const MAX_PEOPLE_ICONS = 100;
@@ -257,7 +318,9 @@ export default function SocialTwinLoader({
   /** survey 화면: 가상인구 표본 수 — 사람 아이콘 개수·응답 카운터에 사용 */
   totalRespondents?: number;
 }) {
-  const cfg = SCREENS[screen];
+  const lang = useLang();
+  const t = useT();
+  const cfg = lang === "en" ? { ...SCREENS[screen], ...SCREENS_EN[screen] } : SCREENS[screen];
   const Icon = cfg.icon;
   const isShort = !cfg.steps;
   const pct = Math.min(Math.max(progress ?? 0, 0), 100);
@@ -319,11 +382,24 @@ export default function SocialTwinLoader({
   const peopleIcons = Math.min(peopleTotal ?? 60, MAX_PEOPLE_ICONS);
   const stageCount = peopleTotal ? Math.floor(stageRatio * peopleTotal) : null;
   /** 단계별 카운터 머리말 (마지막 단계는 카운터 없이 문구만) */
-  const STAGE_COUNTER: Record<number, string> = {
-    0: "가상인구 패널 매칭 중",
-    1: "AI 페르소나 응답 생성 중",
-    2: "응답 데이터 집계 중",
-  };
+  const STAGE_COUNTER: Record<number, string> = t(
+    {
+      0: "가상인구 패널 매칭 중",
+      1: "AI 페르소나 응답 생성 중",
+      2: "응답 데이터 집계 중",
+    },
+    {
+      0: "Matching the virtual panel",
+      1: "Generating AI persona responses",
+      2: "Aggregating response data",
+    },
+  );
+  // 진행률 바 좌측 문구 — 백엔드 stage 가 한국어로 오면 영문 화면에서는 아는 문구만 번역,
+  // 모르는 문구는 현재 단계명(영문) 또는 일반 문구로 대체한다.
+  const shownLabel =
+    progressLabel == null || lang !== "en"
+      ? progressLabel
+      : stageLabelEn(progressLabel) ?? (steps.length > 0 ? steps[active] : "In progress...");
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 sm:px-8 py-12 sm:py-14 flex flex-col items-center">
@@ -364,11 +440,11 @@ export default function SocialTwinLoader({
       {cfg.visual === "people" && (
         <p className="text-xs text-slate-400 mb-5 tabular-nums">
           {active >= 3 ? (
-            <>응답 분석을 마치고 결과 요약 보고서를 작성하고 있어요</>
+            <>{t("응답 분석을 마치고 결과 요약 보고서를 작성하고 있어요", "Responses analyzed — writing the results summary report")}</>
           ) : peopleTotal ? (
             <>
               {STAGE_COUNTER[active]} ·{" "}
-              <b className="text-indigo-600">{(stageCount ?? 0).toLocaleString()}</b> / {peopleTotal.toLocaleString()}명
+              <b className="text-indigo-600">{(stageCount ?? 0).toLocaleString()}</b> / {peopleTotal.toLocaleString()}{t("명", "")}
             </>
           ) : (
             <>
@@ -393,7 +469,7 @@ export default function SocialTwinLoader({
               </span>
             ))}
           </div>
-          {progress != null && <ProgressBar label={progressLabel ?? ""} pct={pct} />}
+          {progress != null && <ProgressBar label={shownLabel ?? ""} pct={pct} />}
         </>
       ) : (
         <>
@@ -430,7 +506,7 @@ export default function SocialTwinLoader({
               );
             })}
           </div>
-          <ProgressBar label={progressLabel ?? steps[active]} pct={effectivePct} />
+          <ProgressBar label={shownLabel ?? steps[active]} pct={effectivePct} />
         </>
       )}
     </div>

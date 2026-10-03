@@ -9,10 +9,22 @@ import { useSearchParams } from "next/navigation";
 import { Check, Loader2, X } from "lucide-react";
 import { confirmPayment, type ConfirmResponse } from "@/lib/payments-api";
 import { trackEvent } from "@/lib/analytics";
+import { useLang, useT } from "@/lib/i18n";
 
-const won = (n: number) => n.toLocaleString("ko-KR") + "원";
+const won = (n: number, lang: "ko" | "en") =>
+  lang === "en" ? "₩" + n.toLocaleString("en-US") : n.toLocaleString("ko-KR") + "원";
+
+// 백엔드 PRODUCTS 의 상품명(order_name, 한국어) → 영어 화면 표시용. 토스·백엔드로 보내는 값은 그대로 한국어.
+const ORDER_NAME_EN: Record<string, string> = {
+  상세보고서: "Detailed report",
+  "가상인구 100명 조사": "Study with 100 virtual respondents",
+  "가상인구 500명 조사": "Study with 500 virtual respondents",
+  "30일권 (가상인구 100명 무제한)": "30-day pass (unlimited 100-respondent studies)",
+};
 
 function SuccessInner() {
+  const t = useT();
+  const lang = useLang();
   const params = useSearchParams();
   const paymentKey = params.get("paymentKey");
   const orderId = params.get("orderId");
@@ -40,14 +52,17 @@ function SuccessInner() {
         trackEvent("결제완료", { 금액: r.amount, 상품: r.order_name ?? "" });
       })
       .catch((e) => {
-        setConfirmError(e instanceof Error ? e.message : "결제 승인에 실패했습니다.");
+        // 백엔드/토스 오류 원문은 그대로, 원문이 없을 때의 기본 문구는 렌더 시점에 언어별로 채운다
+        setConfirmError(e instanceof Error ? e.message : null);
         setConfirmState("error");
       });
   }, [validParams, paymentKey, orderId, amount]);
 
   // 파라미터 누락이면 effect 없이 즉시 에러 화면 (synchronous setState in effect 회피)
   const state = validParams ? confirmState : "error";
-  const error = validParams ? confirmError : "결제 정보가 올바르지 않습니다.";
+  const error = validParams
+    ? (confirmError ?? t("결제 승인에 실패했습니다.", "Payment approval failed."))
+    : t("결제 정보가 올바르지 않습니다.", "The payment information is invalid.");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex items-center justify-center px-4 py-12">
@@ -63,8 +78,8 @@ function SuccessInner() {
           {state === "loading" && (
             <>
               <Loader2 className="text-indigo-500 animate-spin" size={40} />
-              <h1 className="text-lg font-bold text-slate-900">결제를 확정하는 중입니다…</h1>
-              <p className="text-sm text-slate-500">잠시만 기다려 주세요. 창을 닫지 마세요.</p>
+              <h1 className="text-lg font-bold text-slate-900">{t("결제를 확정하는 중입니다…", "Confirming your payment…")}</h1>
+              <p className="text-sm text-slate-500">{t("잠시만 기다려 주세요. 창을 닫지 마세요.", "Please wait and don't close this window.")}</p>
             </>
           )}
 
@@ -73,18 +88,22 @@ function SuccessInner() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200">
                 <Check className="text-emerald-600" size={32} strokeWidth={2.5} />
               </div>
-              <h1 className="text-xl font-bold text-slate-900">결제가 완료되었습니다</h1>
+              <h1 className="text-xl font-bold text-slate-900">{t("결제가 완료되었습니다", "Payment complete")}</h1>
               <dl className="w-full mt-1 text-sm divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden">
                 <div className="flex justify-between px-4 py-2.5">
-                  <dt className="text-slate-500">상품</dt>
-                  <dd className="font-medium text-slate-900">{result.order_name ?? "-"}</dd>
+                  <dt className="text-slate-500">{t("상품", "Product")}</dt>
+                  <dd className="font-medium text-slate-900">
+                    {result.order_name
+                      ? t(result.order_name, ORDER_NAME_EN[result.order_name] ?? result.order_name)
+                      : "-"}
+                  </dd>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
-                  <dt className="text-slate-500">결제 금액</dt>
-                  <dd className="font-semibold text-slate-900">{won(result.amount)}</dd>
+                  <dt className="text-slate-500">{t("결제 금액", "Amount")}</dt>
+                  <dd className="font-semibold text-slate-900">{won(result.amount, lang)}</dd>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
-                  <dt className="text-slate-500">주문번호</dt>
+                  <dt className="text-slate-500">{t("주문번호", "Order ID")}</dt>
                   <dd className="font-mono text-xs text-slate-600">{result.order_id}</dd>
                 </div>
               </dl>
@@ -96,7 +115,7 @@ function SuccessInner() {
                     rel="noopener noreferrer"
                     className="w-full rounded-xl border border-slate-200 text-slate-700 font-medium py-3 hover:bg-slate-50"
                   >
-                    영수증 보기
+                    {t("영수증 보기", "View receipt")}
                   </a>
                 )}
                 {next ? (
@@ -104,21 +123,21 @@ function SuccessInner() {
                     href={`${next}${next.includes("?") ? "&" : "?"}paid=${encodeURIComponent(orderId ?? "")}`}
                     className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
                   >
-                    조사 이어서 진행하기
+                    {t("조사 이어서 진행하기", "Continue your study")}
                   </Link>
                 ) : job ? (
                   <Link
                     href={`/results/${job}`}
                     className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
                   >
-                    상세분석 결과 보기
+                    {t("상세분석 결과 보기", "View detailed results")}
                   </Link>
                 ) : (
                   <Link
                     href="/dashboard/user"
                     className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3"
                   >
-                    대시보드로 이동
+                    {t("대시보드로 이동", "Go to dashboard")}
                   </Link>
                 )}
               </div>
@@ -130,16 +149,19 @@ function SuccessInner() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 border border-red-200">
                 <X className="text-red-600" size={32} strokeWidth={2.5} />
               </div>
-              <h1 className="text-xl font-bold text-slate-900">결제 승인에 실패했습니다</h1>
+              <h1 className="text-xl font-bold text-slate-900">{t("결제 승인에 실패했습니다", "Payment approval failed")}</h1>
               <p className="text-sm text-slate-500">{error}</p>
               <p className="text-xs text-slate-400">
-                결제가 출금되었는데 실패로 표시되면 자동으로 취소 처리되거나, 고객센터로 문의해 주세요.
+                {t(
+                  "결제가 출금되었는데 실패로 표시되면 자동으로 취소 처리되거나, 고객센터로 문의해 주세요.",
+                  "If you were charged but see this error, the charge will be canceled automatically — or contact our support team.",
+                )}
               </p>
               <Link
                 href="/checkout"
                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 mt-1"
               >
-                다시 시도
+                {t("다시 시도", "Try again")}
               </Link>
             </>
           )}

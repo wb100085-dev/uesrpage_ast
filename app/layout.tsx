@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
 import SessionGuard from "@/components/SessionGuard";
+import LangBoot from "@/components/LangBoot";
 
 const GA_ID = "G-RXEWRM02JQ";
 const FB_PIXEL_ID = "1041566044877220";
@@ -50,8 +51,26 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className="h-full scroll-smooth">
+    <html lang="ko" className="h-full scroll-smooth" suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        {/* 한/영 전환(lib/i18n.ts) — 페이지 코드보다 먼저 돌아야 영어 사용자에게 한국어가 비치지 않는다.
+            ?lang=en|ko 쿼리를 저장하고, 영어면 hydration 이 끝날 때까지 본문을 가린다
+            (LangBoot 가 벗김. JS 가 멈춰도 1.5초 뒤엔 무조건 벗긴다). */}
+        <Script id="lang-boot" strategy="beforeInteractive">
+          {`
+            try {
+              var _l = new URLSearchParams(location.search).get('lang');
+              if (_l === 'en' || _l === 'ko') localStorage.setItem('vpg.lang', _l);
+              if (localStorage.getItem('vpg.lang') === 'en') {
+                var _d = document.documentElement;
+                _d.lang = 'en';
+                _d.classList.add('i18n-pending');
+                setTimeout(function () { _d.classList.remove('i18n-pending'); }, 1500);
+              }
+            } catch (e) {}
+          `}
+        </Script>
+        <LangBoot />
         <SessionGuard />
         {children}
         <Script

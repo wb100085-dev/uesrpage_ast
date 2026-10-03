@@ -12,6 +12,7 @@
  * canOpenCheckout() 만 false 로 되돌리면 안내 화면이 그대로 살아난다.
  */
 import { X, Phone, Mail, Clock } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 /** PG사 심사용 테스트 계정. 전면 개방 이후로는 특별 취급이 없다(전원 결제창 진입).
  *  결제를 다시 닫을 때 예외 목록으로 되살려 쓸 수 있어 남겨둔다. */
@@ -22,6 +23,7 @@ const SUPPORT = {
   phoneHref: "tel:+821099690406",
   email: "hys@omninode.kr",
   hours: "평일 10:00 – 17:00 (점심 12:00 – 13:30, 주말·공휴일 휴무)",
+  hoursEn: "Weekdays 10:00 – 17:00 KST (lunch 12:00 – 13:30; closed weekends and holidays)",
 };
 
 /** 지금 이 사용자에게 실제 결제창을 열어도 되는가.
@@ -38,6 +40,7 @@ export function canOpenCheckout(): boolean {
 }
 
 export default function PaymentPendingDialog({ onClose }: { onClose: () => void }) {
+  const t = useT();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -49,23 +52,29 @@ export default function PaymentPendingDialog({ onClose }: { onClose: () => void 
       >
         <button
           onClick={onClose}
-          aria-label="닫기"
+          aria-label={t("닫기", "Close")}
           className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100"
         >
           <X size={16} />
         </button>
 
         <h3 className="text-base font-bold text-slate-900 pr-6 break-keep">
-          지금은 카드 결제 및 계좌이체만 가능합니다.
+          {t(
+            "지금은 카드 결제 및 계좌이체만 가능합니다.",
+            "Only card payments and bank transfers are available right now.",
+          )}
         </h3>
         <p className="mt-2 text-sm text-slate-600 leading-relaxed break-keep">
-          아래 회사 전화번호 및 이메일로 연락주시면 처리해드리겠습니다.
+          {t(
+            "아래 회사 전화번호 및 이메일로 연락주시면 처리해드리겠습니다.",
+            "Contact us by phone or email below and we'll take care of it for you.",
+          )}
         </p>
 
         <dl className="mt-5 space-y-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm">
           <div className="flex items-center gap-2.5">
             <Phone size={15} className="shrink-0 text-indigo-500" />
-            <dt className="sr-only">전화</dt>
+            <dt className="sr-only">{t("전화", "Phone")}</dt>
             <dd>
               <a href={SUPPORT.phoneHref} className="font-semibold text-slate-800 hover:underline">
                 {SUPPORT.phone}
@@ -74,7 +83,7 @@ export default function PaymentPendingDialog({ onClose }: { onClose: () => void 
           </div>
           <div className="flex items-center gap-2.5">
             <Mail size={15} className="shrink-0 text-indigo-500" />
-            <dt className="sr-only">이메일</dt>
+            <dt className="sr-only">{t("이메일", "Email")}</dt>
             <dd>
               <a href={`mailto:${SUPPORT.email}`} className="font-semibold text-slate-800 hover:underline">
                 {SUPPORT.email}
@@ -83,8 +92,8 @@ export default function PaymentPendingDialog({ onClose }: { onClose: () => void 
           </div>
           <div className="flex items-start gap-2.5">
             <Clock size={15} className="shrink-0 mt-0.5 text-slate-400" />
-            <dt className="sr-only">운영시간</dt>
-            <dd className="text-xs text-slate-500 leading-relaxed">{SUPPORT.hours}</dd>
+            <dt className="sr-only">{t("운영시간", "Hours")}</dt>
+            <dd className="text-xs text-slate-500 leading-relaxed">{t(SUPPORT.hours, SUPPORT.hoursEn)}</dd>
           </div>
         </dl>
 
@@ -92,7 +101,7 @@ export default function PaymentPendingDialog({ onClose }: { onClose: () => void 
           onClick={onClose}
           className="mt-6 w-full py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-all"
         >
-          확인
+          {t("확인", "OK")}
         </button>
       </div>
     </div>

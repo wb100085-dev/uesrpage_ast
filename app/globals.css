@@ -22,6 +22,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* 한/영 전환 — 영어 사용자가 hydration 전 한국어 화면을 보지 않도록 잠깐 가린다 (app/layout.tsx · LangBoot) */
+html.i18n-pending body { opacity: 0; }
+
 /* ── Scroll reveal ── */
 .reveal {
   opacity: 0;

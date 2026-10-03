@@ -5,6 +5,8 @@
  * - JWT (access/refresh)를 localStorage에 저장
  */
 
+import { getLang } from "@/lib/i18n";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const ACCESS_KEY = "vpg.auth.access";
@@ -426,6 +428,7 @@ export async function authPasswordResetConfirm(input: {
 
 function translateAuthError(raw: string): string {
   const s = raw || "";
+  if (getLang() === "en") return translateAuthErrorEn(s);
   if (/token_not_valid|Given token not valid|Token is invalid or expired/i.test(s)) {
     return "세션이 만료되었습니다. 페이지를 새로고침한 뒤 다시 로그인해주세요.";
   }
@@ -453,4 +456,92 @@ function translateAuthError(raw: string): string {
     return "올바른 이메일을 입력해주세요.";
   }
   return s || "요청을 처리하지 못했습니다.";
+}
+
+// ───────────────────── 에러 메시지 영문화 (영어 UI) ─────────────────────
+// 백엔드는 LANGUAGE_CODE=ko-kr 이라 dj-rest-auth·allauth·SimpleJWT·Django 검증 메시지가
+// 한국어 번역문으로 오기도 하고(번역이 없는 문구는) 영어 원문으로 오기도 한다.
+// 영어 화면에서는 두 경우 모두 다듬은 영어 문장으로 바꾸고, 못 알아본 한국어 원문은
+// 그대로 노출하지 않고 일반 안내로 대체한다. (한국어 화면 동작은 위 함수 그대로.)
+
+const HANGUL_RE = /[\uAC00-\uD7A3]/;
+
+function translateAuthErrorEn(s: string): string {
+  if (
+    /token_not_valid|Given token not valid|Token is invalid or expired|Token is (invalid|expired|blacklisted)/i.test(s) ||
+    /유효하지 않거나 만료된 토큰|모든 타입의 토큰에 대해 유효하지 않습니다|블랙리스트에 추가된 토큰|토큰이 유효하지 않습니다/.test(s)
+  ) {
+    return "Your session has expired. Please refresh the page and log in again.";
+  }
+  if (/E-mail is not verified|not verified/i.test(s) || /이메일 주소가 확인되지 않았습니다/.test(s)) {
+    return "Your email hasn't been verified yet. Please click the link in the verification email we sent when you signed up.";
+  }
+  if (
+    /Unable to log in with provided credentials/i.test(s) ||
+    /no active account/i.test(s) ||
+    /제공된 인증 데이터로는 로그인\s*할 수 없습니다/.test(s) ||
+    /제공된 자격으로 로그인\s*할 수 없습니다/.test(s) ||
+    /주어진 자격 증명으로 로그인이 불가능합니다/.test(s) ||
+    /활성화된 사용자를 찾을 수 없습니다/.test(s)
+  ) {
+    return "This email isn't registered or the password is incorrect. Please check and try again.";
+  }
+  if (/User account is disabled|User is inactive/i.test(s) || /사용자 계정이 비활성화|비활성화된 사용자/.test(s)) {
+    return "This account has been deactivated. Please contact support.";
+  }
+  if (/password is too similar/i.test(s) || /비밀번호가 .*너무 유사합니다/.test(s)) {
+    return "This password is too similar to your email address. Please choose a different one.";
+  }
+  if (
+    /This password is too short|this password is too common|password is entirely numeric/i.test(s) ||
+    /비밀번호는 너무 짧습니다|너무 흔히 사용되는 비밀번호|비밀번호가 전부 숫자로/.test(s)
+  ) {
+    return "This password is too weak. Use at least 8 characters, including letters and numbers.";
+  }
+  if (
+    /already exists|already registered/i.test(s) ||
+    /이미 존재합니다|이미 가입된 이메일|이미 사용되고 있습니다|이미 이 이메일 주소로 등록된/.test(s)
+  ) {
+    return "This email is already in use.";
+  }
+  if (/two password fields didn't match/i.test(s) || /패스워드 필드가 서로 맞지 않습니다/.test(s)) {
+    return "Passwords do not match.";
+  }
+  if (/Enter a valid email/i.test(s) || /(올바른|유효한) 이메일 주소를 입력/.test(s)) {
+    return "Please enter a valid email address.";
+  }
+  if (/old password was entered incorrectly/i.test(s) || /이전 패스워드를 잘못 입력/.test(s)) {
+    return "Your current password is incorrect. Please try again.";
+  }
+  if (/Invalid value|Incorrect value/i.test(s) || /올바르지 않은 값|값이 유효하지 않습니다/.test(s)) {
+    // dj-rest-auth 는 비밀번호 재설정 링크의 uid/token 이 틀렸을 때만 이 문구를 쓴다.
+    return "This reset link is invalid or has expired. Please request a new one.";
+  }
+  if (/Must include/i.test(s) || /반드시 포함해야 합니다/.test(s)) {
+    return "Please enter your email and password.";
+  }
+  if (
+    /This field is required|may not be blank/i.test(s) ||
+    /필수 항목입니다|blank일 수 없습니다/.test(s)
+  ) {
+    return "Please fill in all required fields.";
+  }
+  if (/throttled/i.test(s) || /요청이 제한되었습니다/.test(s)) {
+    return "Too many requests. Please wait a moment and try again.";
+  }
+  if (
+    /Authentication credentials were not provided|Incorrect authentication credentials/i.test(s) ||
+    /자격 인증 데이터가/.test(s)
+  ) {
+    return "Please log in and try again.";
+  }
+  // 프로필 수정(PATCH /api/auth/profile) 검증 메시지
+  if (/age는 정수/.test(s)) return "Age must be a whole number.";
+  if (/age는 0~120/.test(s)) return "Age must be between 0 and 120.";
+  if (/gender는/.test(s)) return "Please select a valid gender.";
+
+  if (!s || HANGUL_RE.test(s) || /<html|<!doctype/i.test(s)) {
+    return "We couldn't process your request. Please try again.";
+  }
+  return s;
 }

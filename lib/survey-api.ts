@@ -1,5 +1,6 @@
 import { getAccessToken } from "./auth-api";
 import { getMySubscription } from "./payments-api";
+import { getLang } from "./i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -223,7 +224,8 @@ export async function generateHypotheses(body: {
   const model = await getEffectiveModel();
   return apiFetch("/api/survey/hypotheses", {
     method: "POST",
-    body: JSON.stringify({ ...body, model }),
+    // lang — 영어 화면이면 백엔드가 가설을 영어로 생성한다 (backend utils/lang.py)
+    body: JSON.stringify({ ...body, model, lang: getLang() }),
   });
 }
 
@@ -236,7 +238,7 @@ export async function generateQuestions(body: {
   const model = await getEffectiveModel();
   return apiFetch("/api/survey/questions", {
     method: "POST",
-    body: JSON.stringify({ ...body, model }),
+    body: JSON.stringify({ ...body, model, lang: getLang() }),
   });
 }
 
@@ -280,6 +282,8 @@ export async function runSurvey(body: {
       // 백엔드 RunRequestSerializer 상한(10000)에 맞춰 클램프
       sample_size: Math.max(1, Math.min(10000, size)),
       model: s.default_ai_model || DEFAULT_AI_MODEL,
+      // 조사 언어 — 응답·요약·상세보고서·PDF 가 이 언어로 만들어진다(잡에 저장됨)
+      lang: getLang(),
       ...(narrowed ? { target_filters } : {}),
       ...(order_id ? { order_id } : {}),
     }),
@@ -306,7 +310,8 @@ export interface DetailStatusResponse {
 }
 
 export function startDetail(jobId: string): Promise<DetailStatusResponse> {
-  return apiFetch(`/api/survey/${jobId}/detail`, { method: "POST", body: JSON.stringify({}) });
+  // 상세보고서 언어는 백엔드가 조사 실행 때 정한 언어를 따른다(lang 은 잡 언어가 없을 때의 보조값)
+  return apiFetch(`/api/survey/${jobId}/detail`, { method: "POST", body: JSON.stringify({ lang: getLang() }) });
 }
 
 export function getDetailStatus(jobId: string): Promise<DetailStatusResponse> {
@@ -318,7 +323,7 @@ export function getDetailStatus(jobId: string): Promise<DetailStatusResponse> {
 export function askPanel(jobId: string, question: string): Promise<{ answer: string }> {
   return apiFetch(`/api/survey/${jobId}/chat`, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, lang: getLang() }),
   });
 }
 
@@ -372,6 +377,7 @@ export function askInterviewPanel(
       question,
       // 각 패널이 자기 앞선 발언만 기억하도록 턴 단위로 되돌려 보낸다 (서버는 무상태)
       history: history.slice(-4),
+      lang: getLang(),
       ...(memberIds && memberIds.length ? { member_ids: memberIds } : {}),
     }),
   });
@@ -410,12 +416,12 @@ function stamp(): string {
 
 /** 가설 및 설문 문항 (설계서 PDF) */
 export async function downloadDesignPdf(jobId: string): Promise<void> {
-  saveBlob(await apiBlob(`/api/survey/${jobId}/design.pdf`), `가설_설문문항_${stamp()}.pdf`);
+  saveBlob(await apiBlob(`/api/survey/${jobId}/design.pdf`), `${getLang() === "en" ? "Socialtwin_Hypotheses_Questions" : "가설_설문문항"}_${stamp()}.pdf`);
 }
 
 /** 요약보고서 (설계서 + 조사결과 요약 PDF) */
 export async function downloadSummaryPdf(jobId: string): Promise<void> {
-  saveBlob(await apiBlob(`/api/survey/${jobId}/summary.pdf`), `요약보고서_${stamp()}.pdf`);
+  saveBlob(await apiBlob(`/api/survey/${jobId}/summary.pdf`), `${getLang() === "en" ? "Socialtwin_Summary_Report" : "요약보고서"}_${stamp()}.pdf`);
 }
 
 // ─── 리뷰 이벤트 설문 응답 ────────────────────────────────────
@@ -466,12 +472,12 @@ export async function downloadReviewCsv(): Promise<void> {
 
 /** 가상인구 Raw Data (CSV) */
 export async function downloadRawCsv(jobId: string): Promise<void> {
-  saveBlob(await apiBlob(`/api/survey/${jobId}/raw-csv`), `가상인구_RawData_${stamp()}.csv`);
+  saveBlob(await apiBlob(`/api/survey/${jobId}/raw-csv`), `${getLang() === "en" ? "Socialtwin_RawData" : "가상인구_RawData"}_${stamp()}.csv`);
 }
 
 /** 상세보고서 (전체 보고서 PDF) */
 export async function downloadReportPdf(jobId: string): Promise<void> {
-  saveBlob(await apiBlob(`/api/survey/${jobId}/report.pdf`), `상세보고서_${stamp()}.pdf`);
+  saveBlob(await apiBlob(`/api/survey/${jobId}/report.pdf`), `${getLang() === "en" ? "Socialtwin_Detailed_Report" : "상세보고서"}_${stamp()}.pdf`);
 }
 
 export interface DesignHistoryItem {

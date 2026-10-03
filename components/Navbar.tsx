@@ -11,9 +11,14 @@ import {
   getCachedUser,
   type AuthUser,
 } from "@/lib/auth-api";
+import { useLang, useT } from "@/lib/i18n";
+import LangToggle from "@/components/LangToggle";
 
 export default function Navbar({ dark = false, appMode = false }: { dark?: boolean; appMode?: boolean }) {
   const router = useRouter();
+  const t = useT();
+  // 영문 메뉴는 한글보다 길어 md(768px)~lg(1024px) 구간에서 줄바꿈된다 → 영어일 땐 lg 미만에서 햄버거로 접는다
+  const wide = useLang() === "en";
   const [open, setOpen] = useState(false);
   // null = 아직 hydration 전(SSR 미스매치 방지용), AuthUser | "guest" 가 확정 상태
   const [authState, setAuthState] = useState<AuthUser | "guest" | null>(null);
@@ -75,13 +80,13 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
 
         {/* Desktop nav */}
         {!appMode && (
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className={`hidden ${wide ? "lg:flex" : "md:flex"} items-center gap-7`}>
             {[
-              { label: "진행 순서", href: "/#how", external: false },
-              { label: "차별성", href: "/#features", external: false },
-              { label: "활용", href: "/#use-cases", external: false },
-              { label: "요금 안내", href: "/pricing", external: false },
-              { label: "(주)옴니노드", href: "https://www.omninode.kr", external: true },
+              { label: t("진행 순서", "How it works"), href: "/#how", external: false },
+              { label: t("차별성", "Why Socialtwin"), href: "/#features", external: false },
+              { label: t("활용", "Use cases"), href: "/#use-cases", external: false },
+              { label: t("요금 안내", "Pricing"), href: "/pricing", external: false },
+              { label: t("(주)옴니노드", "Omninode Inc."), href: "https://www.omninode.kr", external: true },
             ].map((item) =>
               item.external ? (
                 <a
@@ -89,7 +94,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                   href={item.href}
                   target="_blank"
                   rel="noreferrer"
-                  className={`text-sm font-medium transition-colors ${linkCls}`}
+                  className={`text-sm font-medium whitespace-nowrap transition-colors ${linkCls}`}
                 >
                   {item.label}
                 </a>
@@ -97,7 +102,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`text-sm font-medium transition-colors ${linkCls}`}
+                  className={`text-sm font-medium whitespace-nowrap transition-colors ${linkCls}`}
                 >
                   {item.label}
                 </Link>
@@ -107,7 +112,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
         )}
 
         {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className={`hidden ${wide ? "lg:flex" : "md:flex"} items-center gap-3`}>
           {/* authState === null 인 동안은 자리만 잡고 깜빡임을 피한다 */}
           {authState === null ? (
             <div className="h-8 w-40" />
@@ -120,7 +125,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                   title={authState.email}
                 >
                   <LayoutDashboard size={14} />
-                  대시보드
+                  {t("대시보드", "Dashboard")}
                 </Link>
               ) : (
                 <Link
@@ -139,7 +144,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
               >
                 <LogOut size={14} />
-                로그아웃
+                {t("로그아웃", "Log out")}
               </button>
             </>
           ) : (
@@ -148,40 +153,46 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 href="/login"
                 className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${linkCls}`}
               >
-                로그인
+                {t("로그인", "Log in")}
               </Link>
               <Link
                 href="/login?next=%2Fdesign"
                 className="text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
-                조사 시작하기
+                {t("조사 시작하기", "Start a study")}
               </Link>
             </>
           )}
+          {/* 한/영 전환 — 로그인·조사 시작하기 오른쪽 */}
+          <LangToggle dark={dark} />
         </div>
 
-        {/* Mobile */}
-        <button
-          onClick={() => setOpen(!open)}
-          className={`md:hidden p-2 rounded-lg ${dark ? "text-white" : "text-slate-700"}`}
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        {/* Mobile — 언어 전환은 메뉴를 열지 않아도 보이게 햄버거 옆에 둔다 */}
+        <div className={`${wide ? "lg:hidden" : "md:hidden"} flex items-center gap-2`}>
+          <LangToggle dark={dark} />
+          <button
+            onClick={() => setOpen(!open)}
+            aria-label={t("메뉴", "Menu")}
+            className={`p-2 rounded-lg ${dark ? "text-white" : "text-slate-700"}`}
+          >
+            {open ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
       {open && (
         <div
-          className={`md:hidden border-t ${borderCls} ${
+          className={`${wide ? "lg:hidden" : "md:hidden"} border-t ${borderCls} ${
             dark ? "bg-slate-950" : "bg-white"
           } px-6 py-5 flex flex-col gap-4`}
         >
           {!appMode && (
             <>
               {[
-                { label: "진행 순서", href: "/#how" },
-                { label: "차별성", href: "/#features" },
-                { label: "활용", href: "/#use-cases" },
-                { label: "요금 안내", href: "/pricing" },
+                { label: t("진행 순서", "How it works"), href: "/#how" },
+                { label: t("차별성", "Why Socialtwin"), href: "/#features" },
+                { label: t("활용", "Use cases"), href: "/#use-cases" },
+                { label: t("요금 안내", "Pricing"), href: "/pricing" },
               ].map((l) => (
                 <a
                   key={l.label}
@@ -199,7 +210,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 onClick={() => setOpen(false)}
                 className={`text-sm font-medium text-left ${linkCls}`}
               >
-                (주)옴니노드
+                {t("(주)옴니노드", "Omninode Inc.")}
               </a>
             </>
           )}
@@ -210,7 +221,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 onClick={() => setOpen(false)}
                 className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
               >
-                내 대시보드
+                {t("내 대시보드", "My dashboard")}
               </Link>
               <button
                 onClick={() => {
@@ -219,7 +230,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                 }}
                 className="text-sm font-medium px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700"
               >
-                로그아웃
+                {t("로그아웃", "Log out")}
               </button>
             </>
           ) : (
@@ -228,7 +239,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               onClick={() => setOpen(false)}
               className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
             >
-              조사 시작하기
+              {t("조사 시작하기", "Start a study")}
             </Link>
           )}
         </div>

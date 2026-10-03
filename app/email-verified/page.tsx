@@ -1,9 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Check, ArrowRight } from "lucide-react";
 import TrackEventOnce from "@/components/TrackEventOnce";
+import { useT } from "@/lib/i18n";
+import LangToggle from "@/components/LangToggle";
 
 export default function EmailVerifiedPage() {
+  const t = useT();
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 flex flex-col items-center justify-center px-4 py-12">
       {/* 트래픽 퍼널의 '회원가입' 단계 — 이메일 인증까지 끝나야 가입 완료다. */}
@@ -13,6 +18,7 @@ export default function EmailVerifiedPage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl" />
       </div>
 
+      <LangToggle dark className="absolute top-5 right-5 z-10" />
       <Link href="/" className="relative mb-8 flex items-center gap-3">
         <Image
           src="/logo-mark.png"
@@ -30,7 +36,7 @@ export default function EmailVerifiedPage() {
             className="w-[188px] h-auto object-contain"
           />
           <span className="mt-1 w-[188px] text-[9px] leading-none tracking-[-0.01em] text-slate-400 whitespace-nowrap">
-            AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+            {t("AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스", "AI virtual-panel market & opinion simulation")}
           </span>
         </span>
       </Link>
@@ -42,17 +48,25 @@ export default function EmailVerifiedPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200">
             <Check className="text-emerald-600" size={32} strokeWidth={2.5} />
           </div>
-          <h1 className="text-xl font-bold text-slate-900">이메일 인증이 완료되었습니다</h1>
+          <h1 className="text-xl font-bold text-slate-900">{t("이메일 인증이 완료되었습니다", "Your email has been verified")}</h1>
           <p className="text-sm text-slate-500 leading-relaxed">
-            가입 절차가 정상적으로 처리되었습니다.<br />
-            이제 로그인하여 서비스를 이용하실 수 있습니다.
+            {t(
+              <>
+                가입 절차가 정상적으로 처리되었습니다.<br />
+                이제 로그인하여 서비스를 이용하실 수 있습니다.
+              </>,
+              <>
+                Your sign-up is complete.<br />
+                You can now log in and start using Socialtwin.
+              </>,
+            )}
           </p>
 
           <Link
             href="/login"
             className="mt-2 inline-flex items-center gap-1.5 px-6 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-200 active:scale-[0.99]"
           >
-            로그인 하러 가기
+            {t("로그인 하러 가기", "Go to log in")}
             <ArrowRight size={14} />
           </Link>
         </div>

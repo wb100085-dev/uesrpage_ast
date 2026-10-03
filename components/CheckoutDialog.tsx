@@ -11,8 +11,10 @@ import Image from "next/image";
 import { X, ShieldCheck, Loader2, Check, CreditCard, Landmark, Wallet, MessageCircle, AlertTriangle } from "lucide-react";
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
+import { getLang, useLang, useT } from "@/lib/i18n";
 
-const won = (n: number) => n.toLocaleString("ko-KR") + "원";
+const won = (n: number, lang: "ko" | "en") =>
+  lang === "en" ? "₩" + n.toLocaleString("en-US") : n.toLocaleString("ko-KR") + "원";
 
 // 토스 클라이언트 키 접두사로 결제 모드 판별:
 // test_ck_/test_gck_ → 테스트(실제 청구 없음), live_ck_/live_gck_ → 실결제(실제 카드 청구)
@@ -43,6 +45,14 @@ const SUBSCRIPTION_FEATURES = [
   "원본자료(Excel) 제공",
   "결제일 기준 30일 이용 — 자동갱신 없음",
 ];
+const SUBSCRIPTION_FEATURES_EN = [
+  "Unlimited studies with 100 virtual respondents",
+  "No cap on the number of studies — iterate as often as you like",
+  "Unlimited access to detailed reports (~30-page PDF)",
+  "In-depth interviews with the virtual respondents who took your survey",
+  "Raw data (Excel)",
+  "Valid for 30 days from payment — no auto-renewal",
+];
 
 // 왼쪽 정보 패널에 표시할 상세보고서 포함 내역 (참고용 예시 보고서 구성 기준)
 const REPORT_FEATURES = [
@@ -53,13 +63,21 @@ const REPORT_FEATURES = [
   "시장반응·세그먼트·가격·전략 심층 분석",
   "원본 데이터(Raw Data) 포함",
 ];
+const REPORT_FEATURES_EN = [
+  "Key metrics (KPIs) and hypothesis-testing summary",
+  "Ask the virtual panel follow-up questions (AI Q&A)",
+  "Virtual panel demographics",
+  "Response distribution for every question",
+  "In-depth analysis of market response, segments, pricing, and strategy",
+  "Raw data included",
+];
 
 // 결제창에서 선택할 결제수단 (토스 payment.requestPayment 의 유효한 method 값).
 // 간편결제(토스페이·카카오페이 등)는 별도 method가 아니라 카드 결제창 안에서 선택됨.
 const METHODS = [
-  { key: "CARD", label: "카드·간편결제", icon: CreditCard },
-  { key: "TRANSFER", label: "계좌이체", icon: Landmark },
-  { key: "VIRTUAL_ACCOUNT", label: "가상계좌", icon: Wallet },
+  { key: "CARD", label: "카드·간편결제", labelEn: "Card / easy pay", icon: CreditCard },
+  { key: "TRANSFER", label: "계좌이체", labelEn: "Bank transfer", icon: Landmark },
+  { key: "VIRTUAL_ACCOUNT", label: "가상계좌", labelEn: "Virtual account", icon: Wallet },
 ] as const;
 type MethodKey = (typeof METHODS)[number]["key"];
 
@@ -75,6 +93,8 @@ export default function CheckoutDialog({
   /** 결제 완료 화면에서 되돌아갈 앱 내 경로(상대 경로). 조사 실행 전 결제 흐름에 사용. */
   returnTo?: string;
 }) {
+  const t = useT();
+  const lang = useLang();
   const isSubscription = productKey === SUBSCRIPTION_KEY;
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -96,7 +116,13 @@ export default function CheckoutDialog({
         paymentRef.current = toss.payment({ customerKey: ANONYMOUS });
         setOrder(o);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "결제 준비 중 오류가 발생했습니다.");
+        setError(
+          e instanceof Error
+            ? e.message
+            : getLang() === "en"
+              ? "Something went wrong while preparing the payment."
+              : "결제 준비 중 오류가 발생했습니다.",
+        );
       } finally {
         setLoading(false);
       }
@@ -126,7 +152,7 @@ export default function CheckoutDialog({
       });
       // 성공 시 successUrl로 리다이렉트 → 이후 코드 미실행
     } catch (e) {
-      setError(e instanceof Error ? e.message : "결제가 취소되었습니다.");
+      setError(e instanceof Error ? e.message : t("결제가 취소되었습니다.", "The payment was canceled."));
       setPaying(false);
     }
   }
@@ -147,7 +173,7 @@ export default function CheckoutDialog({
           type="button"
           onClick={onClose}
           className="absolute top-3 right-3 z-10 text-white/80 md:text-white hover:text-white"
-          aria-label="닫기"
+          aria-label={t("닫기", "Close")}
         >
           <X size={20} />
         </button>
@@ -163,26 +189,34 @@ export default function CheckoutDialog({
               className="h-7 w-auto object-contain"
             />
             <span className="shrink-0 text-[11px] font-semibold bg-white/15 px-2 py-0.5 rounded-full">
-              {isSubscription ? "30일 무제한 · 보고서 30p" : "30페이지 분량"}
+              {isSubscription
+                ? t("30일 무제한 · 보고서 30p", "30 days unlimited · 30-page report")
+                : t("30페이지 분량", "~30 pages")}
             </span>
           </div>
 
           <h2 className="mt-5 text-2xl font-bold tracking-tight">
-            {isSubscription ? "30일권" : "상세보고서"}
+            {isSubscription ? t("30일권", "30-day pass") : t("상세보고서", "Detailed report")}
           </h2>
           <p className="mt-1.5 text-sm text-indigo-100 leading-relaxed">
             {isSubscription
-              ? "결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하세요. 자동으로 갱신되지 않는 선불 이용권입니다."
-              : "가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요."}
+              ? t(
+                  "결제일부터 30일 동안 가상인구 100명 규모 조사를 횟수 제한 없이 이용하세요. 자동으로 갱신되지 않는 선불 이용권입니다.",
+                  "Run unlimited studies with 100 virtual respondents for 30 days from your payment date. This is a prepaid pass that does not renew automatically.",
+                )
+              : t(
+                  "가상패널 응답을 심층 분석한 진단 리포트와 원본 데이터를 모두 받아보세요.",
+                  "Get an in-depth diagnostic report on your virtual panel's responses, plus all the raw data.",
+                )}
           </p>
 
           {/* 실제 보고서 페이지 미리보기 — 3장 한 줄 배치 */}
           <div className="mt-5">
             <div className="grid grid-cols-3 gap-2">
               {[
-                { src: "/checkout/report-summary.png", alt: "상세보고서 '조사결과 요약' 페이지 예시" },
-                { src: "/checkout/report-cover.png", alt: "보고서 표지 예시" },
-                { src: "/checkout/report-detail.png", alt: "문항별 응답 분포 예시" },
+                { src: "/checkout/report-summary.png", alt: t("상세보고서 '조사결과 요약' 페이지 예시", "Sample detailed report: results summary page") },
+                { src: "/checkout/report-cover.png", alt: t("보고서 표지 예시", "Sample report cover") },
+                { src: "/checkout/report-detail.png", alt: t("문항별 응답 분포 예시", "Sample response distribution by question") },
               ].map((img) => (
                 <div key={img.src} className="rounded-lg overflow-hidden ring-1 ring-white/40 shadow-lg bg-white">
                   <Image
@@ -196,41 +230,59 @@ export default function CheckoutDialog({
               ))}
             </div>
             <p className="mt-2 text-[11px] text-indigo-200 text-center">
-              ▲ 실제 상세보고서 예시 (요약·표지·문항별 분포)
-              {isSubscription && " — 이용 기간 동안 무제한 열람"}
+              {t(
+                "▲ 실제 상세보고서 예시 (요약·표지·문항별 분포)",
+                "▲ Pages from an actual detailed report (summary, cover, per-question distribution)",
+              )}
+              {isSubscription && t(" — 이용 기간 동안 무제한 열람", " — unlimited access during your pass")}
             </p>
           </div>
 
           {/* 가상인구 패널에게 질문 — 미리보기(스크린샷) */}
           <div className="mt-5 rounded-xl bg-white/10 ring-1 ring-white/20 p-3.5">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold">
-              <MessageCircle size={14} /> 가상인구 패널에게 질문
+              <MessageCircle size={14} /> {t("가상인구 패널에게 질문", "Ask the virtual panel")}
             </div>
             <p className="mt-1 text-[11px] text-indigo-100 leading-relaxed">
               {isSubscription
-                ? "이용 기간 동안 진행한 모든 설문에서, 응답한 가상인구 패널에게 직접 추가 질문을 던지고 답을 받아볼 수 있습니다."
-                : "결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 던지고 응답을 받아볼 수 있습니다."}
+                ? t(
+                    "이용 기간 동안 진행한 모든 설문에서, 응답한 가상인구 패널에게 직접 추가 질문을 던지고 답을 받아볼 수 있습니다.",
+                    "For every survey you run during your pass, ask the virtual respondents follow-up questions and get their answers directly.",
+                  )
+                : t(
+                    "결제 후, 이 설문에 참여한 가상인구 패널에게 직접 추가 질문을 던지고 응답을 받아볼 수 있습니다.",
+                    "After payment, ask the virtual respondents who took this survey follow-up questions and get their answers directly.",
+                  )}
             </p>
             {/* 챗 화면 미리보기 */}
             <div className="mt-2.5 rounded-lg bg-white p-2.5 shadow-inner space-y-1.5">
               <div className="flex justify-end">
                 <span className="max-w-[85%] rounded-lg rounded-br-sm bg-indigo-600 text-white text-[10px] px-2.5 py-1.5 leading-snug">
-                  이 제품을 선택한 이유가 무엇인가요?
+                  {t("이 제품을 선택한 이유가 무엇인가요?", "Why did you choose this product?")}
                 </span>
               </div>
               <div className="flex justify-start">
                 <span className="max-w-[88%] rounded-lg rounded-bl-sm bg-slate-100 text-slate-700 text-[10px] px-2.5 py-1.5 leading-snug">
-                  기존 방식이 번거로웠는데, 이 기능이면 시간을 아낄 수 있을 것 같아 관심이 갔어요.
+                  {t(
+                    "기존 방식이 번거로웠는데, 이 기능이면 시간을 아낄 수 있을 것 같아 관심이 갔어요.",
+                    "The old way was a hassle. This feature looked like it would save me time, so it caught my interest.",
+                  )}
                 </span>
               </div>
             </div>
             <p className="mt-2 text-[11px] text-indigo-200 text-center">
-              ▲ 설문에 참여한 가상패널에게 직접 질문하는 예시
+              {t(
+                "▲ 설문에 참여한 가상패널에게 직접 질문하는 예시",
+                "▲ Example: asking the survey's virtual panel a question directly",
+              )}
             </p>
           </div>
 
           <ul className="mt-5 space-y-2">
-            {(isSubscription ? SUBSCRIPTION_FEATURES : REPORT_FEATURES).map((f) => (
+            {(isSubscription
+              ? t(SUBSCRIPTION_FEATURES, SUBSCRIPTION_FEATURES_EN)
+              : t(REPORT_FEATURES, REPORT_FEATURES_EN)
+            ).map((f) => (
               <li key={f} className="flex items-start gap-2 text-[13px]">
                 <span className="mt-0.5 shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20">
                   <Check size={11} strokeWidth={3} />
@@ -242,20 +294,23 @@ export default function CheckoutDialog({
 
           <div className="mt-auto pt-6">
             <p className="text-3xl font-extrabold">
-              {won(amount)}
+              {won(amount, lang)}
               {isSubscription && (
-                <span className="ml-1 text-base font-semibold text-indigo-200">/ 30일</span>
+                <span className="ml-1 text-base font-semibold text-indigo-200">{t("/ 30일", "/ 30 days")}</span>
               )}
             </p>
-            <p className="mt-1 text-[11px] text-indigo-200">부가세 포함 · 1회 결제</p>
+            <p className="mt-1 text-[11px] text-indigo-200">{t("부가세 포함 · 1회 결제", "VAT incl. · One-time payment")}</p>
           </div>
         </div>
 
         {/* ── 오른쪽: 결제수단 선택 (결제창 방식) ── */}
         <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col">
-          <h3 className="text-base font-bold text-slate-900">결제 수단 선택</h3>
+          <h3 className="text-base font-bold text-slate-900">{t("결제 수단 선택", "Choose a payment method")}</h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            선택 후 결제하기를 누르면 토스 결제창이 열립니다.
+            {t(
+              "선택 후 결제하기를 누르면 토스 결제창이 열립니다.",
+              "Select a method and click Pay to open the Toss Payments window.",
+            )}
           </p>
 
           {/* 키 모드 디버그 배지 — 현재 백엔드가 내려준 client_key 가 test/live 인지 표시 */}
@@ -266,9 +321,9 @@ export default function CheckoutDialog({
               : mode === "test" ? "border-emerald-200 bg-emerald-50 text-emerald-700"
               : "border-amber-200 bg-amber-50 text-amber-700";
             const label =
-              mode === "live" ? "LIVE 키 — 실제 카드가 청구됩니다"
-              : mode === "test" ? "TEST 키 — 실제 청구 없음(테스트 결제)"
-              : "키 모드 확인 불가";
+              mode === "live" ? t("LIVE 키 — 실제 카드가 청구됩니다", "LIVE key — your card will be charged")
+              : mode === "test" ? t("TEST 키 — 실제 청구 없음(테스트 결제)", "TEST key — no real charge (test payment)")
+              : t("키 모드 확인 불가", "Key mode unknown");
             return (
               <div className={`mt-3 rounded-lg border px-3 py-2 text-[11px] font-semibold flex items-center gap-2 ${cls}`}>
                 {mode === "live" ? <AlertTriangle size={13} className="shrink-0" /> : <ShieldCheck size={13} className="shrink-0" />}
@@ -284,7 +339,7 @@ export default function CheckoutDialog({
             {loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400">
                 <Loader2 className="animate-spin" size={28} />
-                <span className="text-sm">결제 준비 중…</span>
+                <span className="text-sm">{t("결제 준비 중…", "Preparing payment…")}</span>
               </div>
             ) : (
               <div className="space-y-2">
@@ -303,7 +358,7 @@ export default function CheckoutDialog({
                       }`}
                     >
                       <Icon size={18} className={active ? "text-indigo-600" : "text-slate-400"} />
-                      <span className="text-sm font-medium text-slate-800">{m.label}</span>
+                      <span className="text-sm font-medium text-slate-800">{t(m.label, m.labelEn)}</span>
                       <span
                         className={`ml-auto w-4 h-4 rounded-full border-2 ${
                           active ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
@@ -326,13 +381,23 @@ export default function CheckoutDialog({
           {isSubscription && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
-                <AlertTriangle size={12} strokeWidth={2.5} /> 결제 전 확인
+                <AlertTriangle size={12} strokeWidth={2.5} /> {t("결제 전 확인", "Before you pay")}
               </div>
               <ul className="mt-1.5 space-y-1 text-[11.5px] leading-relaxed text-amber-900/90 break-keep">
-                <li>· 결제 금액 <strong>{won(amount)}</strong> (부가세 포함) — 지금 <strong>1회만</strong> 청구됩니다.</li>
-                <li>· 이용 기간은 결제 승인 시점부터 <strong>30일</strong>이며, <strong>자동으로 갱신되지 않습니다.</strong></li>
-                <li>· 카드 정보를 저장해 자동 재청구하는 정기결제가 아니므로 <strong>해지 신청이 필요 없고</strong>, 30일 후 이용이 자동 종료됩니다.</li>
-                <li>· 환불 기준은 <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-semibold">결제·환불 정책</a>을 따릅니다.</li>
+                {t(
+                  <>
+                    <li>· 결제 금액 <strong>{won(amount, lang)}</strong> (부가세 포함) — 지금 <strong>1회만</strong> 청구됩니다.</li>
+                    <li>· 이용 기간은 결제 승인 시점부터 <strong>30일</strong>이며, <strong>자동으로 갱신되지 않습니다.</strong></li>
+                    <li>· 카드 정보를 저장해 자동 재청구하는 정기결제가 아니므로 <strong>해지 신청이 필요 없고</strong>, 30일 후 이용이 자동 종료됩니다.</li>
+                    <li>· 환불 기준은 <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-semibold">결제·환불 정책</a>을 따릅니다.</li>
+                  </>,
+                  <>
+                    <li>· You&apos;ll be charged <strong>{won(amount, lang)}</strong> (VAT incl.) <strong>once</strong>, now.</li>
+                    <li>· Your pass lasts <strong>30 days</strong> from payment approval and <strong>does not renew automatically.</strong></li>
+                    <li>· This isn&apos;t a recurring plan that stores your card and charges it again, so <strong>there&apos;s nothing to cancel</strong> — access simply ends after 30 days.</li>
+                    <li>· Refunds follow our <a href="/refund" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-semibold">Payment &amp; Refund Policy</a>.</li>
+                  </>,
+                )}
               </ul>
             </div>
           )}
@@ -344,10 +409,13 @@ export default function CheckoutDialog({
               disabled={loading || paying}
               className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 transition disabled:opacity-60"
             >
-              {paying ? "결제창 여는 중…" : `${won(amount)} 결제하기`}
+              {paying
+                ? t("결제창 여는 중…", "Opening checkout…")
+                : t(`${won(amount, lang)} 결제하기`, `Pay ${won(amount, lang)}`)}
             </button>
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <ShieldCheck size={14} /> ㈜토스페이먼츠가 암호화하여 안전하게 처리합니다.
+              <ShieldCheck size={14} />{" "}
+              {t("㈜토스페이먼츠가 암호화하여 안전하게 처리합니다.", "Securely encrypted and processed by Toss Payments.")}
             </p>
           </div>
         </div>

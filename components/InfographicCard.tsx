@@ -1,6 +1,8 @@
 "use client";
 
 import type { InfographicSummary } from "@/lib/survey-api";
+import { useT } from "@/lib/i18n";
+import { useLabel } from "@/lib/i18n-labels";
 import {
   FileBarChart, FlaskConical, Lightbulb, Rocket, Users,
   AlertTriangle, Target, Quote, TrendingUp, BarChart2,
@@ -39,9 +41,15 @@ function Section({
 }
 
 export default function InfographicCard({ info }: { info: InfographicSummary }) {
+  const t = useT();
+  const L = useLabel(); // 판정값 채택/기각/혼합 → Supported/Rejected/Mixed (데이터는 한국어 유지)
   const verdictBadge = (v: string) => {
     if (v.includes("채택")) return "bg-emerald-50 text-emerald-700 border-emerald-200";
     if (v.includes("기각")) return "bg-rose-50 text-rose-700 border-rose-200";
+    // 영문 설문의 판정 문구 (LLM 출력) — 기각 계열을 먼저 본다("Not supported" 에 support 가 들어 있음)
+    const e = v.toLowerCase();
+    if (/reject|not supported|unsupported|refuted/.test(e)) return "bg-rose-50 text-rose-700 border-rose-200";
+    if (/support|accept|confirm|validated/.test(e)) return "bg-emerald-50 text-emerald-700 border-emerald-200";
     return "bg-amber-50 text-amber-700 border-amber-200";
   };
 
@@ -51,7 +59,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
       <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-5 sm:px-6 py-5 text-white">
           <div className="flex items-center gap-1.5 text-indigo-100 text-[11px] font-semibold uppercase tracking-wider">
-            <FileBarChart size={13} /> 분석 결과 요약
+            <FileBarChart size={13} /> {t("분석 결과 요약", "Analysis summary")}
           </div>
           {info.headline && (
             <h2 className="text-xl sm:text-2xl font-bold mt-1.5 leading-snug whitespace-pre-line break-keep">{info.headline}</h2>
@@ -86,17 +94,17 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
 
       {/* ── 가설 검증 ── */}
       {info.hypothesis_validation && info.hypothesis_validation.length > 0 && (
-        <Section icon={FlaskConical} iconColor="text-indigo-500" title="가설 검증">
+        <Section icon={FlaskConical} iconColor="text-indigo-500" title={t("가설 검증", "Hypothesis validation")}>
           <div className="space-y-2.5">
             {info.hypothesis_validation.map((h, i) => (
               <div key={i} className="rounded-xl border border-slate-200 p-3.5">
                 <div className="flex items-start gap-2.5">
                   <span className={`text-[11px] px-2 py-0.5 rounded-full border font-bold whitespace-nowrap ${verdictBadge(h.verdict)}`}>
-                    H{i + 1} {h.verdict}
+                    H{i + 1} {L(h.verdict)}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-slate-900">{h.hypothesis}</div>
-                    <div className="text-xs text-slate-500 mt-1">근거: {h.evidence}</div>
+                    <div className="text-xs text-slate-500 mt-1">{t("근거: ", "Evidence: ")}{h.evidence}</div>
                   </div>
                 </div>
               </div>
@@ -109,7 +117,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
       {((info.key_findings && info.key_findings.length > 0) || (info.next_actions && info.next_actions.length > 0)) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {info.key_findings && info.key_findings.length > 0 && (
-            <Section icon={Lightbulb} iconColor="text-emerald-500" title="핵심 발견">
+            <Section icon={Lightbulb} iconColor="text-emerald-500" title={t("핵심 발견", "Key findings")}>
               <ul className="space-y-2">
                 {info.key_findings.map((f, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
@@ -121,7 +129,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
             </Section>
           )}
           {info.next_actions && info.next_actions.length > 0 && (
-            <Section icon={Rocket} iconColor="text-fuchsia-500" title="다음 액션">
+            <Section icon={Rocket} iconColor="text-fuchsia-500" title={t("다음 액션", "Next actions")}>
               <ul className="space-y-2">
                 {info.next_actions.map((a, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
@@ -137,7 +145,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
 
       {/* ── 타깃 세그먼트 ── */}
       {info.target_segments && info.target_segments.length > 0 && (
-        <Section icon={Users} iconColor="text-purple-500" title="타깃 세그먼트">
+        <Section icon={Users} iconColor="text-purple-500" title={t("타깃 세그먼트", "Target segments")}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {info.target_segments.map((s, i) => (
               <div key={i} className="rounded-xl border border-slate-200 p-3.5">
@@ -153,7 +161,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
       {((info.risks && info.risks.length > 0) || (info.opportunities && info.opportunities.length > 0)) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {info.risks && info.risks.length > 0 && (
-            <Section icon={AlertTriangle} iconColor="text-rose-500" title="리스크">
+            <Section icon={AlertTriangle} iconColor="text-rose-500" title={t("리스크", "Risks")}>
               <ul className="space-y-2">
                 {info.risks.map((r, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
@@ -165,7 +173,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
             </Section>
           )}
           {info.opportunities && info.opportunities.length > 0 && (
-            <Section icon={Target} iconColor="text-blue-500" title="기회 영역">
+            <Section icon={Target} iconColor="text-blue-500" title={t("기회 영역", "Opportunities")}>
               <ul className="space-y-2">
                 {info.opportunities.map((o, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2.5">
@@ -187,7 +195,7 @@ export default function InfographicCard({ info }: { info: InfographicSummary }) 
         ).filter((q) => q && q.text).slice(0, 3);
         if (!quotes.length) return null;
         return (
-          <Section icon={Quote} iconColor="text-amber-500" title="고객 인터뷰">
+          <Section icon={Quote} iconColor="text-amber-500" title={t("고객 인터뷰", "Customer interviews")}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {quotes.map((q, i) => (
                 <div key={i} className="border-l-2 border-amber-300 bg-slate-50 rounded-r-xl p-3.5">

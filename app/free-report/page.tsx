@@ -19,20 +19,25 @@ import Navbar from "@/components/Navbar";
 import { getAccessToken } from "@/lib/auth-api";
 import { redeemReportToken, claimReportJob, FREE_REPORT_PASS_KEY } from "@/lib/survey-api";
 import { trackEvent } from "@/lib/analytics";
+import { useT } from "@/lib/i18n";
+
+/** 백엔드 에러는 원문 문자열 그대로, 프론트 안내는 [한, 영] 쌍 */
+type Msg = string | readonly [ko: string, en: string];
 
 function FreeReportInner() {
+  const t = useT();
   const router = useRouter();
   const params = useSearchParams();
   const token = (params.get("pass") || "").trim();
   const job = (params.get("job") || "").trim(); // 로그인 복귀 시 바로 열람할 설문
-  const [errMsg, setErrMsg] = useState("");
+  const [errMsg, setErrMsg] = useState<Msg>("");
   const ranRef = useRef(false); // StrictMode 이중 실행 방지
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
     if (!token) {
-      setErrMsg("쿠폰 링크가 올바르지 않습니다. (토큰 누락)");
+      setErrMsg(["쿠폰 링크가 올바르지 않습니다. (토큰 누락)", "This coupon link is invalid (missing token)."]);
       return;
     }
     trackEvent("무료열람링크_진입");
@@ -49,7 +54,7 @@ function FreeReportInner() {
             router.replace("/design");
           }
         })
-        .catch((e) => setErrMsg(e instanceof Error ? e.message : "쿠폰 확인에 실패했습니다."));
+        .catch((e) => setErrMsg(e instanceof Error ? e.message : ["쿠폰 확인에 실패했습니다.", "Couldn't verify the coupon."]));
       return;
     }
     // 비로그인 — 토큰을 보관하고 랜딩으로 (로그인 시점에 자동 리딤)
@@ -61,30 +66,32 @@ function FreeReportInner() {
     router.replace("/");
   }, [token, job, router]);
 
+  const errText = typeof errMsg === "string" ? errMsg : t(errMsg[0], errMsg[1]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
       <div className="max-w-md mx-auto px-4 pt-28 pb-16">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
-          {errMsg ? (
+          {errText ? (
             <>
               <div className="w-14 h-14 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={30} className="text-rose-500" />
               </div>
-              <h1 className="text-base font-bold text-slate-900 mb-2">쿠폰을 사용할 수 없습니다</h1>
-              <p className="text-xs text-rose-500 leading-relaxed mb-6">{errMsg}</p>
+              <h1 className="text-base font-bold text-slate-900 mb-2">{t("쿠폰을 사용할 수 없습니다", "This coupon can't be used")}</h1>
+              <p className="text-xs text-rose-500 leading-relaxed mb-6">{errText}</p>
               <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium text-sm hover:bg-slate-50 transition-all"
               >
-                서비스 둘러보기
+                {t("서비스 둘러보기", "Explore the service")}
               </Link>
             </>
           ) : (
             <>
               <Loader2 size={36} className="mx-auto text-indigo-500 animate-spin mb-4" />
-              <h1 className="text-base font-bold text-slate-900 mb-1">이동 중…</h1>
-              <p className="text-xs text-slate-500">무료 쿠폰을 확인하고 있습니다.</p>
+              <h1 className="text-base font-bold text-slate-900 mb-1">{t("이동 중…", "Redirecting…")}</h1>
+              <p className="text-xs text-slate-500">{t("무료 쿠폰을 확인하고 있습니다.", "Checking your free coupon.")}</p>
             </>
           )}
         </div>

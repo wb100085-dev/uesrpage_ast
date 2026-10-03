@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ImagePlus, FileText, X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 /** 참고 자료 첨부(선택) — 이미지/PDF 업로드/붙여넣기/드래그&드롭 + 자료별 간단 설명.
  *  dataUrl 은 base64 data:URL. 가설 설계 시 백엔드(GPT 비전)가 분석에 활용. */
@@ -32,6 +33,7 @@ export default function AttachmentSection({
   attachments: SurveyAttachment[];
   setAttachments: React.Dispatch<React.SetStateAction<SurveyAttachment[]>>;
 }) {
+  const t = useT();
   const [notice, setNotice] = useState<string | null>(null);
 
   async function addFiles(files: File[]) {
@@ -52,7 +54,7 @@ export default function AttachmentSection({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           dataUrl,
           mime: f.type || "image/png",
-          name: f.name || "붙여넣은 이미지",
+          name: f.name || t("붙여넣은 이미지", "Pasted image"),
           description: "",
         });
       } catch {
@@ -61,8 +63,8 @@ export default function AttachmentSection({
     }
     setAttachments((prev) => {
       const room = Math.max(0, MAX - prev.length);
-      if (added.length > room) setNotice(`최대 ${MAX}장까지만 첨부됩니다.`);
-      else if (skipped > 0) setNotice(`${skipped}개 파일은 건너뜀(이미지/PDF 아님 또는 6MB 초과).`);
+      if (added.length > room) setNotice(t(`최대 ${MAX}장까지만 첨부됩니다.`, `You can attach up to ${MAX} files.`));
+      else if (skipped > 0) setNotice(t(`${skipped}개 파일은 건너뜀(이미지/PDF 아님 또는 6MB 초과).`, `Skipped ${skipped} file(s) (not an image/PDF, or larger than 6MB).`));
       else setNotice(null);
       return [...prev, ...added.slice(0, room)];
     });
@@ -72,10 +74,10 @@ export default function AttachmentSection({
     <div className="px-5 sm:px-8 py-6">
       <div className="flex items-center justify-between mb-3">
         <label className="text-sm font-semibold text-slate-700">
-          참고 이미지 또는 설명 자료 첨부 <span className="text-slate-400 font-normal">(선택)</span>
+          {t("참고 이미지 또는 설명 자료 첨부", "Attach reference images or documents")} <span className="text-slate-400 font-normal">{t("(선택)", "(optional)")}</span>
         </label>
         <span className="text-[11px] text-slate-400">
-          참고 이미지나 설명자료를 첨부하시면 보다 더 정확한 답변 생성이 가능합니다.
+          {t("참고 이미지나 설명자료를 첨부하시면 보다 더 정확한 답변 생성이 가능합니다.", "Attaching reference images or materials helps the AI generate more accurate results.")}
         </span>
       </div>
 
@@ -100,7 +102,7 @@ export default function AttachmentSection({
       >
         <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 text-sm font-semibold cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-all">
           <ImagePlus size={16} />
-          파일 업로드
+          {t("파일 업로드", "Upload files")}
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -113,7 +115,10 @@ export default function AttachmentSection({
           />
         </label>
         <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-          또는 이 영역을 클릭한 뒤 <strong className="text-slate-500">Ctrl/⌘+V</strong> 로 붙여넣기 · 드래그&amp;드롭
+          {t(
+            <>또는 이 영역을 클릭한 뒤 <strong className="text-slate-500">Ctrl/⌘+V</strong> 로 붙여넣기 · 드래그&amp;드롭</>,
+            <>Or click this area and paste with <strong className="text-slate-500">Ctrl/⌘+V</strong> · Drag &amp; drop</>,
+          )}
         </p>
       </div>
       {notice && <p className="mt-1.5 text-[11px] text-amber-500">{notice}</p>}
@@ -144,7 +149,7 @@ export default function AttachmentSection({
                     type="button"
                     onClick={() => setAttachments((prev) => prev.filter((x) => x.id !== a.id))}
                     className="text-slate-300 hover:text-red-500 flex-shrink-0"
-                    title="삭제"
+                    title={t("삭제", "Remove")}
                   >
                     <X size={14} />
                   </button>
@@ -157,7 +162,7 @@ export default function AttachmentSection({
                     )
                   }
                   rows={2}
-                  placeholder="이 자료에 대한 간단한 설명 (예: 경쟁사 패키지, 매장 진열, 제품 소개서 …)"
+                  placeholder={t("이 자료에 대한 간단한 설명 (예: 경쟁사 패키지, 매장 진열, 제품 소개서 …)", "Briefly describe this file (e.g., competitor packaging, in-store display, product brochure …)")}
                   className="block w-full px-2.5 py-1.5 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-lg resize-none outline-none focus:bg-white focus:border-indigo-400 transition-all"
                 />
               </div>

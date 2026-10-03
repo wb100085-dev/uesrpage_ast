@@ -12,6 +12,8 @@ import SiteFooter from "@/components/SiteFooter";
 import StartCtaButtons from "@/components/StartCtaButtons";
 import HeroVideo from "@/components/HeroVideo";
 import FreeCouponBanner from "@/components/FreeCouponBanner";
+import LangSwitch from "@/components/LangSwitch";
+import LandingEn from "@/components/LandingEn";
 
 /* ─────────────────────────────────────────
    How it works — mini screen mockups
@@ -487,9 +489,14 @@ const features = [
 ];
 
 /* ─────────────────────────────────────────
-   Page
+   Page — 한/영 전환(Korean / English 버튼)에 따라 랜딩을 통째로 바꾼다.
+   영문 랜딩(components/LandingEn.tsx)은 "한국 진출 전 시장조사" 포지셔닝이라 번역본이 아니다.
 ───────────────────────────────────────── */
 export default function LandingPage() {
+  return <LangSwitch ko={<LandingKo />} en={<LandingEn />} />;
+}
+
+function LandingKo() {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <Navbar dark />

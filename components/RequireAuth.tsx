@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { getAccessToken } from "@/lib/auth-api";
+import { useT } from "@/lib/i18n";
 
 /**
  * 클라이언트 사이드 인증 가드.
@@ -17,6 +18,7 @@ import { getAccessToken } from "@/lib/auth-api";
  */
 export default function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const t = useT();
   const [authed, setAuthed] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-500">
           <Sparkles size={20} className="text-indigo-500 animate-pulse" />
-          <span className="text-sm">인증 확인 중…</span>
+          <span className="text-sm">{t("인증 확인 중…", "Checking your session…")}</span>
         </div>
       </div>
     );

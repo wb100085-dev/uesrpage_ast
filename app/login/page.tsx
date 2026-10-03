@@ -25,6 +25,8 @@ import {
 } from "@/lib/auth-api";
 import { hasPendingReview, PENDING_REVIEW_NEXT } from "@/lib/pending-review";
 import { redeemPendingReportToken, FREE_REPORT_PASS_KEY } from "@/lib/survey-api";
+import { useT } from "@/lib/i18n";
+import LangToggle from "@/components/LangToggle";
 
 // 슈퍼유저/스태프가 사용자 프론트에서 로그인하면 관리자 콘솔로 자동 핸드오프.
 // URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
@@ -80,6 +82,7 @@ export default function LoginPage() {
 }
 
 function LoginInner() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialError = searchParams.get("error");
@@ -91,13 +94,16 @@ function LoginInner() {
   const [password2, setPassword2] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(
+  // 에러는 [한국어, English] 쌍(첫 렌더에서 정해져 언어 전환을 따라가야 하는 문구) 또는
+  // 이미 현재 언어로 만들어진 문자열(제출 시점의 백엔드 에러 번역 결과).
+  const [error, setError] = useState<string | readonly [string, string] | null>(
     initialError === "not_authenticated"
-      ? "소셜 로그인이 완료되지 않았습니다. 다시 시도해주세요."
+      ? ["소셜 로그인이 완료되지 않았습니다. 다시 시도해주세요.", "Social login wasn't completed. Please try again."]
       : initialError
-      ? "로그인 중 오류가 발생했습니다."
+      ? ["로그인 중 오류가 발생했습니다.", "Something went wrong while logging in. Please try again."]
       : null
   );
+  const errorText = error == null ? null : typeof error === "string" ? error : t(error[0], error[1]);
   // 가입 완료 후 "메일 인증을 확인하세요" 화면
   const [signupSentTo, setSignupSentTo] = useState<string | null>(null);
 
@@ -155,7 +161,7 @@ function LoginInner() {
     try {
       if (mode === "signup") {
         if (password !== password2) {
-          throw new Error("비밀번호가 일치하지 않습니다.");
+          throw new Error(t("비밀번호가 일치하지 않습니다.", "Passwords do not match."));
         }
         // 무료 열람 링크로 들어와 보관된 쿠폰이 있으면 가입 요청에 실어 보낸다.
         // 서버가 계정 생성 시 귀속하므로, 인증 메일을 다른 기기에서 열어도 유실되지 않는다.
@@ -196,6 +202,7 @@ function LoginInner() {
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl" />
         </div>
+        <LangToggle dark className="absolute top-5 right-5 z-10" />
         <Link href="/" className="relative mb-8 flex items-center gap-3">
           <Image
           src="/logo-mark.png"
@@ -213,7 +220,7 @@ function LoginInner() {
             className="w-[188px] h-auto object-contain"
           />
           <span className="mt-1 w-[188px] text-[9px] leading-none tracking-[-0.01em] text-slate-400 whitespace-nowrap">
-            AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+            {t("AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스", "AI virtual-panel market & opinion simulation")}
           </span>
         </span>
         </Link>
@@ -223,27 +230,35 @@ function LoginInner() {
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
               <MailCheck className="text-emerald-600" size={32} />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 mb-2">메일을 확인해주세요</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">{t("메일을 확인해주세요", "Check your email")}</h2>
             <p className="text-sm text-slate-600 leading-relaxed mb-6">
-              <b className="text-slate-900">{signupSentTo}</b> 으로
-              <br />인증 링크를 보냈습니다. 링크를 클릭하면 가입이 완료됩니다.
+              {t(
+                <>
+                  <b className="text-slate-900">{signupSentTo}</b> 으로
+                  <br />인증 링크를 보냈습니다. 링크를 클릭하면 가입이 완료됩니다.
+                </>,
+                <>
+                  We sent a verification link to
+                  <br /><b className="text-slate-900">{signupSentTo}</b>. Click the link to complete your sign-up.
+                </>,
+              )}
             </p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => { setSignupSentTo(null); setMode("signin"); }}
                 className="w-full py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500"
               >
-                로그인 화면으로
+                {t("로그인 화면으로", "Back to log in")}
               </button>
               <button
                 onClick={() => setSignupSentTo(null)}
                 className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs hover:bg-slate-50"
               >
-                다른 이메일로 다시 가입
+                {t("다른 이메일로 다시 가입", "Sign up with a different email")}
               </button>
             </div>
             <p className="mt-6 text-xs text-slate-400">
-              메일이 오지 않으면 스팸함도 확인해보세요.
+              {t("메일이 오지 않으면 스팸함도 확인해보세요.", "Didn't get the email? Check your spam folder.")}
             </p>
           </div>
         </div>
@@ -258,6 +273,7 @@ function LoginInner() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-600/10 rounded-full blur-3xl" />
       </div>
 
+      <LangToggle dark className="absolute top-5 right-5 z-10" />
       <Link href="/" className="relative mb-8 flex items-center gap-3">
         <Image
           src="/logo-mark.png"
@@ -275,7 +291,7 @@ function LoginInner() {
             className="w-[188px] h-auto object-contain"
           />
           <span className="mt-1 w-[188px] text-[9px] leading-none tracking-[-0.01em] text-slate-400 whitespace-nowrap">
-            AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스
+            {t("AI 가상패널 기반 시장 및 여론 시뮬레이션 서비스", "AI virtual-panel market & opinion simulation")}
           </span>
         </span>
       </Link>
@@ -289,7 +305,7 @@ function LoginInner() {
             <div className="mb-5 flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
               <CheckCircle2 size={14} className="text-emerald-600 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-emerald-700">
-                이메일이 확인되었습니다. 이제 로그인하실 수 있습니다.
+                {t("이메일이 확인되었습니다. 이제 로그인하실 수 있습니다.", "Your email has been verified. You can now log in.")}
               </p>
             </div>
           )}
@@ -306,21 +322,21 @@ function LoginInner() {
                     : "text-slate-500 hover:text-slate-700"
                 }`}
               >
-                {m === "signin" ? "로그인" : "회원가입"}
+                {m === "signin" ? t("로그인", "Log in") : t("회원가입", "Sign up")}
               </button>
             ))}
           </div>
 
-          {error && (
+          {errorText && (
             <div className="mb-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
               <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-700 whitespace-pre-line">{error}</p>
+              <p className="text-xs text-red-700 whitespace-pre-line">{errorText}</p>
             </div>
           )}
 
           <form onSubmit={handleEmailSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">이메일</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("이메일", "Email")}</label>
               <div className="relative">
                 <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -336,7 +352,7 @@ function LoginInner() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5">비밀번호</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("비밀번호", "Password")}</label>
               <div className="relative">
                 <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -344,7 +360,7 @@ function LoginInner() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "signup" ? "8자 이상 입력" : "비밀번호 입력"}
+                  placeholder={mode === "signup" ? t("8자 이상 입력", "At least 8 characters") : t("비밀번호 입력", "Enter your password")}
                   minLength={mode === "signup" ? 8 : undefined}
                   autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
@@ -358,13 +374,13 @@ function LoginInner() {
                 </button>
               </div>
               {mode === "signup" && (
-                <p className="mt-1.5 text-xs text-slate-400">영문·숫자 포함 8자 이상을 권장합니다.</p>
+                <p className="mt-1.5 text-xs text-slate-400">{t("영문·숫자 포함 8자 이상을 권장합니다.", "We recommend at least 8 characters, including letters and numbers.")}</p>
               )}
             </div>
 
             {mode === "signup" && (
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">비밀번호 확인</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t("비밀번호 확인", "Confirm password")}</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -372,7 +388,7 @@ function LoginInner() {
                     required
                     value={password2}
                     onChange={(e) => setPassword2(e.target.value)}
-                    placeholder="비밀번호 재입력"
+                    placeholder={t("비밀번호 재입력", "Re-enter your password")}
                     minLength={8}
                     autoComplete="new-password"
                     className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all"
@@ -390,7 +406,7 @@ function LoginInner() {
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <>
                     <Sparkles size={14} />
-                    {mode === "signin" ? "로그인" : "무료 가입하기"}
+                    {mode === "signin" ? t("로그인", "Log in") : t("무료 가입하기", "Sign up free")}
                     <ArrowRight size={14} />
                   </>
               }
@@ -401,15 +417,15 @@ function LoginInner() {
           <div className="mt-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-xs text-slate-400 font-medium">또는 소셜 계정으로</span>
+              <span className="text-xs text-slate-400 font-medium">{t("또는 소셜 계정으로", "or continue with")}</span>
               <div className="flex-1 h-px bg-slate-200" />
             </div>
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => startSocialLogin("google")}
                 disabled={loading}
-                aria-label={`Google로 ${mode === "signin" ? "로그인" : "가입"}`}
-                title={`Google로 ${mode === "signin" ? "로그인" : "가입"}`}
+                aria-label={t(`Google로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Google")}
+                title={t(`Google로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Google")}
                 className="w-12 h-12 flex items-center justify-center rounded-full border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all hover:border-slate-300 hover:shadow-md disabled:opacity-60"
               >
                 <GoogleIcon />
@@ -417,8 +433,8 @@ function LoginInner() {
               <button
                 onClick={() => startSocialLogin("naver")}
                 disabled={loading}
-                aria-label={`네이버로 ${mode === "signin" ? "로그인" : "가입"}`}
-                title={`네이버로 ${mode === "signin" ? "로그인" : "가입"}`}
+                aria-label={t(`네이버로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Naver")}
+                title={t(`네이버로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Naver")}
                 style={{ backgroundColor: "#03C75A" }}
                 className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
               >
@@ -429,8 +445,8 @@ function LoginInner() {
                 <button
                   onClick={() => startSocialLogin("kakao")}
                   disabled={loading}
-                  aria-label={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
-                  title={`카카오로 ${mode === "signin" ? "로그인" : "가입"}`}
+                  aria-label={t(`카카오로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Kakao")}
+                  title={t(`카카오로 ${mode === "signin" ? "로그인" : "가입"}`, "Continue with Kakao")}
                   style={{ backgroundColor: "#FEE500" }}
                   className="w-12 h-12 flex items-center justify-center rounded-full transition-all hover:brightness-95 hover:shadow-md active:brightness-90 disabled:opacity-60"
                 >
@@ -444,21 +460,21 @@ function LoginInner() {
           <div className="mt-6 flex items-center justify-between text-xs">
             <p className="text-slate-400">
               {mode === "signin"
-                ? <>계정이 없으신가요?{" "}
+                ? <>{t("계정이 없으신가요?", "Don't have an account?")}{" "}
                     <button onClick={() => { setMode("signup"); setError(null); }} className="text-indigo-600 font-semibold hover:underline">
-                      무료 가입
+                      {t("무료 가입", "Sign up free")}
                     </button>
                   </>
-                : <>이미 계정이 있으신가요?{" "}
+                : <>{t("이미 계정이 있으신가요?", "Already have an account?")}{" "}
                     <button onClick={() => { setMode("signin"); setError(null); }} className="text-indigo-600 font-semibold hover:underline">
-                      로그인
+                      {t("로그인", "Log in")}
                     </button>
                   </>
               }
             </p>
             {mode === "signin" && (
               <Link href="/forgot-password" className="text-slate-500 hover:text-indigo-600">
-                비밀번호 찾기
+                {t("비밀번호 찾기", "Forgot password?")}
               </Link>
             )}
           </div>
@@ -467,11 +483,22 @@ function LoginInner() {
       </div>
 
       <p className="relative mt-6 text-xs text-slate-500 text-center">
-        가입 시{" "}
-        <span className="text-slate-400 underline underline-offset-2 cursor-pointer">서비스 이용약관</span>
-        {" "}및{" "}
-        <span className="text-slate-400 underline underline-offset-2 cursor-pointer">개인정보처리방침</span>
-        에 동의하는 것으로 간주됩니다.
+        {t(
+          <>
+            가입 시{" "}
+            <span className="text-slate-400 underline underline-offset-2 cursor-pointer">서비스 이용약관</span>
+            {" "}및{" "}
+            <span className="text-slate-400 underline underline-offset-2 cursor-pointer">개인정보처리방침</span>
+            에 동의하는 것으로 간주됩니다.
+          </>,
+          <>
+            By signing up, you agree to our{" "}
+            <span className="text-slate-400 underline underline-offset-2 cursor-pointer">Terms of Service</span>
+            {" "}and{" "}
+            <span className="text-slate-400 underline underline-offset-2 cursor-pointer">Privacy Policy</span>
+            .
+          </>,
+        )}
       </p>
     </div>
   );

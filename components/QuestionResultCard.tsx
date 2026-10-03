@@ -10,6 +10,8 @@
  */
 import { MessageCircle } from "lucide-react";
 import type { SurveyResult } from "@/lib/survey-api";
+import { useT } from "@/lib/i18n";
+import { useLabel } from "@/lib/i18n-labels";
 
 const COLORS = [
   "from-indigo-500 to-indigo-400",
@@ -35,6 +37,8 @@ function Bar({ label, pct, maxPct, gradient }: { label: string; pct: number; max
 }
 
 export default function QuestionResultCard({ result }: { result: SurveyResult }) {
+  const t = useT();
+  const L = useLabel();
   const isOpen = result.유형.includes("주관");
   const maxPct = Math.max(...result.분포.map((d) => d["비율(%)"]), 1);
   return (
@@ -43,7 +47,7 @@ export default function QuestionResultCard({ result }: { result: SurveyResult })
         <div className="text-xs text-indigo-500 font-semibold">Q{result.문항번호}. {result.제목}</div>
         {isOpen && (
           <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">
-            <MessageCircle size={10} /> 주관식
+            <MessageCircle size={10} /> {t("주관식", "Open-ended")}
           </span>
         )}
       </div>
@@ -68,9 +72,18 @@ export default function QuestionResultCard({ result }: { result: SurveyResult })
           <div className="rounded-xl bg-slate-50 border border-dashed border-slate-200 px-4 py-7 text-center">
             <MessageCircle size={22} className="mx-auto mb-2.5 text-slate-300" />
             <p className="text-xs text-slate-500 leading-relaxed">
-              자유 서술형 응답이라 선택지 분포로 집계되지 않습니다.<br />
-              원문과 요약은 <span className="font-semibold text-slate-600">상세보고서(PDF)</span>와
-              우측 <span className="font-semibold text-slate-600">‘가상인구 패널에게 질문’</span>에서 확인하세요.
+              {t(
+                <>
+                  자유 서술형 응답이라 선택지 분포로 집계되지 않습니다.<br />
+                  원문과 요약은 <span className="font-semibold text-slate-600">상세보고서(PDF)</span>와
+                  우측 <span className="font-semibold text-slate-600">‘가상인구 패널에게 질문’</span>에서 확인하세요.
+                </>,
+                <>
+                  Open-ended responses aren&apos;t tallied into an option distribution.<br />
+                  See the full text and summary in the <span className="font-semibold text-slate-600">detailed report (PDF)</span> and
+                  in <span className="font-semibold text-slate-600">‘Ask the virtual panel’</span> on the right.
+                </>,
+              )}
             </p>
           </div>
         )
@@ -89,18 +102,20 @@ export default function QuestionResultCard({ result }: { result: SurveyResult })
           </div>
           {result.평균점수 && (
             <div className="mt-3 text-xs text-slate-400">
-              평균 점수: <span className="font-semibold text-slate-600">{result.평균점수.toFixed(2)}</span>
+              {t("평균 점수: ", "Average score: ")}<span className="font-semibold text-slate-600">{result.평균점수.toFixed(2)}</span>
             </div>
           )}
           {(result.객관식근거샘플?.length ?? 0) > 0 && (
             <div className="mt-4 pt-3 border-t border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-400 mb-2">💬 응답 근거 — 가상 응답자가 보기를 고른 이유</p>
+              <p className="text-[11px] font-semibold text-slate-400 mb-2">
+                {t("💬 응답 근거 — 가상 응답자가 보기를 고른 이유", "💬 Response rationale — why virtual respondents chose each option")}
+              </p>
               <div className="space-y-1.5">
                 {result.객관식근거샘플!.slice(0, 3).map((r, i) => (
                   <div key={i} className="rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
                     <p className="text-xs text-slate-600 leading-relaxed">“{r.근거}”</p>
                     <p className="mt-0.5 text-[10px] text-slate-400">
-                      {r.응답자 ? `${r.응답자} · ` : ""}선택: <span className="font-medium text-slate-500">{r.선택}</span>
+                      {r.응답자 ? `${L(r.응답자)} · ` : ""}{t("선택: ", "Chose: ")}<span className="font-medium text-slate-500">{r.선택}</span>
                     </p>
                   </div>
                 ))}

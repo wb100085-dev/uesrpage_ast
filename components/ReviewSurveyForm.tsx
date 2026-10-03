@@ -2,9 +2,21 @@
 
 import { useMemo } from "react";
 import { Check } from "lucide-react";
-import type { ReviewSurvey, ReviewQuestion } from "@/lib/review-survey";
+import {
+  questionLabel,
+  questionSection,
+  optionLabel,
+  reasonLabel,
+  type ReviewSurvey,
+  type ReviewQuestion,
+} from "@/lib/review-survey";
+import { useLang, useT } from "@/lib/i18n";
 
+// 저장값 — 영문 화면에서도 "기타"(한국어)로 저장한다(관리자 통계 호환).
 export const OTHER = "기타";
+
+/** 한/영 안내 문구 쌍 — 화면에서 t(ko, en) 로 고른다(언어 전환 시 즉시 반영). */
+export type BiMsg = readonly [ko: string, en: string];
 
 /* ── 응답 → 저장 payload 변환 ── */
 export function buildAnswers(
@@ -36,25 +48,28 @@ export function buildAnswers(
   return out;
 }
 
-/* ── 검증: 필수 문항 미응답 시 안내 메시지(없으면 null) ── */
+/* ── 검증: 필수 문항 미응답 시 안내 메시지 [한, 영] (없으면 null) ── */
 export function validate(
   survey: ReviewSurvey,
   single: Record<string, string>,
   multi: Record<string, string[]>,
   text: Record<string, string>,
-): string | null {
+): BiMsg | null {
   for (const q of survey.questions) {
     if (q.optional) continue;
+    const en = questionLabel(q, "en");
+    const unanswered: BiMsg = [`“${q.label}” 문항에 응답해 주세요.`, `Please answer “${en}”`];
+    const otherMissing: BiMsg = [`“${q.label}”의 기타 내용을 입력해 주세요.`, `Please describe your “Other” answer for “${en}”`];
     if (q.type === "text") {
-      if (!(text[q.id] || "").trim()) return `“${q.label}” 문항에 응답해 주세요.`;
+      if (!(text[q.id] || "").trim()) return unanswered;
     } else if (q.type === "multi") {
       const arr = multi[q.id] || [];
-      if (arr.length === 0) return `“${q.label}” 문항을 하나 이상 선택해 주세요.`;
-      if (arr.includes(OTHER) && !(text[`${q.id}_other`] || "").trim()) return `“${q.label}”의 기타 내용을 입력해 주세요.`;
+      if (arr.length === 0) return [`“${q.label}” 문항을 하나 이상 선택해 주세요.`, `Please select at least one option for “${en}”`];
+      if (arr.includes(OTHER) && !(text[`${q.id}_other`] || "").trim()) return otherMissing;
     } else {
       const v = single[q.id] || "";
-      if (!v) return `“${q.label}” 문항에 응답해 주세요.`;
-      if (v === OTHER && !(text[`${q.id}_other`] || "").trim()) return `“${q.label}”의 기타 내용을 입력해 주세요.`;
+      if (!v) return unanswered;
+      if (v === OTHER && !(text[`${q.id}_other`] || "").trim()) return otherMissing;
     }
   }
   return null;
@@ -73,23 +88,28 @@ export function SurveyForm({
   setText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
   const numbered = useMemo(() => survey.questions.map((q, i) => ({ q, n: i + 1 })), [survey]);
+  const lang = useLang();
+  const t = useT();
 
   return (
     <div className="flex flex-col gap-5">
-      {numbered.map(({ q, n }) => (
+      {numbered.map(({ q, n }) => {
+        const section = questionSection(q, lang);
+        return (
         <div key={q.id}>
-          {q.section && (
-            <div className="text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-md px-2.5 py-1.5 mb-2.5">{q.section}</div>
+          {section && (
+            <div className="text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-md px-2.5 py-1.5 mb-2.5">{section}</div>
           )}
           <p className="text-sm font-semibold text-slate-800 mb-2 leading-snug">
-            <span className="text-indigo-500">Q{n}.</span> {q.label}
+            <span className="text-indigo-500">Q{n}.</span> {questionLabel(q, lang)}
             {!q.optional && <span className="text-rose-400 ml-1">*</span>}
-            {q.optional && <span className="text-slate-300 text-xs font-normal ml-1">(선택)</span>}
-            {q.type === "multi" && <span className="text-indigo-500 text-xs font-semibold ml-1">(복수 선택 가능)</span>}
+            {q.optional && <span className="text-slate-300 text-xs font-normal ml-1">{t("(선택)", "(optional)")}</span>}
+            {q.type === "multi" && <span className="text-indigo-500 text-xs font-semibold ml-1">{t("(복수 선택 가능)", "(select all that apply)")}</span>}
           </p>
           <QuestionField q={q} single={single} setSingle={setSingle} multi={multi} setMulti={setMulti} text={text} setText={setText} />
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -105,6 +125,8 @@ function QuestionField({
   text: Record<string, string>;
   setText: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }) {
+  const lang = useLang();
+  const t = useT();
   const setT = (key: string, v: string) => setText((p) => ({ ...p, [key]: v }));
 
   if (q.type === "text") {
@@ -113,7 +135,7 @@ function QuestionField({
         value={text[q.id] || ""}
         onChange={(e) => setT(q.id, e.target.value)}
         rows={3}
-        placeholder="자유롭게 입력해 주세요"
+        placeholder={t("자유롭게 입력해 주세요", "Type your answer")}
         className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all resize-none"
       />
     );
@@ -137,10 +159,10 @@ function QuestionField({
             <div key={o}>
               <button type="button" onClick={() => toggle(o)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left text-sm transition-all ${checked ? "border-indigo-400 bg-indigo-50 text-indigo-800" : "border-slate-200 hover:border-slate-300 text-slate-700"}`}>
                 <span className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${checked ? "bg-indigo-600" : "border border-slate-300"}`}>{checked && <Check size={11} className="text-white" strokeWidth={3} />}</span>
-                {o}
+                {optionLabel(q, i, lang)}
               </button>
               {isOther && checked && (
-                <input value={text[`${q.id}_other`] || ""} onChange={(e) => setT(`${q.id}_other`, e.target.value)} placeholder="기타 내용을 입력해 주세요" className="mt-1.5 w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-indigo-400" />
+                <input value={text[`${q.id}_other`] || ""} onChange={(e) => setT(`${q.id}_other`, e.target.value)} placeholder={t("기타 내용을 입력해 주세요", "Please specify")} className="mt-1.5 w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-indigo-400" />
               )}
             </div>
           );
@@ -163,13 +185,13 @@ function QuestionField({
             <button type="button" onClick={() => pick(o)} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left text-sm transition-all ${active ? "border-indigo-400 bg-indigo-50 text-indigo-800" : "border-slate-200 hover:border-slate-300 text-slate-700"}`}>
               <span className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ${active ? "bg-indigo-600" : "border border-slate-300"}`}>{active && <span className="w-1.5 h-1.5 rounded-full bg-white" />}</span>
               {isScale && <span className="text-[10px] font-bold text-slate-400 w-4">{i + 1}</span>}
-              {o}
+              {optionLabel(q, i, lang)}
             </button>
             {isOther && active && (
-              <input value={text[`${q.id}_other`] || ""} onChange={(e) => setT(`${q.id}_other`, e.target.value)} placeholder="기타 내용을 입력해 주세요" className="mt-1.5 w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-indigo-400" />
+              <input value={text[`${q.id}_other`] || ""} onChange={(e) => setT(`${q.id}_other`, e.target.value)} placeholder={t("기타 내용을 입력해 주세요", "Please specify")} className="mt-1.5 w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:bg-white focus:border-indigo-400" />
             )}
             {showReason && (
-              <input value={text[`${q.id}_reason`] || ""} onChange={(e) => setT(`${q.id}_reason`, e.target.value)} placeholder={q.reasonLabel || "이유를 입력해 주세요"} className="mt-1.5 w-full px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm outline-none focus:bg-white focus:border-amber-400" />
+              <input value={text[`${q.id}_reason`] || ""} onChange={(e) => setT(`${q.id}_reason`, e.target.value)} placeholder={reasonLabel(q, lang) || t("이유를 입력해 주세요", "Please tell us why")} className="mt-1.5 w-full px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-sm outline-none focus:bg-white focus:border-amber-400" />
             )}
           </div>
         );

@@ -6,6 +6,7 @@ import {
   Boxes, UserCheck, CheckCircle2, XCircle, Filter, Link2,
   ShieldCheck, Users, BarChart3, Sparkles, Layers,
 } from "lucide-react";
+import { useLang, useT } from "@/lib/i18n";
 
 /**
  * 단계별 기술 카피 패널 — design 흐름의 각 단계 화면 우측에 노출.
@@ -97,6 +98,76 @@ const COPY: Record<number, StepCopy> = {
   },
 };
 
+/* 영문 화면용 — 단계 번호·구조는 COPY 와 같다. vs.plain 은 앞에 "일반 —" 머리말 없이 그대로 표시. */
+const COPY_EN: Record<number, StepCopy> = {
+  1: {
+    badges: ["Start here", "Quick input"],
+    headline: "New to this? One sentence is all it takes",
+    body: "Describe the product or service you want to study and what you'd like to learn, in your own words. If you have reference images or PDFs, upload them too. What you enter here carries through every later step, so you never have to explain it again.",
+    mechanism: "AI reads your text and files together and organizes them into a single study context. No expertise needed — just write the way you'd normally talk.",
+    evidence: ["No expertise needed", "Understands images and documents", "Enter once, use throughout"],
+    vs: { plain: "Typical chatbots: re-explain every time you ask", ours: "One input guides the whole process" },
+  },
+  2: {
+    badges: ["AI suggestions"],
+    headline: "AI figures out what to test first",
+    body: "Based on what you entered, AI suggests the key hypotheses to validate in the market. Even without research experience, you won't be stuck wondering what to ask. Just give it a moment.",
+    mechanism: "It lays out what to check across demand, target, value, and price, and links each hypothesis so the next step's survey measures it directly.",
+    evidence: ["Key hypotheses suggested automatically", "Organized from multiple angles", "Flows straight into the survey"],
+    vs: { plain: "Typical AI: just throws questions at you", ours: "Turns your idea into testable hypotheses" },
+  },
+  3: {
+    badges: ["Review it yourself", "You decide"],
+    headline: "Review, edit, and confirm the AI's suggestions",
+    body: "Use the suggested hypotheses as is, or edit and remove any you don't like. Only the hypotheses you confirm move on to the next step, so you always set the direction of the study.",
+    mechanism: "What you refine here becomes the basis for the questions and the analysis. You can go back and adjust it at any time.",
+    evidence: ["Edit or delete freely", "Only confirmed items proceed", "You set the direction"],
+    vs: { plain: "Typical AI: use whatever it outputs", ours: "Proceed only after you review and confirm" },
+  },
+  4: {
+    badges: ["Auto-generated questions"],
+    headline: "Confirmed hypotheses become survey questions",
+    body: "AI automatically writes easy-to-answer multiple-choice and scale questions that match your reviewed hypotheses. Already have a questionnaire? Upload it and convert it.",
+    mechanism: "Each hypothesis maps cleanly to the questions that measure it, and survey-writing best practices are applied automatically.",
+    evidence: ["Questions matched to hypotheses", "Easy-to-answer formats", "Convert existing questionnaires"],
+    vs: { plain: "Typical survey tools: start from a blank form", ours: "Automatic, hypothesis-driven design" },
+  },
+  5: {
+    badges: ["Automatic quality check"],
+    headline: "Biased or confusing questions are caught early",
+    body: "This is where you review the generated questions. Questions that could skew results — like leading questions or ones that ask two things at once — are flagged automatically and reworded. All you need to do is review the outcome.",
+    mechanism: "Questions are reviewed from a research-methodology standpoint, with cleaner wording suggested. Standards for good surveys are applied automatically.",
+    evidence: ["Automatic bias checks", "Wording refinement", "Proven survey standards"],
+    vs: { plain: "Typical surveys: quality is up to the author", ours: "Quality checks built in" },
+  },
+  6: {
+    badges: ["Final check before launch"],
+    headline: "See everything at a glance before you launch",
+    body: "Do a final check of your hypotheses, questions, and study settings (region and sample size) on one screen. Preview what you'll study and how, and launch when everything looks right.",
+    mechanism: "The design you confirm here is used as is, so you can rerun the study under the same conditions. The design document and summary are available as PDF previews.",
+    evidence: ["Full design preview", "Region and sample size check", "Rerun with the same settings"],
+    vs: { plain: "Typical AI: generates instantly, hard to undo", ours: "Review first, then run with confidence" },
+  },
+  7: {
+    badges: ["Korean national statistics", "Representativeness weighting"],
+    headline: "Not random — respondents who mirror the real population",
+    body: "This is where the study runs. Virtual respondents built from official Korean national statistics answer your survey. They're weighted so no single group dominates, giving you results closer to the real market.",
+    mechanism: "The respondent mix — age, gender, region, and more — is automatically matched to the real population distribution, including the traits of the region you selected. Your results will be ready shortly.",
+    evidence: ["Based on Korean national statistics", "Automatic representativeness weighting", "Reflects your selected region"],
+    vs: { plain: "Typical AI: random answers with no real persona", ours: "A representative sample matched to the population" },
+    notice: "This is an early, indicative diagnosis. It does not replace a real sample survey.",
+  },
+  8: {
+    badges: ["Free key summary", "Decision-focused"],
+    headline: "Not just numbers — we tell you what to do next",
+    body: "We analyze the responses and summarize key insights and recommended actions. Going beyond simple tallies, results are interpreted with proven analysis methods so you can act on them right away. The key summary is free.",
+    mechanism: "Results are interpreted through proven marketing lenses — demand forecasting, price sensitivity, and preference — and shown as a decision dashboard. Deeper analysis and raw data are available via the buttons on screen.",
+    evidence: ["Key insight summary", "Recommended actions", "Proven analysis methods"],
+    vs: { plain: "Typical tools: stop at charts", ours: "Guidance all the way to a decision" },
+    notice: "This is an early, indicative diagnosis. We recommend validating with a real sample before major decisions.",
+  },
+};
+
 /* ── 작은 칩/노드 ── */
 function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
   return accent ? (
@@ -127,6 +198,7 @@ function Arrow() {
 
 /* ── 단계별 개념 그림(아이콘 흐름) ── */
 function StepDiagram({ step }: { step: number }) {
+  const t = useT();
   const wrap = "rounded-xl border bg-white/70 px-3 py-3.5 flex items-center justify-center gap-2 flex-wrap";
   const wrapStyle = { borderColor: `${NAVY}1a` };
   switch (step) {
@@ -134,18 +206,18 @@ function StepDiagram({ step }: { step: number }) {
       return (
         <div className={wrap} style={wrapStyle}>
           <div className="flex flex-col gap-1.5">
-            <Node icon={Type} label="텍스트" />
-            <Node icon={ImageIcon} label="이미지" />
+            <Node icon={Type} label={t("텍스트", "Text")} />
+            <Node icon={ImageIcon} label={t("이미지", "Image")} />
             <Node icon={FileText} label="PDF" />
           </div>
           <Arrow />
-          <Node icon={Boxes} label="컨텍스트" />
+          <Node icon={Boxes} label={t("컨텍스트", "Context")} />
         </div>
       );
     case 2:
       return (
         <div className={wrap} style={wrapStyle}>
-          <Node icon={Boxes} label="컨텍스트" />
+          <Node icon={Boxes} label={t("컨텍스트", "Context")} />
           <Arrow />
           <div className="flex gap-1.5">
             {["H1", "H2", "H3"].map((h) => <Chip key={h} label={h} accent />)}
@@ -155,9 +227,9 @@ function StepDiagram({ step }: { step: number }) {
     case 3:
       return (
         <div className={wrap} style={wrapStyle}>
-          <Chip label="가설" accent />
+          <Chip label={t("가설", "Hypothesis")} accent />
           <Arrow />
-          <Node icon={UserCheck} label="사용자 검토" />
+          <Node icon={UserCheck} label={t("사용자 검토", "Your review")} />
           <Arrow />
           <CheckCircle2 size={18} className="text-emerald-500" />
         </div>
@@ -173,9 +245,9 @@ function StepDiagram({ step }: { step: number }) {
     case 5:
       return (
         <div className={wrap} style={wrapStyle}>
-          <Chip label="문항" />
+          <Chip label={t("문항", "Questions")} />
           <Arrow />
-          <Node icon={Filter} label="QA 게이트" />
+          <Node icon={Filter} label={t("QA 게이트", "QA gate")} />
           <Arrow />
           <div className="flex flex-col gap-1.5">
             <CheckCircle2 size={16} className="text-emerald-500" />
@@ -186,9 +258,9 @@ function StepDiagram({ step }: { step: number }) {
     case 6:
       return (
         <div className={wrap} style={wrapStyle}>
-          <Node icon={Layers} label="가설·문항·설정" />
+          <Node icon={Layers} label={t("가설·문항·설정", "Hypotheses · questions · settings")} />
           <Arrow />
-          <Node icon={ShieldCheck} label="확정 게이트" />
+          <Node icon={ShieldCheck} label={t("확정 게이트", "Approval gate")} />
           <Arrow />
           <CheckCircle2 size={18} className="text-emerald-500" />
         </div>
@@ -200,23 +272,23 @@ function StepDiagram({ step }: { step: number }) {
             <div className="flex items-end gap-0.5 h-7">
               {[10, 18, 14, 22, 12].map((h, i) => <span key={i} className="w-1.5 rounded-sm" style={{ height: h, backgroundColor: `${NAVY}99` }} />)}
             </div>
-            <span className="text-[9px] font-semibold" style={{ color: NAVY }}>실제 인구분포</span>
+            <span className="text-[9px] font-semibold" style={{ color: NAVY }}>{t("실제 인구분포", "Real population")}</span>
           </div>
           <Arrow />
-          <Node icon={Sparkles} label="대표성 보정" />
+          <Node icon={Sparkles} label={t("대표성 보정", "Weighting")} />
           <Arrow />
-          <Node icon={Users} label="가상인구 표본" />
+          <Node icon={Users} label={t("가상인구 표본", "Virtual sample")} />
         </div>
       );
     case 8:
     default:
       return (
         <div className={wrap} style={wrapStyle}>
-          <Node icon={BarChart3} label="응답 분포" />
+          <Node icon={BarChart3} label={t("응답 분포", "Responses")} />
           <Arrow />
-          <Chip label="검증된 분석" accent />
+          <Chip label={t("검증된 분석", "Proven analysis")} accent />
           <Arrow />
-          <Node icon={Layers} label="의사결정 대시보드" />
+          <Node icon={Layers} label={t("의사결정 대시보드", "Decision dashboard")} />
         </div>
       );
   }
@@ -242,7 +314,9 @@ function Collapsible({ title, defaultOpen, children }: { title: string; defaultO
 }
 
 export default function TechCopyCard({ step }: { step: number }) {
-  const c = COPY[step];
+  const lang = useLang();
+  const t = useT();
+  const c = (lang === "en" ? COPY_EN : COPY)[step];
   if (!c) return null;
   const full = step >= 7; // 7·8단계는 접이식 기본 펼침
 
@@ -266,25 +340,25 @@ export default function TechCopyCard({ step }: { step: number }) {
         <StepDiagram step={step} />
 
         {/* 어떻게 작동하나요? — 접이식 */}
-        <Collapsible title="어떻게 작동하나요?" defaultOpen={full}>
+        <Collapsible title={t("어떻게 작동하나요?", "How does it work?")} defaultOpen={full}>
           <p className="text-[12px] leading-relaxed" style={{ color: `${NAVY}b3` }}>{c.mechanism}</p>
         </Collapsible>
 
         {/* 근거 — 접이식 */}
-        <Collapsible title="근거" defaultOpen={full}>
+        <Collapsible title={t("근거", "Key points")} defaultOpen={full}>
           <div className="flex flex-wrap gap-1.5">
             {c.evidence.map((e) => <Chip key={e} label={e} />)}
           </div>
         </Collapsible>
 
         {/* vs 비교 — 접이식 */}
-        <Collapsible title="vs 비교" defaultOpen={full}>
+        <Collapsible title={t("vs 비교", "How we compare")} defaultOpen={full}>
           <div className="flex flex-col gap-1.5 text-[12px]">
             <div className="rounded-lg bg-white/70 border px-3 py-2" style={{ borderColor: `${NAVY}14`, color: `${NAVY}99` }}>
-              일반 — {c.vs.plain}
+              {t(<>일반 — {c.vs.plain}</>, <>{c.vs.plain}</>)}
             </div>
             <div className="rounded-lg px-3 py-2 text-white font-medium" style={{ backgroundColor: NAVY }}>
-              SocialTwin — {c.vs.ours}
+              {t("SocialTwin", "Socialtwin")} — {c.vs.ours}
             </div>
           </div>
         </Collapsible>

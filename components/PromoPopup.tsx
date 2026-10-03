@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { X } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 const HIDE_DATE_KEY = "vpg.promo.hideDate"; // localStorage 값: "YYYY-MM-DD" (이 날짜엔 다시 안 띄움)
 const SESSION_KEY = "vpg.promo.dismissed";  // sessionStorage 값: 닫으면 그 세션 동안 안 띄움
@@ -22,6 +23,7 @@ function todayStr() {
 }
 
 export default function PromoPopup() {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function PromoPopup() {
       onClick={close}
       role="dialog"
       aria-modal="true"
-      aria-label="프로모션 안내"
+      aria-label={t("프로모션 안내", "Promotion")}
     >
       <div
         className="relative w-full max-w-[400px]"
@@ -72,7 +74,7 @@ export default function PromoPopup() {
         <button
           type="button"
           onClick={close}
-          aria-label="팝업 닫기"
+          aria-label={t("팝업 닫기", "Close popup")}
           className="absolute -top-3 -right-3 z-10 inline-flex items-center justify-center w-9 h-9 rounded-full bg-white text-slate-700 shadow-lg ring-1 ring-black/5 hover:bg-slate-100 transition"
         >
           <X size={18} />
@@ -83,7 +85,10 @@ export default function PromoPopup() {
           <Link href={PROMO_HREF} onClick={close} className="block">
             <Image
               src="/promo/socialtwin-ad.png"
-              alt="SocialTwin — AI가 설문을 설계하고 가상인구가 답하는 AI 고객조사. 후기 작성 시 99,000원 상당 상세보고서 무료 제공 (~8.31)"
+              alt={t(
+                "SocialTwin — AI가 설문을 설계하고 가상인구가 답하는 AI 고객조사. 후기 작성 시 99,000원 상당 상세보고서 무료 제공 (~8.31)",
+                "Socialtwin — AI customer research where AI designs the survey and a virtual population answers. Write a review and get a detailed report worth ₩99,000 free (through Aug 31)",
+              )}
               width={2160}
               height={2700}
               priority
@@ -99,14 +104,14 @@ export default function PromoPopup() {
               onClick={hideToday}
               className="text-slate-400 hover:text-slate-600 transition"
             >
-              오늘 하루 보지 않기
+              {t("오늘 하루 보지 않기", "Don't show again today")}
             </button>
             <button
               type="button"
               onClick={close}
               className="font-semibold text-slate-600 hover:text-slate-900 transition"
             >
-              닫기
+              {t("닫기", "Close")}
             </button>
           </div>
         </div>

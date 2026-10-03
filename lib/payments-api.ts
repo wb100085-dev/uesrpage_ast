@@ -2,6 +2,7 @@
 // 백엔드(/api/payments/*)를 Bearer 토큰과 함께 호출한다. raw fetch 대신 이 헬퍼를 쓸 것
 // (lib/survey-api.ts의 apiFetch와 동일 패턴 — 로그인 사용자의 결제를 user_email에 귀속).
 import { getAccessToken } from "./auth-api";
+import { getLang } from "./i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -27,7 +28,9 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     } catch {
       detail = await res.text();
     }
-    throw new Error(detail || `결제 API 오류 ${res.status}`);
+    throw new Error(
+      detail || (getLang() === "en" ? `Payment API error ${res.status}` : `결제 API 오류 ${res.status}`),
+    );
   }
   return res.json() as Promise<T>;
 }

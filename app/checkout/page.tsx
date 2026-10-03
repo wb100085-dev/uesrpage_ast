@@ -11,6 +11,7 @@ import { ArrowLeft, ShieldCheck, CreditCard, Landmark, Wallet, Loader2 } from "l
 import { loadTossPayments, ANONYMOUS } from "@tosspayments/tosspayments-sdk";
 import { createOrder, type CreateOrderResponse } from "@/lib/payments-api";
 import PaymentPendingDialog, { canOpenCheckout } from "@/components/PaymentPendingDialog";
+import { getLang, useLang, useT } from "@/lib/i18n";
 
 // 표시용 — 금액은 백엔드 PRODUCTS가 최종 확정(여기 값은 안내용).
 const PRODUCT = {
@@ -27,17 +28,34 @@ const PRODUCT = {
   ],
 };
 
+// 영어 화면 표시용 (key·금액은 위 PRODUCT 와 동일)
+const PRODUCT_EN = {
+  name: "Detailed report",
+  desc: "In-depth analysis report for your AI virtual panel survey",
+  features: [
+    "Ask the virtual panel follow-up questions",
+    "Virtual panel demographics",
+    "Response distribution by question",
+    "In-depth analysis and implications report",
+    "Raw data included",
+  ],
+};
+
 // 간편결제(토스페이·카카오페이 등)는 별도 method가 아니라 카드 결제창 안에서 선택됨.
 const METHODS = [
-  { key: "CARD", label: "카드·간편결제", icon: CreditCard },
-  { key: "TRANSFER", label: "계좌이체", icon: Landmark },
-  { key: "VIRTUAL_ACCOUNT", label: "가상계좌", icon: Wallet },
+  { key: "CARD", label: "카드·간편결제", labelEn: "Card / easy pay", icon: CreditCard },
+  { key: "TRANSFER", label: "계좌이체", labelEn: "Bank transfer", icon: Landmark },
+  { key: "VIRTUAL_ACCOUNT", label: "가상계좌", labelEn: "Virtual account", icon: Wallet },
 ] as const;
 type MethodKey = (typeof METHODS)[number]["key"];
 
-const won = (n: number) => n.toLocaleString("ko-KR") + "원";
+const won = (n: number, lang: "ko" | "en") =>
+  lang === "en" ? "₩" + n.toLocaleString("en-US") : n.toLocaleString("ko-KR") + "원";
 
 export default function CheckoutPage() {
+  const t = useT();
+  const lang = useLang();
+  const product = t(PRODUCT, { ...PRODUCT, ...PRODUCT_EN });
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +79,13 @@ export default function CheckoutPage() {
         paymentRef.current = toss.payment({ customerKey: ANONYMOUS });
         setOrder(o);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "결제 준비 중 오류가 발생했습니다.");
+        setError(
+          e instanceof Error
+            ? e.message
+            : getLang() === "en"
+              ? "Something went wrong while preparing the payment."
+              : "결제 준비 중 오류가 발생했습니다.",
+        );
       } finally {
         setLoading(false);
       }
@@ -85,7 +109,7 @@ export default function CheckoutPage() {
       });
       // 성공 시 successUrl로 리다이렉트되므로 여기 이후 코드는 실행되지 않음
     } catch (e) {
-      setError(e instanceof Error ? e.message : "결제가 취소되었습니다.");
+      setError(e instanceof Error ? e.message : t("결제가 취소되었습니다.", "The payment was canceled."));
       setPaying(false);
     }
   }
@@ -98,12 +122,21 @@ export default function CheckoutPage() {
         {pendingOpen && <PaymentPendingDialog onClose={() => setPendingOpen(false)} />}
         <div className="max-w-md mx-auto px-6 py-24 text-center">
           <p className="text-sm text-slate-500 leading-relaxed break-keep">
-            지금은 카드 결제 및 계좌이체만 가능합니다.
-            <br />
-            회사 전화번호(010-9969-0406) 또는 이메일(hys@omninode.kr)로 연락주시면 처리해드리겠습니다.
+            {t(
+              <>
+                지금은 카드 결제 및 계좌이체만 가능합니다.
+                <br />
+                회사 전화번호(010-9969-0406) 또는 이메일(hys@omninode.kr)로 연락주시면 처리해드리겠습니다.
+              </>,
+              <>
+                Only card payments and bank transfers are available right now.
+                <br />
+                Contact us by phone (010-9969-0406) or email (hys@omninode.kr) and we&apos;ll take care of it for you.
+              </>,
+            )}
           </p>
           <Link href="/" className="mt-6 inline-block text-sm text-indigo-600 hover:underline">
-            ← 홈으로
+            {t("← 홈으로", "← Back to home")}
           </Link>
         </div>
       </div>
@@ -117,26 +150,29 @@ export default function CheckoutPage() {
           href="/"
           className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-200 mb-6"
         >
-          <ArrowLeft size={16} /> 홈으로
+          <ArrowLeft size={16} /> {t("홈으로", "Back to home")}
         </Link>
 
         <div className="bg-white rounded-3xl shadow-2xl shadow-black/30 overflow-hidden">
           <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
           <div className="px-6 sm:px-8 py-7 sm:py-8">
-            <h1 className="text-xl font-bold text-slate-900">서비스 신청 · 결제</h1>
+            <h1 className="text-xl font-bold text-slate-900">{t("서비스 신청 · 결제", "Order & payment")}</h1>
             <p className="mt-1 text-sm text-slate-500">
-              결제는 ㈜토스페이먼츠 결제창을 통해 안전하게 처리됩니다.
+              {t(
+                "결제는 ㈜토스페이먼츠 결제창을 통해 안전하게 처리됩니다.",
+                "Payments are processed securely through the Toss Payments checkout window.",
+              )}
             </p>
 
             {/* 상품 안내 */}
             <div className="mt-6 rounded-2xl border border-slate-200 p-4">
               <div className="flex items-baseline justify-between">
-                <span className="font-semibold text-slate-900">{PRODUCT.name}</span>
-                <span className="text-indigo-600 font-bold">{won(amount)}</span>
+                <span className="font-semibold text-slate-900">{product.name}</span>
+                <span className="text-indigo-600 font-bold">{won(amount, lang)}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{PRODUCT.desc}</p>
+              <p className="mt-1 text-xs text-slate-500">{product.desc}</p>
               <ul className="mt-2 space-y-0.5">
-                {PRODUCT.features.map((f) => (
+                {product.features.map((f) => (
                   <li key={f} className="text-xs text-slate-600">
                     · {f}
                   </li>
@@ -146,11 +182,11 @@ export default function CheckoutPage() {
 
             {/* 결제수단 선택 */}
             <div className="mt-5">
-              <p className="text-sm font-semibold text-slate-800 mb-2">결제 수단</p>
+              <p className="text-sm font-semibold text-slate-800 mb-2">{t("결제 수단", "Payment method")}</p>
               {loading ? (
                 <div className="flex items-center justify-center gap-2 py-8 text-slate-400">
                   <Loader2 className="animate-spin" size={22} />
-                  <span className="text-sm">결제 준비 중…</span>
+                  <span className="text-sm">{t("결제 준비 중…", "Preparing payment…")}</span>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -169,7 +205,7 @@ export default function CheckoutPage() {
                         }`}
                       >
                         <Icon size={18} className={active ? "text-indigo-600" : "text-slate-400"} />
-                        <span className="text-sm font-medium text-slate-800">{m.label}</span>
+                        <span className="text-sm font-medium text-slate-800">{t(m.label, m.labelEn)}</span>
                         <span
                           className={`ml-auto w-4 h-4 rounded-full border-2 ${
                             active ? "border-indigo-600 bg-indigo-600" : "border-slate-300"
@@ -195,19 +231,34 @@ export default function CheckoutPage() {
                 disabled={loading || paying}
                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3.5 transition disabled:opacity-60"
               >
-                {paying ? "결제창 여는 중…" : `${won(amount)} 결제하기`}
+                {paying
+                  ? t("결제창 여는 중…", "Opening checkout…")
+                  : t(`${won(amount, lang)} 결제하기`, `Pay ${won(amount, lang)}`)}
               </button>
             </div>
 
             <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-slate-400">
-              <ShieldCheck size={14} /> 결제 정보는 토스페이먼츠가 암호화하여 처리하며 당사 서버에 저장되지 않습니다.
+              <ShieldCheck size={14} />{" "}
+              {t(
+                "결제 정보는 토스페이먼츠가 암호화하여 처리하며 당사 서버에 저장되지 않습니다.",
+                "Payment details are encrypted and processed by Toss Payments and are never stored on our servers.",
+              )}
             </p>
           </div>
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500">
-          결제 진행 시 <Link href="/terms" className="underline">이용약관</Link> 및{" "}
-          <Link href="/refund" className="underline">결제·환불 정책</Link>에 동의하게 됩니다.
+          {t(
+            <>
+              결제 진행 시 <Link href="/terms" className="underline">이용약관</Link> 및{" "}
+              <Link href="/refund" className="underline">결제·환불 정책</Link>에 동의하게 됩니다.
+            </>,
+            <>
+              By proceeding with payment, you agree to the{" "}
+              <Link href="/terms" className="underline">Terms of Service</Link> and{" "}
+              <Link href="/refund" className="underline">Payment &amp; Refund Policy</Link>.
+            </>,
+          )}
         </p>
       </div>
     </div>

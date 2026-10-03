@@ -13,6 +13,8 @@ import PanelInterview from "@/components/PanelInterview";
 import PaidLockNotice from "@/components/PaidLockNotice";
 import { trackEvent } from "@/lib/analytics";
 import { getReportAccessJobs } from "@/lib/payments-api";
+import { useLang, useT } from "@/lib/i18n";
+import { useLabel } from "@/lib/i18n-labels";
 import {
   getSurveyResults,
   startDetail,
@@ -24,6 +26,9 @@ import {
   type SurveyResult,
   type SurveyReport,
 } from "@/lib/survey-api";
+
+/** 백엔드 에러는 원문 문자열 그대로, 프론트 안내는 [한, 영] 쌍 — 렌더 시 t() 로 고른다 */
+type Msg = string | readonly [ko: string, en: string];
 
 // 상세분석 보고서에 실제 내용이 있는지 — 없으면 자동 생성 트리거 대상.
 function hasReportContent(r?: SurveyReport | null): boolean {
@@ -41,12 +46,16 @@ export default function ResultsPage() {
 function ResultsPageInner() {
   const params = useParams();
   const jobId = params.id as string;
+  const lang = useLang();
+  const t = useT();
+  const L = useLabel();
+  const tm = (m: Msg) => (typeof m === "string" ? m : t(m[0], m[1]));
 
   const [data, setData] = useState<{ results: SurveyResult[]; report: SurveyReport; n_respondents: number; sido: string } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Msg | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<Msg | null>(null);
   // 상세분석(상세보고서) 생성 상태 — 결제 후 결과 진입 시 자동 트리거·폴링.
   const [detailStatus, setDetailStatus] = useState<"idle" | "running" | "done" | "error">("idle");
 
@@ -57,7 +66,7 @@ function ResultsPageInner() {
   const [messages, setMessages] = useState<{ role: "user" | "panel"; text: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<Msg | null>(null);
   // 전체 분석 챗도 유료 전용이다(서버 가드와 동일 기준). 로드 시 한 번 확인해
   // 무료 이용자에게는 입력창 대신 안내를 띄운다 — 질문을 다 쓴 뒤 403 을 만나지 않도록.
   const [chatLocked, setChatLocked] = useState(false);
@@ -126,10 +135,14 @@ function ResultsPageInner() {
             if (!cancelled) pollDetail();
           }
         } else {
-          setError(res.status === "error" ? "설문 실행 중 오류가 발생했습니다." : "결과를 불러오는 중입니다...");
+          setError(
+            res.status === "error"
+              ? ["설문 실행 중 오류가 발생했습니다.", "An error occurred while running the survey."]
+              : ["결과를 불러오는 중입니다...", "Results are still being prepared..."],
+          );
         }
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "결과를 불러올 수 없습니다.");
+        if (!cancelled) setError(e instanceof Error ? e.message : ["결과를 불러올 수 없습니다.", "Couldn't load the results."]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -147,7 +160,7 @@ function ResultsPageInner() {
     try {
       await fn();
     } catch (e) {
-      setDownloadError(e instanceof Error ? e.message : "다운로드에 실패했습니다.");
+      setDownloadError(e instanceof Error ? e.message : ["다운로드에 실패했습니다.", "Download failed."]);
     } finally {
       setDownloading(null);
     }
@@ -164,8 +177,8 @@ function ResultsPageInner() {
       const { answer } = await askPanel(jobId, q);
       setMessages((m) => [...m, { role: "panel", text: answer }]);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "답변을 받지 못했습니다.";
-      if (/^API 오류 403\b/.test(msg)) {
+      const msg: Msg = e instanceof Error ? e.message : ["답변을 받지 못했습니다.", "Couldn't get an answer."];
+      if (typeof msg === "string" && /^(API 오류|API error) 403\b/.test(msg)) {
         setChatLocked(true);
         setMessages((m) => m.slice(0, -1)); // 보낸 질문 되돌리기
       } else {
@@ -183,7 +196,7 @@ function ResultsPageInner() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="w-10 h-10 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-500 text-sm">결과 불러오는 중...</p>
+            <p className="text-slate-500 text-sm">{t("결과 불러오는 중...", "Loading results...")}</p>
           </div>
         </div>
       </div>
@@ -196,15 +209,15 @@ function ResultsPageInner() {
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center max-w-sm">
-            <p className="text-red-500 text-sm mb-4">{error ?? "결과를 불러올 수 없습니다."}</p>
-            <Link href="/design" className="text-indigo-600 text-sm hover:underline">← 조사 설계로 돌아가기</Link>
+            <p className="text-red-500 text-sm mb-4">{error != null ? tm(error) : t("결과를 불러올 수 없습니다.", "Couldn't load the results.")}</p>
+            <Link href="/design" className="text-indigo-600 text-sm hover:underline">{t("← 조사 설계로 돌아가기", "← Back to study design")}</Link>
           </div>
         </div>
       </div>
     );
   }
 
-  const today = new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(".", "");
+  const today = new Date().toLocaleDateString(lang === "en" ? "en-US" : "ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
   const insightLines = data.report.상세분석
     ? data.report.상세분석.split("\n").filter((l) => l.trim()).slice(0, 4)
     : [];
@@ -219,23 +232,23 @@ function ResultsPageInner() {
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-8 animate-fade-up">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
-              <Link href="/design" className="hover:text-slate-600 transition-colors">조사 목록</Link>
+              <Link href="/design" className="hover:text-slate-600 transition-colors">{t("조사 목록", "Studies")}</Link>
               <ChevronRight size={12} />
-              <span className="text-slate-600">시장성 조사 결과</span>
+              <span className="text-slate-600">{t("시장성 조사 결과", "Market research results")}</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">
-              시장성 조사 결과
+              {t("시장성 조사 결과", "Market research results")}
             </h1>
             <div className="flex items-center gap-2.5 text-xs text-slate-400">
               <span>{today}</span>
               <span>·</span>
-              <span>설문 {data.results.length}개</span>
+              <span>{t(`설문 ${data.results.length}개`, `${data.results.length} questions`)}</span>
               <span>·</span>
-              <span>응답 {data.n_respondents}명</span>
+              <span>{t(`응답 ${data.n_respondents}명`, `${data.n_respondents} respondents`)}</span>
               <span>·</span>
               <span className="flex items-center gap-1 text-emerald-500 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                완료
+                {t("완료", "Complete")}
               </span>
             </div>
           </div>
@@ -244,16 +257,19 @@ function ResultsPageInner() {
         {/* 다운로드 */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-6 animate-fade-up-2">
           <h3 className="text-sm font-semibold text-slate-800 mb-1 flex items-center gap-2">
-            <Download size={15} className="text-indigo-500" /> 다운로드
+            <Download size={15} className="text-indigo-500" /> {t("다운로드", "Downloads")}
           </h3>
           <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
-            상세보고서는 초안 생성 → 검토 → 수정·보완 과정을 거쳐 완성되므로 다소 시간이 걸릴 수 있습니다 (약 2~4분).
+            {t(
+              "상세보고서는 초안 생성 → 검토 → 수정·보완 과정을 거쳐 완성되므로 다소 시간이 걸릴 수 있습니다 (약 2~4분).",
+              "The detailed report goes through drafting → review → revision, so it may take a little while (about 2–4 minutes).",
+            )}
           </p>
           <div className="grid sm:grid-cols-3 gap-3">
             {[
-              { kind: "design", label: "가설 및 설문 문항", sub: "PDF", fn: () => downloadDesignPdf(jobId) },
-              { kind: "raw", label: "가상인구 Raw Data", sub: "CSV", fn: () => downloadRawCsv(jobId) },
-              { kind: "report", label: "상세보고서", sub: "PDF", fn: () => { trackEvent("상세보고서_다운로드", { 경로: "결과페이지" }); return downloadReportPdf(jobId); } },
+              { kind: "design", label: t("가설 및 설문 문항", "Hypotheses & survey questions"), sub: "PDF", fn: () => downloadDesignPdf(jobId) },
+              { kind: "raw", label: t("가상인구 Raw Data", "Virtual population raw data"), sub: "CSV", fn: () => downloadRawCsv(jobId) },
+              { kind: "report", label: t("상세보고서", "Detailed report"), sub: "PDF", fn: () => { trackEvent("상세보고서_다운로드", { 경로: "결과페이지" }); return downloadReportPdf(jobId); } },
             ].map((d) => {
               // 상세보고서는 상세분석 생성이 끝나야 다운로드 가능
               const gated = d.kind === "report" && detailStatus !== "done";
@@ -268,7 +284,7 @@ function ResultsPageInner() {
                   <Download size={16} className="text-indigo-500 shrink-0" />
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-slate-800 truncate">
-                      {downloading === d.kind ? "준비 중…" : generating ? "상세보고서 생성 중…" : d.label}
+                      {downloading === d.kind ? t("준비 중…", "Preparing…") : generating ? t("상세보고서 생성 중…", "Generating detailed report…") : d.label}
                     </span>
                     <span className="block text-[11px] text-slate-400">{d.sub}</span>
                   </span>
@@ -278,26 +294,32 @@ function ResultsPageInner() {
           </div>
           {detailStatus === "running" && (
             <p className="mt-2 text-xs text-indigo-500">
-              상세분석 보고서를 작성하고 있습니다. 초안 생성과 검토·수정 과정을 거쳐 2~4분 정도 소요되며, 완료되면 상세보고서를 내려받을 수 있습니다.
+              {t(
+                "상세분석 보고서를 작성하고 있습니다. 초안 생성과 검토·수정 과정을 거쳐 2~4분 정도 소요되며, 완료되면 상세보고서를 내려받을 수 있습니다.",
+                "Writing the detailed analysis report. Drafting, review, and revision take about 2–4 minutes; you can download the detailed report once it's ready.",
+              )}
             </p>
           )}
           {detailStatus === "error" && (
             <p className="mt-2 text-xs text-red-600">
-              상세분석 보고서 생성에 실패했습니다. 잠시 후 다시 시도하거나 새로고침해 주세요.
+              {t(
+                "상세분석 보고서 생성에 실패했습니다. 잠시 후 다시 시도하거나 새로고침해 주세요.",
+                "Failed to generate the detailed analysis report. Please try again later or refresh the page.",
+              )}
             </p>
           )}
-          {downloadError && <p className="mt-2 text-xs text-red-600">{downloadError}</p>}
+          {downloadError && <p className="mt-2 text-xs text-red-600">{tm(downloadError)}</p>}
         </div>
 
         {/* KPI */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 animate-fade-up-2">
           {[
-            { icon: <Users size={18} className="text-indigo-500" />, val: `${data.n_respondents}명`, label: "총 응답자", bg: "bg-indigo-50" },
-            { icon: <Target size={18} className="text-emerald-500" />, val: `${data.results.length}개`, label: "설문 문항", bg: "bg-emerald-50" },
-            { icon: <FileText size={18} className="text-violet-500" />, val: data.sido || "전국", label: "조사 지역", bg: "bg-violet-50" },
-            { icon: <Sparkles size={18} className="text-amber-500" />, val: "AI 분석", label: "보고서 포함", bg: "bg-amber-50" },
+            { key: "n", icon: <Users size={18} className="text-indigo-500" />, val: t(`${data.n_respondents}명`, `${data.n_respondents}`), label: t("총 응답자", "Total respondents"), bg: "bg-indigo-50" },
+            { key: "q", icon: <Target size={18} className="text-emerald-500" />, val: t(`${data.results.length}개`, `${data.results.length}`), label: t("설문 문항", "Survey questions"), bg: "bg-emerald-50" },
+            { key: "sido", icon: <FileText size={18} className="text-violet-500" />, val: L(data.sido || "전국"), label: t("조사 지역", "Region"), bg: "bg-violet-50" },
+            { key: "ai", icon: <Sparkles size={18} className="text-amber-500" />, val: t("AI 분석", "AI analysis"), label: t("보고서 포함", "Included in report"), bg: "bg-amber-50" },
           ].map((k) => (
-            <div key={k.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow">
+            <div key={k.key} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow">
               <div className={`w-9 h-9 rounded-xl ${k.bg} flex items-center justify-center mb-3`}>
                 {k.icon}
               </div>
@@ -309,7 +331,7 @@ function ResultsPageInner() {
 
         {/* 문항별 결과 제목 — 전체 폭(2분할 위) */}
         <h2 className="flex items-center gap-1.5 text-sm font-semibold text-slate-800 mb-4 animate-fade-up-2">
-          <BarChart2 size={15} className="text-indigo-500" /> 문항별 결과
+          <BarChart2 size={15} className="text-indigo-500" /> {t("문항별 결과", "Results by question")}
         </h2>
 
         {/* 본문 2분할 — 좌: 문항 카드 / 우: 가상인구 패널 질문 (분할비율 동일) */}
@@ -328,7 +350,7 @@ function ResultsPageInner() {
                   <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
                     <Sparkles size={15} className="text-indigo-300" />
                   </div>
-                  <span className="text-sm font-semibold text-white">AI 핵심 인사이트</span>
+                  <span className="text-sm font-semibold text-white">{t("AI 핵심 인사이트", "AI key insights")}</span>
                 </div>
                 <div className="space-y-3">
                   {insightLines.map((line, i) => (
@@ -349,29 +371,29 @@ function ResultsPageInner() {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col min-h-[32rem] lg:h-[calc(100vh-7rem)]">
               <div className="px-5 pt-4 pb-0 border-b border-slate-100">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                  <MessageCircle size={15} className="text-indigo-500" /> 가상인구 패널에게 질문
+                  <MessageCircle size={15} className="text-indigo-500" /> {t("가상인구 패널에게 질문", "Ask the virtual panel")}
                 </h3>
                 <p className="mt-0.5 mb-3 text-xs text-slate-400">
                   {panelTab === "analysis"
-                    ? "설문 결과 전체를 기준으로 궁금한 점을 물어볼 수 있습니다."
-                    : "설문에 참여한 응답자 본인에게 인터뷰하듯 직접 물어볼 수 있습니다."}
+                    ? t("설문 결과 전체를 기준으로 궁금한 점을 물어볼 수 있습니다.", "Ask anything about the overall survey results.")
+                    : t("설문에 참여한 응답자 본인에게 인터뷰하듯 직접 물어볼 수 있습니다.", "Ask individual respondents directly, as if interviewing them.")}
                 </p>
                 {/* 탭 — 집계 요약 답변 / 개인 응답자 1인칭 답변 */}
                 <div className="flex gap-4 -mb-px">
                   {([
-                    { key: "analysis", label: "전체 분석" },
-                    { key: "interview", label: "심층 인터뷰" },
-                  ] as const).map((t) => (
+                    { key: "analysis", label: t("전체 분석", "Overall analysis") },
+                    { key: "interview", label: t("심층 인터뷰", "In-depth interview") },
+                  ] as const).map((tab) => (
                     <button
-                      key={t.key}
-                      onClick={() => setPanelTab(t.key)}
+                      key={tab.key}
+                      onClick={() => setPanelTab(tab.key)}
                       className={`pb-2 text-xs font-medium border-b-2 transition ${
-                        panelTab === t.key
+                        panelTab === tab.key
                           ? "border-indigo-500 text-indigo-600"
                           : "border-transparent text-slate-400 hover:text-slate-600"
                       }`}
                     >
-                      {t.label}
+                      {tab.label}
                     </button>
                   ))}
                 </div>
@@ -381,8 +403,11 @@ function ResultsPageInner() {
                 <PanelInterview jobId={jobId} />
               ) : chatLocked ? (
                 <PaidLockNotice
-                  title="설문 결과 분석 질문은 유료 이용자 전용입니다"
-                  desc="결제 또는 30일권을 이용하시면 이 조사 결과에 대해 자유롭게 질문할 수 있습니다."
+                  title={t("설문 결과 분석 질문은 유료 이용자 전용입니다", "Questions about survey results are for paid users only")}
+                  desc={t(
+                    "결제 또는 30일권을 이용하시면 이 조사 결과에 대해 자유롭게 질문할 수 있습니다.",
+                    "Make a payment or get a 30-day pass to ask anything about this study's results.",
+                  )}
                 />
               ) : (
               <>
@@ -392,9 +417,12 @@ function ResultsPageInner() {
                 {messages.length === 0 && (
                   <div className="text-center text-sm text-slate-400 py-10">
                     <MessageCircle size={28} className="mx-auto mb-3 text-slate-300" />
-                    궁금한 점을 물어보세요.
+                    {t("궁금한 점을 물어보세요.", "Ask a question.")}
                     <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                      {["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"].map((ex) => (
+                      {t(
+                        ["이 제품을 선택한 이유는?", "어떤 점이 가장 마음에 드나요?", "구매를 망설이게 하는 점은?"],
+                        ["Why did you choose this product?", "What do you like most about it?", "What makes you hesitate to buy?"],
+                      ).map((ex) => (
                         <button
                           key={ex}
                           onClick={() => setChatInput(ex)}
@@ -421,11 +449,11 @@ function ResultsPageInner() {
                   <div className="flex justify-start">
                     <div className="bg-slate-100 text-slate-400 rounded-2xl px-4 py-2.5 text-sm flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-slate-300 border-t-indigo-500 rounded-full animate-spin" />
-                      답변 생성 중…
+                      {t("답변 생성 중…", "Generating answer…")}
                     </div>
                   </div>
                 )}
-                {chatError && <p className="text-sm text-red-600">{chatError}</p>}
+                {chatError && <p className="text-sm text-red-600">{tm(chatError)}</p>}
               </div>
 
               {/* 입력 */}
@@ -447,14 +475,17 @@ function ResultsPageInner() {
                       }
                     }}
                     rows={1}
-                    placeholder="가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
+                    placeholder={t(
+                      "가상패널에게 질문을 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)",
+                      "Ask the virtual panel a question (Enter to send · Shift+Enter for a new line)",
+                    )}
                     className="flex-1 resize-none rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-400 max-h-32"
                   />
                   <button
                     type="submit"
                     disabled={chatSending || !chatInput.trim()}
                     className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition disabled:opacity-50"
-                    aria-label="전송"
+                    aria-label={t("전송", "Send")}
                   >
                     <Send size={16} />
                   </button>

@@ -76,6 +76,17 @@ route 페이지 파일은 의도적으로 크고 자기완결적입니다 — �
 
 Tailwind v4 + `@tailwindcss/postcss` 플러그인. `app/globals.css`에 사이트 전반에서 쓰는 커스텀 유틸이 정의되어 있습니다: `.glass`, `.glass-light`, `.mesh-bg`, `.noise`, `.btn-primary`, `.btn-ghost`, `.text-shimmer`, 애니메이션 keyframes(`fade-up`, `pulse-ring`, `float`, `shimmer`), 그리고 `components/Reveal.tsx`(IntersectionObserver 기반)가 사용하는 `.reveal` / `.reveal.visible` 쌍. Pretendard는 같은 파일에서 CDN import로 로드됩니다.
 
-### UI 언어
+### UI 언어 — 한/영 전환
 
-모든 사용자 노출 문구는 한국어입니다. Django 백엔드의 영어 에러 응답은 `lib/auth-api.ts`의 `translateAuthError`를 거쳐 한국어로 변환된 후 표시됩니다. 새로운 에러 케이스를 노출할 때는 이 함수를 확장하세요.
+기본은 한국어, 내비의 **Korean / English** 버튼(`components/LangToggle.tsx`)으로 영어 전환. 언어 상태는 `localStorage["vpg.lang"]` 하나뿐이고 `lib/i18n.ts`가 소유한다.
+
+- **새 문구는 반드시 `const t = useT(); t("한국어", "English")` 쌍으로** 쓴다(키 사전 없음 — 페이지 자기완결 관례). 모듈 상수는 `labelEn`·`descEn` 같은 영문 필드를 옆에 둔다. React 밖에서는 `getLang()`.
+- **분류 라벨은 값과 표시를 분리**: 시도·성별·연령대·문항 유형(`객관식` 등)·가설 판정(`채택/기각/혼합`)은 백엔드와 문자열 매칭하는 **값이므로 한국어 그대로 보내고**, 화면에서만 `useLabel()`(`lib/i18n-labels.ts`)로 영문 표시. 표에 없는 시군구는 `lib/romanize.ts`로 로마자(성남시 → Seongnam-si), 가상인구 이름은 `romanizeName`(김민준 → Kim Minjun).
+- **AI 생성 결과의 언어는 백엔드가 정한다**: `lib/survey-api.ts`가 가설·문항 생성, 조사 실행, 상세분석, 챗, 인터뷰 요청에 `lang`을 실어 보내고, 백엔드(`backend/utils/lang.py`)가 프롬프트에 영문 출력 지시를 붙인다. 조사 언어는 실행 시점에 잡에 박혀 상세보고서·PDF까지 따라간다 — 한국어로 만든 조사는 화면을 영어로 바꿔도 결과 본문이 한국어다(정상).
+- **영문 랜딩은 번역본이 아니다**: `app/page.tsx`가 `LangSwitch`로 한국어 랜딩과 `components/LandingEn.tsx`("한국 진출 전 시장조사" 포지셔닝)를 갈아 끼운다. 한국어 랜딩 문구를 바꿔도 영문 랜딩은 따로 손봐야 한다.
+- **서버 렌더는 항상 한국어**다. 영어 사용자에게 한국어가 비치지 않도록 `app/layout.tsx` 인라인 스크립트가 hydration 전까지 본문을 가리고(`html.i18n-pending`) `components/LangBoot.tsx`가 벗긴다. 탭 제목(metadata)도 LangBoot가 영문으로 바꿔 끼운다 — 새 페이지에 metadata title을 추가하면 LangBoot의 `TITLE_EN`에도 넣을 것.
+- `?lang=en` / `?lang=ko` 쿼리로 들어오면 그 언어로 고정된다(해외 홍보용 링크: `https://www.socialtwin.site/?lang=en`).
+- 약관·개인정보·환불 페이지는 한국어 원문만 있다. 영어 모드에선 `LegalLayout`이 "한국어 원문만 법적 효력" 안내를 띄운다.
+- GA 이벤트명·Formspree 필드명은 언어와 무관하게 한국어 그대로 둔다(대시보드 집계·직원 수신용).
+
+Django 백엔드의 에러 응답은 `lib/auth-api.ts`의 `translateAuthError`가 한국어 화면이면 한국어로, 영어 화면이면 `translateAuthErrorEn`으로 다듬은 영어로 바꾼다. 새로운 에러 케이스를 노출할 때는 두 함수를 함께 확장하세요.
