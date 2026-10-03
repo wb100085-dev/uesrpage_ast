@@ -12,12 +12,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, Ticket, AlertCircle } from "lucide-react";
 import { getAccessToken } from "@/lib/auth-api";
-import { FREE_REPORT_PASS_KEY, redeemPendingReportToken } from "@/lib/survey-api";
+import { FREE_REPORT_PASS_KEY, redeemPendingReportTokenDetail, type CouponGrant } from "@/lib/survey-api";
 
 type State = "none" | "guest" | "redeeming" | "applied" | "failed";
 
 export default function FreeCouponBanner() {
   const [state, setState] = useState<State>("none");
+  // 적용된 쿠폰 종류 — 30일권 쿠폰이면 상세보고서 대신 30일권 안내를 띄운다.
+  const [grant, setGrant] = useState<CouponGrant>("report");
 
   useEffect(() => {
     let token = "";
@@ -32,8 +34,11 @@ export default function FreeCouponBanner() {
       return;
     }
     setState("redeeming");
-    redeemPendingReportToken()
-      .then((ok) => setState(ok ? "applied" : "failed"))
+    redeemPendingReportTokenDetail()
+      .then((r) => {
+        if (r) setGrant(r.grant);
+        setState(r ? "applied" : "failed");
+      })
       .catch(() => setState("failed"));
   }, []);
 
@@ -60,7 +65,8 @@ export default function FreeCouponBanner() {
         {state === "guest" && (
           <>
             <p className="text-sm text-slate-200">
-              <span className="font-semibold text-white">상세보고서 무료 쿠폰</span>이 확인되었습니다.
+              {/* 적용 전에는 쿠폰 종류(상세보고서/30일권)를 알 수 없어 공통 문구로 안내한다 */}
+              <span className="font-semibold text-white">무료 쿠폰</span>이 확인되었습니다.
               <br />
               <span className="text-slate-400">로그인(또는 무료 가입)하시면 계정에 자동으로 적용됩니다.</span>
             </p>
@@ -79,10 +85,17 @@ export default function FreeCouponBanner() {
 
         {state === "applied" && (
           <>
-            <p className="text-sm text-slate-200">
-              <span className="font-semibold text-white">무료 쿠폰이 적용되었습니다.</span>
-              <span className="text-slate-400"> 조사를 시작하면 상세보고서를 결제 없이 보실 수 있습니다.</span>
-            </p>
+            {grant === "pass_30d" ? (
+              <p className="text-sm text-slate-200">
+                <span className="font-semibold text-white">30일권 쿠폰이 적용되었습니다.</span>
+                <span className="text-slate-400"> 오늘부터 30일 동안 가상인구 100명 조사를 횟수 제한 없이 이용하실 수 있습니다.</span>
+              </p>
+            ) : (
+              <p className="text-sm text-slate-200">
+                <span className="font-semibold text-white">무료 쿠폰이 적용되었습니다.</span>
+                <span className="text-slate-400"> 조사를 시작하면 상세보고서를 결제 없이 보실 수 있습니다.</span>
+              </p>
+            )}
             <Link
               href="/design"
               className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-white transition-all hover:bg-emerald-400"

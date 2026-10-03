@@ -133,7 +133,12 @@ export function getAppSettings(): Promise<AppSettings> {
  * 무료 열람 링크(토큰) 리딤 — 성공 시 현재 로그인 계정에 결제 생략 권한이 부여된다.
  * 실패 시 백엔드 에러 메시지(만료/소진/무효)를 그대로 throw.
  */
-export function redeemReportToken(token: string): Promise<{ ok: boolean; exempt: boolean; note?: string }> {
+/** 쿠폰 종류 — "report"=상세보고서 무료 열람, "pass_30d"=적용일부터 30일간 30일권. */
+export type CouponGrant = "report" | "pass_30d";
+
+export function redeemReportToken(
+  token: string,
+): Promise<{ ok: boolean; exempt: boolean; note?: string; grant?: CouponGrant }> {
   return apiFetch("/api/report-token/redeem", {
     method: "POST",
     body: JSON.stringify({ token }),
@@ -149,24 +154,30 @@ export const FREE_REPORT_PASS_KEY = "vpg.free_report.pass";
  * 네트워크 오류 → 토큰 유지(다음 기회에 재시도) false.
  */
 export async function redeemPendingReportToken(): Promise<boolean> {
+  return (await redeemPendingReportTokenDetail()) !== null;
+}
+
+/** redeemPendingReportToken 과 같되, 성공 시 쿠폰 종류를 돌려준다(실패·토큰 없음 → null).
+ * 안내 문구를 쿠폰 종류에 맞춰야 하는 곳(랜딩 쿠폰 배너)에서 쓴다. */
+export async function redeemPendingReportTokenDetail(): Promise<{ grant: CouponGrant } | null> {
   let token = "";
   try {
     token = localStorage.getItem(FREE_REPORT_PASS_KEY) || "";
   } catch {
-    return false;
+    return null;
   }
-  if (!token) return false;
+  if (!token) return null;
   try {
     const r = await redeemReportToken(token);
     localStorage.removeItem(FREE_REPORT_PASS_KEY);
-    return Boolean(r?.exempt);
+    return r?.exempt ? { grant: r.grant ?? "report" } : null;
   } catch (e) {
     // 4xx(만료/소진/무효)는 재시도 무의미 → 제거. 그 외(네트워크)는 유지.
     const msg = e instanceof Error ? e.message : "";
     if (/API 오류 4\d\d/.test(msg)) {
       try { localStorage.removeItem(FREE_REPORT_PASS_KEY); } catch { /* noop */ }
     }
-    return false;
+    return null;
   }
 }
 
