@@ -17,7 +17,7 @@ import LangToggle from "@/components/LangToggle";
 export default function Navbar({ dark = false, appMode = false }: { dark?: boolean; appMode?: boolean }) {
   const router = useRouter();
   const t = useT();
-  // 영문 메뉴는 한글보다 길어 md(768px)~lg(1024px) 구간에서 줄바꿈된다 → 영어일 땐 lg 미만에서 햄버거로 접는다
+  // 영문 메뉴는 한글보다 길고 맨 오른쪽 언어 토글 자리까지 비워야 해서 xl(1280px) 미만에선 줄바꿈된다 → 영어일 땐 xl 미만에서 햄버거로 접는다
   const wide = useLang() === "en";
   const [open, setOpen] = useState(false);
   // null = 아직 hydration 전(SSR 미스매치 방지용), AuthUser | "guest" 가 확정 상태
@@ -54,7 +54,8 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
 
   return (
     <header className={`sticky top-0 z-50 border-b ${borderCls} ${bgCls}`}>
-      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      {/* nav-lang-gutter-* — 맨 오른쪽 언어 토글과 겹치는 좁은 폭에서만 컨테이너 오른쪽을 비운다 (globals.css) */}
+      <div className={`max-w-6xl mx-auto px-6 h-16 flex items-center justify-between ${wide ? "nav-lang-gutter-xl" : "nav-lang-gutter-md"}`}>
         {/* Logo — appMode(앱 내부 페이지)에서는 클릭 비활성 */}
         {appMode ? (
           <span className="flex items-center">
@@ -80,7 +81,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
 
         {/* Desktop nav */}
         {!appMode && (
-          <nav className={`hidden ${wide ? "lg:flex" : "md:flex"} items-center gap-7`}>
+          <nav className={`hidden ${wide ? "xl:flex" : "md:flex"} items-center gap-7`}>
             {[
               { label: t("진행 순서", "How it works"), href: "/#how", external: false },
               { label: t("차별성", "Why Socialtwin"), href: "/#features", external: false },
@@ -94,7 +95,8 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                   href={item.href}
                   target="_blank"
                   rel="noreferrer"
-                  className={`text-sm font-medium whitespace-nowrap transition-colors ${linkCls}`}
+                  // md~lg 폭(한국어 데스크톱 메뉴가 막 펼쳐지는 구간)에선 맨 오른쪽 언어 토글 자리를 위해 숨긴다
+                  className={`hidden lg:inline text-sm font-medium whitespace-nowrap transition-colors ${linkCls}`}
                 >
                   {item.label}
                 </a>
@@ -112,7 +114,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
         )}
 
         {/* Desktop CTA */}
-        <div className={`hidden ${wide ? "lg:flex" : "md:flex"} items-center gap-3`}>
+        <div className={`hidden ${wide ? "xl:flex" : "md:flex"} items-center gap-3`}>
           {/* authState === null 인 동안은 자리만 잡고 깜빡임을 피한다 */}
           {authState === null ? (
             <div className="h-8 w-40" />
@@ -151,24 +153,22 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
             <>
               <Link
                 href="/login"
-                className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${linkCls}`}
+                className={`text-sm font-medium whitespace-nowrap px-3 py-1.5 rounded-lg transition-colors ${linkCls}`}
               >
                 {t("로그인", "Log in")}
               </Link>
               <Link
                 href="/login?next=%2Fdesign"
-                className="text-sm font-semibold px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
+                className="text-sm font-semibold whitespace-nowrap px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
                 {t("조사 시작하기", "Start a study")}
               </Link>
             </>
           )}
-          {/* 한/영 전환 — 로그인·조사 시작하기 오른쪽 */}
-          <LangToggle dark={dark} />
         </div>
 
         {/* Mobile — 언어 전환은 메뉴를 열지 않아도 보이게 햄버거 옆에 둔다 */}
-        <div className={`${wide ? "lg:hidden" : "md:hidden"} flex items-center gap-2`}>
+        <div className={`${wide ? "xl:hidden" : "md:hidden"} flex items-center gap-2`}>
           <LangToggle dark={dark} />
           <button
             onClick={() => setOpen(!open)}
@@ -180,9 +180,15 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
         </div>
       </div>
 
+      {/* 한/영 전환 — 데스크톱 상단 맨 오른쪽. 넓은 화면에선 컨테이너 바깥 여백에 놓여
+          로그인·조사 시작하기가 원래 자리(컨테이너 오른쪽 끝)를 지킨다. 모바일은 햄버거 옆. */}
+      <div className={`hidden ${wide ? "xl:flex" : "md:flex"} absolute right-4 top-0 h-16 items-center`}>
+        <LangToggle dark={dark} />
+      </div>
+
       {open && (
         <div
-          className={`${wide ? "lg:hidden" : "md:hidden"} border-t ${borderCls} ${
+          className={`${wide ? "xl:hidden" : "md:hidden"} border-t ${borderCls} ${
             dark ? "bg-slate-950" : "bg-white"
           } px-6 py-5 flex flex-col gap-4`}
         >

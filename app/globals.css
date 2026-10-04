@@ -25,6 +25,17 @@ body {
 /* 한/영 전환 — 영어 사용자가 hydration 전 한국어 화면을 보지 않도록 잠깐 가린다 (app/layout.tsx · LangBoot) */
 html.i18n-pending body { opacity: 0; }
 
+/* 내비 Korean/English 토글은 헤더 맨 오른쪽(absolute, 폭 ≈125px + right-4)에 있다 (components/Navbar.tsx).
+   넓은 화면(≥ 약 1432px)은 토글이 max-w-6xl 컨테이너 바깥 여백에 들어가 기본 여백(1.5rem) 그대로,
+   그보다 좁아 겹치는 폭에서만 컨테이너 오른쪽을 토글만큼(최대 10.25rem — 100vw 에 스크롤바 폭이 섞이는 것까지 감안) 비운다.
+   ※ Tailwind 유틸(@layer)보다 레이어 밖 규칙이 우선이라 px-6 의 오른쪽 값을 덮는다. */
+@media (min-width: 768px) {
+  .nav-lang-gutter-md { padding-right: max(1.5rem, min(10.25rem, calc(10.25rem - (100vw - 72rem) / 2))); }
+}
+@media (min-width: 1280px) {
+  .nav-lang-gutter-xl { padding-right: max(1.5rem, min(10.25rem, calc(10.25rem - (100vw - 72rem) / 2))); }
+}
+
 /* ── Scroll reveal ── */
 .reveal {
   opacity: 0;
