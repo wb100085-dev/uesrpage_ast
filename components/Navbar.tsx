@@ -61,7 +61,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
           <span className="flex items-center">
             <Image
               src="/Socialtwin_o2.png"
-              alt="Socialtwin"
+              alt="소셜트윈 Socialtwin"
               width={140}
               height={40}
               className="h-10 w-auto object-contain select-none"
@@ -71,7 +71,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
           <Link href="/" className="flex items-center group">
             <Image
               src="/Socialtwin_o2.png"
-              alt="Socialtwin"
+              alt="소셜트윈 Socialtwin"
               width={140}
               height={40}
               className="h-10 w-auto object-contain"

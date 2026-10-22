@@ -199,7 +199,7 @@ export default function SiteFooter() {
             <p className="leading-relaxed text-slate-400">
               {t(
                 <>
-                  SocialTwin은 생성형 AI·통계 시뮬레이션으로 생성된 <strong className="text-slate-500">가상의 응답 데이터</strong>를 제공하는 참고용 서비스이며,
+                  소셜트윈(SocialTwin)은 생성형 AI·통계 시뮬레이션으로 생성된 <strong className="text-slate-500">가상의 응답 데이터</strong>를 제공하는 참고용 서비스이며,
                   실제 인물·집단의 의견을 직접 대표하지 않습니다.
                 </>,
                 <>
