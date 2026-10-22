@@ -663,7 +663,7 @@ function LandingKo() {
                 </h3>
                 {/* 문장 단위로 줄을 끊는다 — sm 이상에서만 <br> 적용, 모바일은 자연스럽게 흐르게 둔다 */}
                 <p className="mt-3 text-sm sm:text-base text-slate-500 max-w-3xl mx-auto leading-relaxed break-keep">
-                  Socialtwin의 가상인구는 AI가 상상해 만들어낸 가짜 프로필이 아닙니다.
+                  소셜트윈(Socialtwin)의 가상인구는 AI가 상상해 만들어낸 가짜 프로필이 아닙니다.
                   <br className="hidden sm:block" />
                   통계청·공공데이터의 국가통계를 기반으로 대한민국의 인구·사회·생활 구조를 그대로 모방해 만든{" "}
                   <strong className="font-semibold text-slate-700">초정밀 합성데이터</strong>입니다.

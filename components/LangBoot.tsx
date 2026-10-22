@@ -5,7 +5,7 @@ import { useLang } from "@/lib/i18n";
 
 /** 서버 metadata 의 한국어 탭 제목 → 영문. 서버 렌더는 항상 한국어라 클라이언트에서 바꿔 끼운다. */
 const TITLE_EN: Record<string, string> = {
-  "Socialtwin — AI 시장조사 플랫폼": "Socialtwin — Test the Korean market with AI",
+  "소셜트윈(Socialtwin) — AI 시장조사 플랫폼": "Socialtwin — Test the Korean market with AI",
   "요금 안내 · SocialTwin": "Pricing · SocialTwin",
   "이용약관 · SocialTwin": "Terms of Service · SocialTwin",
   "개인정보처리방침 · SocialTwin": "Privacy Policy · SocialTwin",

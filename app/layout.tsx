@@ -8,9 +8,44 @@ const GA_ID = "G-RXEWRM02JQ";
 const FB_PIXEL_ID = "1041566044877220";
 
 const SITE_URL = "https://www.socialtwin.site";
-const SITE_TITLE = "Socialtwin — AI 시장조사 플랫폼";
+const SITE_TITLE = "소셜트윈(Socialtwin) — AI 시장조사 플랫폼";
+// 네이버는 한글 "소셜트윈"과 영문 "Socialtwin"을 같은 단어로 보지 않는다.
+// 브랜드 검색·검색광고 연관지수를 위해 title·description 에 한글 표기를 반드시 함께 둘 것.
 const SITE_DESCRIPTION =
-  "한 문장으로 시작하는 AI 기반 시장조사. 가상인구 분석으로 1시간 안에 결과를 확인하세요.";
+  "소셜트윈(Socialtwin)은 국가통계 기반 AI 가상인구로 설문을 설계·응답하는 AI 시장조사 플랫폼입니다. 한 문장 입력으로 1시간 안에 결과를 확인하세요.";
+
+// 구조화 데이터 — 소셜트윈 = Socialtwin 이 같은 서비스임을 검색엔진에 명시
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "소셜트윈",
+      alternateName: ["Socialtwin", "SocialTwin", "소셜 트윈"],
+      inLanguage: "ko-KR",
+      publisher: { "@id": "https://www.omninode.kr/#organization" },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "소셜트윈",
+      alternateName: ["Socialtwin", "SocialTwin"],
+      url: SITE_URL,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description: SITE_DESCRIPTION,
+      publisher: { "@id": "https://www.omninode.kr/#organization" },
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://www.omninode.kr/#organization",
+      name: "주식회사 옴니노드",
+      alternateName: ["옴니노드", "Omninode"],
+      url: "https://www.omninode.kr",
+    },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -24,7 +59,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_URL,
-    siteName: "Socialtwin",
+    siteName: "소셜트윈 Socialtwin",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     locale: "ko_KR",
@@ -37,7 +72,7 @@ export const metadata: Metadata = {
         width: 1200,
         height: 630,
         type: "image/png",
-        alt: "Socialtwin — AI 시장조사 플랫폼",
+        alt: "소셜트윈(Socialtwin) — AI 시장조사 플랫폼",
       },
     ],
   },
@@ -53,6 +88,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" className="h-full scroll-smooth" suppressHydrationWarning>
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+        />
         {/* 한/영 전환(lib/i18n.ts) — 페이지 코드보다 먼저 돌아야 영어 사용자에게 한국어가 비치지 않는다.
             ?lang=en|ko 쿼리를 저장하고, 영어면 hydration 이 끝날 때까지 본문을 가린다
             (LangBoot 가 벗김. JS 가 멈춰도 1.5초 뒤엔 무조건 벗긴다). */}
