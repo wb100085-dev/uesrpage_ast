@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Script from "next/script";
 import "./globals.css";
 import SessionGuard from "@/components/SessionGuard";
 import LangBoot from "@/components/LangBoot";
+import HackleAnalytics from "@/components/HackleAnalytics";
 
 const GA_ID = "G-RXEWRM02JQ";
 const FB_PIXEL_ID = "1041566044877220";
@@ -111,6 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Script>
         <LangBoot />
         <SessionGuard />
+        <Suspense fallback={null}><HackleAnalytics /></Suspense>
         {children}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}

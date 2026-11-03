@@ -114,6 +114,7 @@ function ResultsPageInner() {
         const res = await getSurveyResults(jobId);
         if (cancelled) return;
         if (res.status === "done") {
+          trackEvent("조사결과_조회", { 패널수: res.n_respondents, 화면: "상세결과" });
           const report = res.report ?? { 상세분석: "", 결과및전략: "" };
           setData({
             results: res.results ?? [],

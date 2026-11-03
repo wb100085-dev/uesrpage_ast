@@ -809,6 +809,14 @@ function DesignPageInner() {
   /* 서버 기준 유료 열람 권한 — 결제(주문↔조사 연결)·쿠폰·30일권을 모두 반영한다.
      URL 의 ?paid 파라미터에만 의존하면 새로고침이나 재진입에서 권한이 사라진다. */
   const [reportAccess, setReportAccess] = useState<{ all: boolean; jobs: string[] }>({ all: false, jobs: [] });
+  const trackedResultJob = useRef<string | null>(null);
+  useEffect(() => {
+    if (step !== "survey_result" || !runJobId || !infographic || trackedResultJob.current === runJobId) return;
+    if (trackEvent("조사결과_조회", { 패널수: runMeta?.n ?? panelSize, 화면: "조사설계" })) {
+      trackedResultJob.current = runJobId;
+    }
+  }, [step, runJobId, infographic, runMeta, panelSize]);
+
   useEffect(() => {
     if (step !== "survey_result") return;
     let cancelled = false;
@@ -1376,6 +1384,9 @@ function DesignPageInner() {
         ...(paidOrderId ? { order_id: paidOrderId } : {}),
       });
       setRunJobId(job_id);
+
+      // 버튼 클릭과 구분: 서버가 실제 조사 작업을 접수한 뒤에만 집계한다.
+      trackEvent("조사실행_접수", { 패널수: panelSize, 무료체험: !panelProductKey(panelSize) });
 
       stopPolling();
       pollRef.current = setInterval(async () => {
