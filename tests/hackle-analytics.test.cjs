@@ -1,152 +1,73 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Node's CJS test runner loads TypeScript in isolated VM contexts. */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const ts = require('typescript');
-const path = require('node:path');
-
-function load({ key = 'browser-test-key', pathname = '/', search = '', referrer = '', gtag } = {}) {
-  const window = { location: { pathname, search }, gtag };
-  Object.defineProperty(window.location, 'href', { get: () => 'https://socialtwin.test' + window.location.pathname + window.location.search });
-  const context = vm.createContext({ window, document: { referrer }, process: { env: { NEXT_PUBLIC_HACKLE_SDK_KEY: key } }, URL, URLSearchParams, console });
-  const modules = new Map();
-  function requireModule(file) {
-    if (modules.has(file)) return modules.get(file);
-    const loadedModule = { exports: {} };
-    const source = ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
-    }).outputText;
-    const wrapped = vm.runInContext(`(function(exports, require, module){${source}\n})`, context);
-    wrapped(loadedModule.exports, (name) => requireModule(name.startsWith('@/') ? name.slice(2) + '.ts' : path.posix.join(path.posix.dirname(file), name) + '.ts'), loadedModule);
-    modules.set(file, loadedModule.exports);
-    return loadedModule.exports;
-  }
-  return { window, bridge: requireModule('lib/hackle-analytics.ts'), analytics: () => requireModule('lib/analytics.ts'), instrumentation: () => requireModule('instrumentation-client.ts') };
+/* eslint-disable @typescript-eslint/no-require-imports -- isolated browser contracts. */
+const test=require('node:test'), assert=require('node:assert/strict'), fs=require('node:fs'), vm=require('node:vm'), ts=require('typescript'), path=require('node:path');
+function storage(){const data=new Map();return {getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k),data};}
+function load({key='browser-test-key',saved=storage(),pathname='/',search='',user,token,fetch,gtag}={}){
+ if(user)saved.setItem('vpg.auth.user',JSON.stringify(user));if(token)saved.setItem('vpg.auth.access',token);
+ const window={location:{origin:'https://socialtwin.test',pathname,search},localStorage:saved,gtag};
+ const context=vm.createContext({window,document:{referrer:'https://socialtwin.test/auth/callback?access=REFERRER_SECRET'},process:{env:{NEXT_PUBLIC_HACKLE_SDK_KEY:key}},URL,URLSearchParams,console,Headers,fetch,crypto:require('node:crypto').webcrypto,Date});
+ const modules=new Map();function requireModule(file){
+  if(modules.has(file))return modules.get(file);
+  if(file==='lib/i18n.ts')return {getLang:()=> 'ko'};
+  if(file==='lib/auth-api.ts')return {getAccessToken:()=>saved.getItem('vpg.auth.access')};
+  const mod={exports:{}};modules.set(file,mod.exports);
+  const src=ts.transpileModule(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+  vm.runInContext(`(function(exports,require,module){${src}\n})`,context)(mod.exports,n=>requireModule(n.startsWith('@/')?n.slice(2)+'.ts':path.posix.join(path.posix.dirname(file),n)+'.ts'),mod);return mod.exports;
+ }
+ return {window,saved,bridge:requireModule('lib/hackle-analytics.ts'),analytics:()=>requireModule('lib/analytics.ts'),payments:()=>requireModule('lib/payments-api.ts')};
 }
-function receiver({ reject = false } = {}) {
-  const received = [];
-  let optedOut = true;
-  let ready;
-  const initialized = new Promise((resolve, rejectReady) => { ready = reject ? () => rejectReady(new Error('offline')) : resolve; });
-  const sdk = { createInstance(_key, config) { assert.equal(config.automaticPageTracking, false); assert.equal(config.automaticRouteTracking, false); assert.equal(config.optOutTracking, true); return { onInitialized: () => initialized, setOptOutTracking(value) { optedOut = value; }, track: (event) => { if (!optedOut) received.push(JSON.parse(JSON.stringify(event))); } }; } };
-  return { received, ready, sdk, optedOut: () => optedOut };
+function connect(app){
+ assert.equal(typeof app.bridge.attachHackleRelay,'function','privacy-safe relay transport must exist');
+ const sent=[],frame={postMessage:m=>sent.push(JSON.parse(JSON.stringify(m)))};app.bridge.attachHackleRelay(frame);
+ const reply=data=>app.bridge.handleHackleRelayMessage({origin:app.window.location.origin,source:frame,data:{protocol:'socialtwin-hackle-v2',...data}});reply({type:'ready'});
+ return {sent,frame,reply,events:()=>sent.filter(x=>x.type==='event')};
 }
-
-test('events emitted before SDK readiness are delivered in order with safe mapped properties', async () => {
-  const { bridge } = load(); const target = receiver();
-  assert.equal(bridge.trackHackleEvent('회원가입', { 방식: '이메일', email: 'private@example.com', access: 'secret' }), true);
-  assert.equal(bridge.trackHackleEvent('조사실행_접수', { 패널수: 10, 무료체험: true }), true);
-  const init = bridge.initializeHackle(target.sdk);
-  assert.equal(target.received.length, 0);
-  target.ready(); await init;
-  assert.deepEqual(target.received, [
-    { key: 'complete_signup', properties: { method: '이메일', page_path: '/' } },
-    { key: 'start_survey', properties: { panel_size: 10, is_free_trial: true, page_path: '/' } },
-  ]);
+test('confirmed payment survives callback closure without storing or sending credentials',()=>{
+ const a=load({pathname:'/checkout/success',search:'?paymentKey=PAYMENT_SECRET&email=private@example.com'});
+ a.bridge.trackHackleEvent('결제완료',{금액:99000,상품:'100명 조사',paymentKey:'PAYMENT_SECRET'},{dedupeKey:'purchase:order42'});
+ const b=load({saved:a.saved}),r=connect(b),e=r.events()[0];assert.equal(r.events().length,1);assert.equal(e.event.key,'complete_purchase');assert.equal(e.event.properties.amount,99000);
+ assert.doesNotMatch(JSON.stringify(r.sent),/PAYMENT_SECRET|private@example|REFERRER_SECRET/);
+ r.reply({type:'ack',id:e.id});b.bridge.trackHackleEvent('결제완료',{금액:99000},{dedupeKey:'purchase:order42'});assert.equal(r.events().length,1);
+ assert.equal(connect(load({saved:a.saved})).events().length,0);
 });
-test('missing SDK key keeps Hackle disabled and preserves GA4 return behavior', async () => {
-  const calls = []; const { bridge, analytics } = load({ key: '', gtag: (...args) => calls.push(args) });
-  let created = 0; await bridge.initializeHackle({ createInstance() { created++; throw new Error('must not initialize'); } });
-  assert.equal(bridge.trackHackleEvent('회원가입'), false); assert.equal(created, 0);
-  assert.equal(analytics().trackEvent('회원가입', { 방식: '이메일' }), true);
-  assert.equal(calls.length, 1); assert.equal(calls[0][0], 'event'); assert.equal(calls[0][1], '회원가입');
+test('signup on a sensitive callback is sent immediately through the clean relay',()=>{
+ const a=load({pathname:'/auth/callback',search:'?access=ACCESS_SECRET&refresh=REFRESH_SECRET'});a.bridge.trackHackleEvent('회원가입',{방식:'소셜'});
+ const r=connect(a);assert.equal(r.events()[0].event.key,'complete_signup');assert.doesNotMatch(JSON.stringify(r.sent),/ACCESS_SECRET|REFRESH_SECRET|REFERRER_SECRET/);
 });
-test('failed SDK initialization never throws into product flows or prevents GA4', async () => {
-  const calls = []; const { bridge, analytics } = load({ gtag: (...args) => calls.push(args) });
-  const target = receiver({ reject: true }); const init = bridge.initializeHackle(target.sdk); target.ready();
-  await assert.doesNotReject(init);
-  assert.equal(analytics().trackEvent('회원가입'), true); assert.equal(calls.length, 1); assert.equal(target.received.length, 0);
+test('first and last channel/post attribution survives navigation and document reload',()=>{
+ const a=load({search:'?utm_source=naver_blog&utm_medium=organic&utm_content=report01'});a.bridge.trackHacklePage('/');a.window.location.pathname='/design';a.window.location.search='';a.bridge.trackHackleEvent('조사실행_접수',{패널수:10,무료체험:true});
+ const b=load({saved:a.saved,search:'?utm_source=threads&utm_content=post02'});b.bridge.trackHacklePage('/');const e=connect(b).events().map(x=>x.event);
+ assert.equal(e[1].properties.utm_source,'naver_blog');assert.equal(e[1].properties.utm_content,'report01');assert.equal(e[2].properties.first_utm_source,'naver_blog');assert.equal(e[2].properties.last_utm_source,'threads');
 });
-test('GA4 exceptions do not block Hackle event delivery', async () => {
-  const { bridge, analytics } = load({ gtag() { throw new Error('blocked'); } }); const target = receiver();
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.equal(analytics().trackEvent('조사결과_조회', { 패널수: 10, 화면: '조사설계' }), true);
-  assert.deepEqual(target.received, [{ key: 'view_survey_result', properties: { panel_size: 10, screen: '조사설계', page_path: '/' } }]);
+test('only signed-in numeric member keys are sent, never profile fields or research text',()=>{
+ const a=load({user:{pk:42,email:'private@example.com',phone:'01012345678'},token:'AUTH_SECRET'});a.bridge.trackHackleEvent('조사実행_접수');a.bridge.trackHackleEvent('조사실행_접수',{패널수:10,email:'private@example.com',text:'PRIVATE_RESEARCH'});
+ const e=connect(a).events()[0];assert.equal(e.userId,'st-member-42');assert.doesNotMatch(JSON.stringify(e),/private@example|01012345678|AUTH_SECRET|PRIVATE_RESEARCH/);
+ const b=load({user:{pk:42}});b.bridge.trackHackleEvent('문의하기_클릭');assert.equal(connect(b).events()[0].userId,null);
 });
-test('page views omit query tokens and normalize result and password paths', async () => {
-  const { bridge } = load({ pathname: '/results/private-job-id', search: '?utm_source=naver_blog&utm_campaign=guide24' }); const target = receiver();
-  bridge.trackHacklePage('/results/private-job-id'); bridge.trackHacklePage('/results/private-job-id');
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.deepEqual(target.received, [{ key: 'page_view', properties: { page_path: '/results/[id]', utm_source: 'naver_blog', utm_campaign: 'guide24' } }]);
+test('untrusted origins and frames cannot acknowledge pending events',()=>{
+ const a=load();a.bridge.trackHackleEvent('회원가입');const r=connect(a),id=r.events()[0].id;
+ for(const [origin,source] of [['https://evil.test',r.frame],[a.window.location.origin,{}]])a.bridge.handleHackleRelayMessage({origin,source,data:{protocol:'socialtwin-hackle-v2',type:'ack',id}});
+ assert.equal(connect(load({saved:a.saved})).events().length,1);
 });
-test('credential callback defers initialization and safely flushes signup on navigation away', async () => {
-  const { bridge, window } = load({ pathname: '/auth/callback', search: '?access=secret&refresh=more-secret' }); const target = receiver();
-  let created = 0; const sdk = { createInstance(...args) { created++; return target.sdk.createInstance(...args); } };
-  assert.equal(bridge.canInitializeHackle(), false);
-  bridge.trackHacklePage('/auth/callback'); bridge.trackHackleEvent('회원가입', { 방식: '소셜' }); await bridge.initializeHackle(sdk); assert.equal(created, 0);
-  window.location.pathname = '/dashboard/user'; window.location.search = '';
-  assert.equal(bridge.canInitializeHackle(), true);
-  const init = bridge.initializeHackle(sdk); target.ready(); await init;
-  assert.equal(created, 1); assert.deepEqual(target.received, [{ key: 'complete_signup', properties: { method: '소셜', page_path: '/auth/callback' } }]);
+test('missing key, blocked storage and GA4 exceptions never break product actions',()=>{
+ let n=0;const a=load({key:'',gtag:()=>n++});assert.equal(a.analytics().trackEvent('회원가입'),true);assert.equal(n,1);
+ const b=load({saved:{getItem(){throw Error('blocked')},setItem(){throw Error('blocked')}},gtag(){throw Error('blocked')}});assert.doesNotThrow(()=>b.analytics().trackEvent('회원가입'));assert.equal(connect(b).events().length,1);
 });
-test('unknown events and invalid numeric properties are not forwarded', async () => {
-  const { bridge } = load(); const target = receiver();
-  assert.equal(bridge.trackHackleEvent('arbitrary_private_event', { text: 'private' }), false);
-  bridge.trackHackleEvent('결제완료', { 금액: NaN, 상품: 'standard', password: 'secret' });
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.deepEqual(target.received, [{ key: 'complete_purchase', properties: { product: 'standard', page_path: '/' } }]);
+test('page views normalize IDs, omit secret routes and deduplicate route commits',()=>{
+ const a=load({pathname:'/results/private-job'});a.bridge.trackHacklePage('/results/private-job');a.bridge.trackHacklePage('/results/private-job');a.window.location.pathname='/auth/callback';a.window.location.search='?access=SECRET';a.bridge.trackHacklePage('/auth/callback');
+ const e=connect(a).events();assert.equal(e.length,1);assert.equal(e[0].event.properties.page_path,'/results/[id]');
 });
-test('disabled SDK queue is dropped and never prevents site events', async () => {
-  const { bridge } = load(); const target = receiver();
-  bridge.trackHackleEvent('회원가입'); bridge.disableHackle();
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.equal(target.received.length, 0); assert.equal(bridge.trackHackleEvent('회원가입'), false);
+test('page-view floods cannot displace a pending payment',()=>{
+ const a=load();a.bridge.trackHackleEvent('결제완료',{금액:99000},{dedupeKey:'purchase:flood'});for(let i=0;i<250;i++)a.bridge.trackHacklePage('/pricing/'+i);const e=connect(a).events();assert.ok(e.length<=100);assert.equal(e[0].event.key,'complete_purchase');
 });
-test('readiness queue stays bounded if a CDN never finishes loading', async () => {
-  const { bridge } = load(); const target = receiver();
-  for (let i = 0; i < 150; i++) bridge.trackHackleEvent('무료체험_실행', { 패널수: i });
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.equal(target.received.length, 100); assert.equal(target.received[0].properties.panel_size, 50); assert.equal(target.received.at(-1).properties.panel_size, 149);
+test('two open tabs preserve each other\'s pending events and acknowledgements',()=>{
+ const saved=storage(),a=load({saved}),b=load({saved});connect(a);connect(b);
+ a.bridge.trackHackleEvent('회원가입');b.bridge.trackHackleEvent('결제완료',{금액:99000});
+ const c=load({saved}),r=connect(c);assert.equal(r.events().length,2);
+ r.reply({type:'ack',id:r.events()[0].id});b.bridge.trackHackleEvent('문의하기_클릭');
+ const keys=connect(load({saved})).events().map(x=>x.event.key);assert.deepEqual(keys,['complete_purchase','click_contact']);
 });
-
-test('nested return URLs and credential-bearing referrers never initialize Hackle', async () => {
-  const cases = [
-    { pathname: '/login', search: '?next=%2Ffree-report%3Fpass%3Dprivate-token' },
-    { pathname: '/login', search: '?next=%252Ffree-report%253Fpass%253Dprivate-token' },
-    { pathname: '/', referrer: 'https://www.socialtwin.site/auth/callback?access=private-token' },
-    { pathname: '/', referrer: 'https://www.socialtwin.site/reset-password/private-uid/private-token' },
-  ];
-  for (const location of cases) {
-    const { bridge } = load(location);
-    assert.equal(bridge.canInitializeHackle(), false);
-    let created = 0;
-    await bridge.initializeHackle({ createInstance() { created++; throw new Error('must not initialize'); } });
-    assert.equal(created, 0);
-  }
-  assert.equal(load({ pathname: '/login', search: '?next=%2Fdesign' }).bridge.canInitializeHackle(), true);
-});
-
-test('an initialized SDK is opted out before navigation and stays paused on credential routes', async () => {
-  const { bridge, window } = load(); const target = receiver();
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  assert.equal(target.optedOut(), false);
-  bridge.pauseHackleTracking();
-  assert.equal(target.optedOut(), true);
-  window.location.pathname = '/reset-password/private-uid/private-token';
-  bridge.synchronizeHackleTracking();
-  assert.equal(target.optedOut(), true);
-  window.location.pathname = '/pricing';
-  bridge.synchronizeHackleTracking();
-  assert.equal(target.optedOut(), false);
-});
-
-test('SDK readiness during a route transition does not resume native tracking early', async () => {
-  const { bridge, window } = load(); const target = receiver();
-  const init = bridge.initializeHackle(target.sdk);
-  bridge.pauseHackleTracking();
-  target.ready(); await init;
-  assert.equal(target.optedOut(), true);
-  window.location.pathname = '/auth/callback'; window.location.search = '?access=private';
-  bridge.synchronizeHackleTracking();
-  assert.equal(target.optedOut(), true);
-});
-
-test('same-page and hash-only navigation keep tracking active; changing routes pauses before commit', async () => {
-  const { bridge, instrumentation } = load(); const target = receiver();
-  const init = bridge.initializeHackle(target.sdk); target.ready(); await init;
-  const { onRouterTransitionStart } = instrumentation();
-  onRouterTransitionStart('/'); assert.equal(target.optedOut(), false);
-  onRouterTransitionStart('/#how'); assert.equal(target.optedOut(), false);
-  onRouterTransitionStart('/auth/callback?access=private'); assert.equal(target.optedOut(), true);
+test('payment helpers track only accepted orders and confirmed payments, once per order',async()=>{
+ let ok=true;const a=load({token:'AUTH_SECRET',fetch:async url=>({ok:true,json:async()=>url.endsWith('/create')?{order_id:'order42',order_name:'100명 조사',amount:99000,client_key:'PUBLIC_KEY'}:{ok,order_id:'order42',order_name:'100명 조사',amount:99000}})});
+ await a.payments().createOrder('panel100');await a.payments().confirmPayment({paymentKey:'PAYMENT_SECRET',orderId:'order42',amount:99000});await a.payments().confirmPayment({paymentKey:'PAYMENT_SECRET',orderId:'order42',amount:99000});ok=false;await a.payments().confirmPayment({paymentKey:'PAYMENT_SECRET',orderId:'other',amount:99000});
+ const e=connect(a).events().map(x=>x.event);assert.deepEqual(e.map(x=>x.key),['begin_checkout','complete_purchase']);assert.equal(e[0].properties.product_key,'panel100');assert.doesNotMatch(JSON.stringify(e),/PAYMENT_SECRET|AUTH_SECRET|order42/);
 });

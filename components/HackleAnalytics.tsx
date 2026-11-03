@@ -2,44 +2,28 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import Script from "next/script";
-import {
-  canInitializeHackle, disableHackle, initializeHackle, trackHacklePage,
-  type HackleBrowserSDK,
-  synchronizeHackleTracking,
-} from "@/lib/hackle-analytics";
+import { attachHackleRelay, detachHackleRelay, handleHackleRelayMessage, hackleEnabled, retryHackleEvents, trackHacklePage } from "@/lib/hackle-analytics";
 
-// Pin the official browser build; loading analytics never blocks the page.
-const SDK_URL = "https://cdn2.hackle.io/npm/@hackler/javascript-sdk@12.2.1/lib/index.browser.umd.min.js";
-const subscribeToMount = () => () => {};
-const clientSnapshot = () => true;
-const serverSnapshot = () => false;
-
+const subscribe = () => () => {};
 export default function HackleAnalytics() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const mounted = useSyncExternalStore(subscribeToMount, clientSnapshot, serverSnapshot);
-
+  const search = useSearchParams();
+  const mounted = useSyncExternalStore(subscribe, () => true, () => false);
   useEffect(() => {
-    if (!mounted || !pathname) return;
-    synchronizeHackleTracking();
-    if (!canInitializeHackle()) return;
-    trackHacklePage(pathname);
-    const sdk = (window as Window & { Hackle?: HackleBrowserSDK }).Hackle;
-    if (sdk) void initializeHackle(sdk);
-  }, [pathname, searchParams, mounted]);
-
-  if (!mounted || !canInitializeHackle()) return null;
-  return (
-    <Script
-      id="hackle-sdk"
-      src={SDK_URL}
-      strategy="afterInteractive"
-      onReady={() => {
-        const sdk = (window as Window & { Hackle?: HackleBrowserSDK }).Hackle;
-        if (sdk) void initializeHackle(sdk);
-      }}
-      onError={disableHackle}
-    />
-  );
+    if (!hackleEnabled()) return;
+    window.addEventListener("message", handleHackleRelayMessage);
+    window.addEventListener("vpg-auth-changed", retryHackleEvents);
+    window.addEventListener("storage", retryHackleEvents);
+    const timer = window.setInterval(retryHackleEvents, 5000);
+    return () => {
+      window.removeEventListener("message", handleHackleRelayMessage);
+      window.removeEventListener("vpg-auth-changed", retryHackleEvents);
+      window.removeEventListener("storage", retryHackleEvents);
+      window.clearInterval(timer); detachHackleRelay();
+    };
+  }, []);
+  useEffect(() => { if (mounted && pathname) trackHacklePage(pathname); }, [pathname, search, mounted]);
+  if (!mounted || !hackleEnabled()) return null;
+  // Static document avoids the app layout, GA tags, authentication URL and referrer.
+  return <iframe src="/hackle-relay.html" title="분석 이벤트 전송" hidden tabIndex={-1} referrerPolicy="no-referrer" sandbox="allow-scripts allow-same-origin" onLoad={e => { const target = e.currentTarget.contentWindow; if (target) attachHackleRelay(target); }} />;
 }

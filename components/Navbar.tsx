@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth-api";
 import { useLang, useT } from "@/lib/i18n";
 import LangToggle from "@/components/LangToggle";
+import { trackEvent } from "@/lib/analytics";
 
 export default function Navbar({ dark = false, appMode = false }: { dark?: boolean; appMode?: boolean }) {
   const router = useRouter();
@@ -159,6 +160,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               </Link>
               <Link
                 href="/login?next=%2Fdesign"
+                onClick={() => trackEvent("조사시작하기_클릭", { 로그인여부: "비로그인", 버튼위치: "상단메뉴" })}
                 className="text-sm font-semibold whitespace-nowrap px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-px"
               >
                 {t("조사 시작하기", "Start a study")}
@@ -242,7 +244,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
           ) : (
             <Link
               href="/login?next=%2Fdesign"
-              onClick={() => setOpen(false)}
+              onClick={() => { trackEvent("조사시작하기_클릭", { 로그인여부: "비로그인", 버튼위치: "모바일메뉴" }); setOpen(false); }}
               className="mt-1 text-sm font-semibold px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-center"
             >
               {t("조사 시작하기", "Start a study")}

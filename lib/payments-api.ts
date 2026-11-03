@@ -3,6 +3,7 @@
 // (lib/survey-api.ts의 apiFetch와 동일 패턴 — 로그인 사용자의 결제를 user_email에 귀속).
 import { getAccessToken } from "./auth-api";
 import { getLang } from "./i18n";
+import { trackEvent } from "./analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -67,9 +68,12 @@ export function getProducts(): Promise<{ products: Product[] }> {
 /** 주문 생성 — 서버가 orderId·금액을 확정하고 결제위젯에 필요한 값을 반환.
  * jobId 를 주면 '결제된 설문'으로 기록되어 내 분석 히스토리에서 결과 페이지로 직행할 수 있다. */
 export function createOrder(productKey: string, jobId?: string): Promise<CreateOrderResponse> {
-  return api("/api/payments/create", {
+  return api<CreateOrderResponse>("/api/payments/create", {
     method: "POST",
     body: JSON.stringify({ product_key: productKey, ...(jobId ? { job_id: jobId } : {}) }),
+  }).then(order => {
+    trackEvent("결제진입", { 금액: order.amount, 상품: order.order_name, 상품키: productKey }, { dedupeKey: `checkout:${order.order_id}` });
+    return order;
   });
 }
 
@@ -111,13 +115,16 @@ export function confirmPayment(p: {
   orderId: string;
   amount: number;
 }): Promise<ConfirmResponse> {
-  return api("/api/payments/confirm", {
+  return api<ConfirmResponse>("/api/payments/confirm", {
     method: "POST",
     body: JSON.stringify({
       paymentKey: p.paymentKey,
       orderId: p.orderId,
       amount: p.amount,
     }),
+  }).then(result => {
+    if (result.ok) trackEvent("결제완료", { 금액: result.amount, 상품: result.order_name ?? "" }, { dedupeKey: `purchase:${result.order_id}` });
+    return result;
   });
 }
 

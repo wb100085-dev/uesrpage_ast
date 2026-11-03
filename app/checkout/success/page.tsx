@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Check, Loader2, X } from "lucide-react";
 import { confirmPayment, type ConfirmResponse } from "@/lib/payments-api";
-import { trackEvent } from "@/lib/analytics";
 import { useLang, useT } from "@/lib/i18n";
 
 const won = (n: number, lang: "ko" | "en") =>
@@ -49,7 +48,7 @@ function SuccessInner() {
         setResult(r);
         setConfirmState("ok");
         // 결제 최종 승인 완료 — 실제 결제까지 도달한 건수/금액 추적
-        trackEvent("결제완료", { 금액: r.amount, 상품: r.order_name ?? "" });
+        // 승인 완료 이벤트는 confirmPayment 헬퍼에서 주문별 1회 수집한다.
       })
       .catch((e) => {
         // 백엔드/토스 오류 원문은 그대로, 원문이 없을 때의 기본 문구는 렌더 시점에 언어별로 채운다

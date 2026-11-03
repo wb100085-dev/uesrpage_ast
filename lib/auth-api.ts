@@ -6,6 +6,7 @@
  */
 
 import { getLang } from "@/lib/i18n";
+import { trackEvent } from "./analytics";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -57,6 +58,7 @@ export function setCachedUser(user: AuthUser | null): void {
   if (typeof window === "undefined") return;
   if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   else localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event("vpg-auth-changed"));
 }
 export function getCachedUser(): AuthUser | null {
   if (typeof window === "undefined") return null;
@@ -219,6 +221,7 @@ export async function authLogin(input: {
     const refresh = res.refresh ?? res.refresh_token ?? null;
     if (access) setAuthTokens(access, refresh);
     if (res.user) setCachedUser(res.user);
+    if (access) trackEvent("로그인완료", { 방식: "이메일" });
     return res;
   } catch (e) {
     if (e instanceof ApiError) {

@@ -73,9 +73,6 @@ function AuthCallbackInner() {
 
     // 트래픽 퍼널의 '회원가입' 단계 — 소셜은 가입과 로그인이 같은 콜백으로 돌아오므로,
     // 백엔드(social_finish)가 방금 가입한 경우에만 signup=1 을 붙여 준다.
-    if (params.get("signup") === "1") {
-      trackEvent("회원가입", { 방식: "소셜" });
-    }
 
     // 사용자 상세를 백엔드에서 조회해 캐시 갱신 후 대시보드로 이동
     void (async () => {
@@ -84,6 +81,8 @@ function AuthCallbackInner() {
       } catch {
         // 무시 — 토큰만 있어도 대시보드는 동작
       }
+      // 숫자 회원 번호가 캐시에 들어온 다음 기록해 기기 간 퍼널을 연결한다.
+      trackEvent(params.get("signup") === "1" ? "회원가입" : "로그인완료", { 방식: "소셜" });
       // 무료 쿠폰 링크로 들어와 보관된 토큰이 있으면 여기서 계정에 귀속시킨다.
       // (백엔드 세션 경유 귀속의 보험 — 이동 목적지가 대시보드가 아닐 수도 있다.)
       await redeemPendingReportToken().catch(() => false);
