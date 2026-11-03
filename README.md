@@ -74,6 +74,8 @@ SDK 자동 page/route 이벤트는 끄며 기존 `$page_view` 샘플 리포트 �
 - 블로그: https://www.socialtwin.site/?utm_source=naver_blog&utm_medium=organic_social&utm_campaign=modu&utm_content=report_guide_01
 - 스레드: https://www.socialtwin.site/?utm_source=threads&utm_medium=organic_social&utm_campaign=modu&utm_content=post_01
 
+운영 리포트: https://dashboard.hackle.io/workspaces/118048/reports/63864
+
 실제 리포트는 관심→시작 클릭, 시작→조사 접수→결과 열람, 결제 주문→승인을 구분합니다.
 신규 가입자 퍼널과 기존 회원 이용 퍼널을 섞지 않고, 내부 점검 방문은 utm_campaign=hackle_setup으로
 구분합니다. 개발 검증은 개발 키, 운영 검증은 운영 키를 사용합니다.
