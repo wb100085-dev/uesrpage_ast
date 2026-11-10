@@ -42,6 +42,12 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
     router.push("/");
   }
 
+  function handleAtlasClick() {
+    setOpen(false);
+    // 별도 프론트로 전체 이동하되 같은 origin의 토큰 저장소를 유지한다.
+    window.location.assign("/atlas/");
+  }
+
   const linkCls = dark
     ? "text-slate-400 hover:text-white"
     : "text-slate-500 hover:text-slate-900";
@@ -52,6 +58,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
     : "bg-white/90 backdrop-blur-xl";
 
   const isUser = authState && authState !== "guest";
+  const isSuperuser = Boolean(isUser && authState.is_superuser === true);
 
   return (
     <header className={`sticky top-0 z-50 border-b ${borderCls} ${bgCls}`}>
@@ -89,8 +96,20 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               { label: t("활용", "Use cases"), href: "/#use-cases", external: false },
               { label: t("요금 안내", "Pricing"), href: "/pricing", external: false },
               { label: t("(주)옴니노드", "Omninode Inc."), href: "https://www.omninode.kr", external: true },
+              { label: t("아틀란스", "Atlas"), href: "/atlas/", external: false, atlas: true },
             ].map((item) =>
-              item.external ? (
+              item.atlas ? (
+                isSuperuser && (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={handleAtlasClick}
+                    className={`hidden lg:inline text-sm font-medium whitespace-nowrap transition-colors ${linkCls}`}
+                  >
+                    {item.label}
+                  </button>
+                )
+              ) : item.external ? (
                 <a
                   key={item.label}
                   href={item.href}
@@ -220,6 +239,15 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               >
                 {t("(주)옴니노드", "Omninode Inc.")}
               </a>
+              {isSuperuser && (
+                <button
+                  type="button"
+                  onClick={handleAtlasClick}
+                  className={`text-sm font-medium text-left ${linkCls}`}
+                >
+                  {t("아틀란스", "Atlas")}
+                </button>
+              )}
             </>
           )}
           {isUser ? (

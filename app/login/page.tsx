@@ -28,7 +28,7 @@ import { redeemPendingReportToken, FREE_REPORT_PASS_KEY } from "@/lib/survey-api
 import { useT } from "@/lib/i18n";
 import LangToggle from "@/components/LangToggle";
 
-// 슈퍼유저/스태프가 사용자 프론트에서 로그인하면 관리자 콘솔로 자동 핸드오프.
+// 슈퍼유저의 Atlas 복귀를 제외하고 슈퍼유저/스태프 로그인은 관리자 콘솔로 자동 핸드오프.
 // URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
 const ADMIN_HANDOFF_URL = "https://admin-frontend-chi-two.vercel.app/admin-handoff";
 
@@ -118,9 +118,16 @@ function LoginInner() {
   }
 
   async function gotoDashboard() {
-    // 슈퍼유저/스태프면 관리자 콘솔로 핸드오프, 아니면 본인 대시보드(혹은 next).
+    const next = getSafeNext();
+    // 슈퍼유저의 Atlas 복귀를 먼저 처리하고 나머지는 기존 관리자/사용자 흐름을 유지한다.
     try {
       const me = await authGetMe();
+      if (me?.is_superuser === true && next && (next === "/atlas" || next.startsWith("/atlas/"))) {
+        // 별도 프론트로 떠나기 전에 보관된 쿠폰을 계정에 귀속한다.
+        await redeemPendingReportToken().catch(() => false);
+        window.location.assign(next);
+        return;
+      }
       if (me?.is_superuser || me?.is_staff) {
         const access = getAccessToken() ?? "";
         const refresh = getRefreshToken() ?? "";
@@ -137,7 +144,6 @@ function LoginInner() {
     await redeemPendingReportToken().catch(() => false);
 
     // 우선순위: 명시적 next → 보류 중인 체험후기(이메일 인증으로 next가 유실된 경우) → 대시보드
-    const next = getSafeNext();
     if (next) { router.push(next); return; }
     if (hasPendingReview()) { router.push(PENDING_REVIEW_NEXT); return; }
     router.push("/dashboard/user");
