@@ -121,3 +121,9 @@ test('사용자 조회 실패 시에도 기존 일반 사용자 next 이동을 �
   await app.submit();
   assert.deepEqual(app.events, [['login'], ['me'], ['redeem:start'], ['redeem:end'], ['push', '/atlas/']]);
 });
+
+test('Atlas 초대 계정은 관리자 권한 없이 Atlas next로 전체 이동한다', async () => {
+  const app = login({ user: { email: 'onlymindy1@gmail.com', is_superuser: false, is_staff: false, can_access_atlas: true }, next: '/atlas/' });
+  await app.submit();
+  assert.deepEqual(app.events, [['login'], ['me'], ['redeem:start'], ['redeem:end'], ['assign', '/atlas/']]);
+});

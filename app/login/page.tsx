@@ -28,7 +28,7 @@ import { redeemPendingReportToken, FREE_REPORT_PASS_KEY } from "@/lib/survey-api
 import { useT } from "@/lib/i18n";
 import LangToggle from "@/components/LangToggle";
 
-// 슈퍼유저의 Atlas 복귀를 제외하고 슈퍼유저/스태프 로그인은 관리자 콘솔로 자동 핸드오프.
+// Atlas 이용 계정의 복귀를 제외하고 슈퍼유저/스태프 로그인은 관리자 콘솔로 자동 핸드오프.
 // URL fragment(#access=...&refresh=...)로 토큰 전달 — 서버 로그·referrer에 안 남음.
 const ADMIN_HANDOFF_URL = "https://admin-frontend-chi-two.vercel.app/admin-handoff";
 
@@ -119,10 +119,10 @@ function LoginInner() {
 
   async function gotoDashboard() {
     const next = getSafeNext();
-    // 슈퍼유저의 Atlas 복귀를 먼저 처리하고 나머지는 기존 관리자/사용자 흐름을 유지한다.
+    // Atlas 이용 계정의 복귀를 먼저 처리하고 나머지는 기존 관리자/사용자 흐름을 유지한다.
     try {
       const me = await authGetMe();
-      if (me?.is_superuser === true && next && (next === "/atlas" || next.startsWith("/atlas/"))) {
+      if ((me?.is_superuser === true || me?.can_access_atlas === true) && next && (next === "/atlas" || next.startsWith("/atlas/"))) {
         // 별도 프론트로 떠나기 전에 보관된 쿠폰을 계정에 귀속한다.
         await redeemPendingReportToken().catch(() => false);
         window.location.assign(next);

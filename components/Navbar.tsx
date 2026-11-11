@@ -58,7 +58,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
     : "bg-white/90 backdrop-blur-xl";
 
   const isUser = authState && authState !== "guest";
-  const isSuperuser = Boolean(isUser && authState.is_superuser === true);
+  const canAccessAtlas = Boolean(isUser && (authState.is_superuser === true || authState.can_access_atlas === true));
 
   return (
     <header className={`sticky top-0 z-50 border-b ${borderCls} ${bgCls}`}>
@@ -99,7 +99,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               { label: t("Atlas", "Atlas"), href: "/atlas/", external: false, atlas: true },
             ].map((item) =>
               item.atlas ? (
-                isSuperuser && (
+                canAccessAtlas && (
                   <button
                     key={item.label}
                     type="button"
@@ -239,7 +239,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               >
                 {t("(주)옴니노드", "Omninode Inc.")}
               </a>
-              {isSuperuser && (
+              {canAccessAtlas && (
                 <button
                   type="button"
                   onClick={handleAtlasClick}

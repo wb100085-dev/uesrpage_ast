@@ -76,6 +76,30 @@ function navbar({ cachedUser = null, token = cachedUser ? 'test-token' : null, l
   };
 }
 
+test('서버가 Atlas 접근을 허용한 일반 계정은 PC·모바일 메뉴를 사용할 수 있다', () => {
+  const app = navbar({ cachedUser: { email: 'onlymindy1@gmail.com', is_superuser: false, can_access_atlas: true } });
+  app.mount();
+  app.openMobile();
+  assert.equal(app.menu().length, 2);
+  for (const menu of app.menu()) menu.props.onClick();
+  assert.deepEqual(app.navigations, ['/atlas/', '/atlas/']);
+  app.updateSession({ is_superuser: false, can_access_atlas: false });
+  app.openMobile();
+  assert.equal(app.menu().length, 0);
+});
+
+test('초대 권한도 로그인 토큰과 엄격한 true를 요구한다', () => {
+  for (const options of [
+    { cachedUser: { can_access_atlas: true }, token: null },
+    ...[false, 'true', 1, undefined].map(can_access_atlas => ({ cachedUser: { is_superuser: false, can_access_atlas } })),
+  ]) {
+    const app = navbar(options);
+    app.mount();
+    app.openMobile();
+    assert.equal(app.menu().length, 0);
+  }
+});
+
 test('hydration 전에는 캐시가 슈퍼계정이어도 두 메뉴에 Atlas를 렌더링하지 않는다', () => {
   const app = navbar({ cachedUser: { is_superuser: true } });
   app.openMobile();

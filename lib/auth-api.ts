@@ -97,6 +97,8 @@ export interface AuthUser {
   is_active?: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
+  /** 서버에서 판정한 Atlas 전용 이용 권한. 관리자 권한과 별개. */
+  can_access_atlas?: boolean;
   date_joined?: string | null;
   last_login?: string | null;
 }
