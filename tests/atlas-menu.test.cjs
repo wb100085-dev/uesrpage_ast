@@ -61,7 +61,7 @@ function navbar({ cachedUser = null, token = cachedUser ? 'test-token' : null, l
     '@/lib/analytics': { trackEvent() { throw new Error('기존 분석 이벤트를 호출하면 안 됨'); } },
   });
   const render = () => { cursor = 0; const nodes = elements(Navbar({})); rendered = true; return nodes; };
-  const menu = () => render().filter(node => node.type === 'button' && node.props.children === (lang === 'en' ? 'Atlas' : '아틀란스'));
+  const menu = () => render().filter(node => node.type === 'button' && node.props.children === 'Atlas');
   const flush = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); };
   const mount = () => { render(); effects.forEach(effect => cleanups.push(effect())); };
   const openMobile = () => render().find(node => node.props?.['aria-label'] === (lang === 'en' ? 'Menu' : '메뉴')).props.onClick();
@@ -116,7 +116,7 @@ test('캐시 슈퍼계정의 두 메뉴는 옴니노드 뒤에 표시되고 /atl
   app.mount();
   app.openMobile();
   const nodes = app.render();
-  const menus = nodes.filter(node => node.type === 'button' && node.props.children === '아틀란스');
+  const menus = nodes.filter(node => node.type === 'button' && node.props.children === 'Atlas');
   assert.equal(menus.length, 2);
   assert.match(menus[0].props.className, /hidden lg:inline/);
   const items = nodes.filter(node => ['a', 'button'].includes(node.type));
@@ -129,6 +129,8 @@ test('캐시 슈퍼계정의 두 메뉴는 옴니노드 뒤에 표시되고 /atl
   assert.ok(!app.render().some(node => node.props?.role === 'status'));
   const en = navbar({ lang: 'en', cachedUser: { is_superuser: true } });
   en.mount();
+  en.openMobile();
+  assert.equal(en.menu().length, 2);
   assert.equal(en.menu()[0].props.children, 'Atlas');
 });
 

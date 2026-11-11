@@ -96,7 +96,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
               { label: t("활용", "Use cases"), href: "/#use-cases", external: false },
               { label: t("요금 안내", "Pricing"), href: "/pricing", external: false },
               { label: t("(주)옴니노드", "Omninode Inc."), href: "https://www.omninode.kr", external: true },
-              { label: t("아틀란스", "Atlas"), href: "/atlas/", external: false, atlas: true },
+              { label: t("Atlas", "Atlas"), href: "/atlas/", external: false, atlas: true },
             ].map((item) =>
               item.atlas ? (
                 isSuperuser && (
@@ -245,7 +245,7 @@ export default function Navbar({ dark = false, appMode = false }: { dark?: boole
                   onClick={handleAtlasClick}
                   className={`text-sm font-medium text-left ${linkCls}`}
                 >
-                  {t("아틀란스", "Atlas")}
+                  {t("Atlas", "Atlas")}
                 </button>
               )}
             </>
